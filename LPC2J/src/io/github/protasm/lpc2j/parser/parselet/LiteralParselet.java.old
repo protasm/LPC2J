@@ -1,0 +1,30 @@
+package parser.parselet;
+
+import static compiler.C_OpCode.OP_FALSE;
+import static compiler.C_OpCode.OP_NIL;
+import static compiler.C_OpCode.OP_TRUE;
+
+import compiler.C_Compiler;
+import parser.Parser;
+
+public class LiteralParselet implements Parselet {
+  //parse(Parser, C_Compiler, boolean)
+  public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
+    switch (parser.previous().type()) {
+      case TOKEN_FALSE:
+        compiler.emitCode(OP_FALSE);
+
+        break;
+      case TOKEN_NIL:
+        compiler.emitCode(OP_NIL);
+
+        break;
+      case TOKEN_TRUE:
+        compiler.emitCode(OP_TRUE);
+
+        break;
+      default: //Unreachable
+        return;
+    }
+  }
+}

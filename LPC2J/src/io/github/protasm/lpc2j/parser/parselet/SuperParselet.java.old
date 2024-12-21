@@ -1,0 +1,42 @@
+package parser.parselet;
+
+import static compiler.C_OpCode.OP_GET_LOCAL;
+import static compiler.C_OpCode.OP_SUPER_INVOKE;
+import static scanner.TokenType.TOKEN_IDENTIFIER;
+import static scanner.TokenType.TOKEN_LEFT_PAREN;
+
+import compiler.C_Compiler;
+import parser.Parser;
+
+public class SuperParselet implements Parselet {
+  //parse(Parser, C_Compiler, boolean)
+  public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
+    //if (compiler.currentClass() == null)
+      //parser.error("Can't use 'super' outside of a class.");
+    //else if (!(compiler.currentClass().hasSuperclass()))
+      //parser.error("Can't use 'super' in a class with no superclass.");
+
+    //parser.consume(TOKEN_DOT, "Expect '.' after 'super'.");
+
+    parser.consume(TOKEN_IDENTIFIER, "Expect inherited method name.");
+
+    //inherited method name
+    int index = compiler.emitConstant(parser.previous().lexeme());
+
+    //load inheriting LPC object (from locals)
+//    compiler.namedVariable(compiler.syntheticToken("this"), false);
+    compiler.emitCode(OP_GET_LOCAL);
+    compiler.emitCode(0x00); //TODO:  reliable?
+
+    parser.consume(TOKEN_LEFT_PAREN, "Expect left parentheses after method name.");
+
+    int argCount = compiler.argumentList();
+    
+    //load inherited LPC object (from inheriting object properties)
+//    compiler.namedVariable(compiler.syntheticToken("super"), false);
+
+    compiler.emitCode(OP_SUPER_INVOKE);
+    compiler.emitCode(index); //constants index
+    compiler.emitCode(argCount);
+  }
+}

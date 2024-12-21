@@ -1,0 +1,25 @@
+package parser.parselet;
+
+import static compiler.C_OpCode.OP_JUMP;
+import static compiler.C_OpCode.OP_JUMP_IF_FALSE;
+import static compiler.C_OpCode.OP_POP;
+import static parser.Parser.Precedence.PREC_OR;
+
+import compiler.C_Compiler;
+import parser.Parser;
+
+public class OrParselet implements Parselet {
+  //parse(Parser, C_Compiler, boolean)
+  public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
+    int elseJump = compiler.emitJump(OP_JUMP_IF_FALSE);
+    int endJump = compiler.emitJump(OP_JUMP);
+
+    compiler.patchJump(elseJump);
+    
+    compiler.emitCode(OP_POP);
+
+    parser.parsePrecedence(PREC_OR);
+    
+    compiler.patchJump(endJump);
+  }
+}

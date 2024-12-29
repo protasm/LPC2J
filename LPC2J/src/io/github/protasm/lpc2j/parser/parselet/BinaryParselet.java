@@ -6,62 +6,33 @@ import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.TokenType;
 
 public class BinaryParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
-  public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
-    TokenType operatorType = parser.previous().type();
-    ParseRule rule = parser.getRule(operatorType);
+	@Override
+	public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+		TokenType operatorType = parser.previous().type();
+		ParseRule rule = parser.getRule(operatorType);
 
-    //compile the second operand
-    parser.parsePrecedence(rule.precedence() + 1);
+		// evaluate and load RHS operand
+		parser.parsePrecedence(rule.precedence() + 1);
 
-    switch (operatorType) {
-//      case TOKEN_BANG_EQUAL:
-//        compiler.emitCode(OP_EQUAL);
-//        compiler.emitCode(OP_NOT);
-//
-//        break;
-//      case TOKEN_EQUAL_EQUAL:
-//        compiler.emitCode(OP_EQUAL);
-//
-//        break;
-//      case TOKEN_GREATER:
-//        compiler.emitCode(OP_GREATER);
-//
-//        break;
-//      case TOKEN_GREATER_EQUAL:
-//        compiler.emitCode(OP_LESS);
-//        compiler.emitCode(OP_NOT);
-//
-//        break;
-//      case TOKEN_LESS:
-//        compiler.emitCode(OP_LESS);
-//
-//        break;
-//      case TOKEN_LESS_EQUAL:
-//        compiler.emitCode(OP_GREATER);
-//        compiler.emitCode(OP_NOT);
-//
-//        break;
-//      case TOKEN_PLUS:
-//        compiler.addition()
-//
-//        break;
-      case TOKEN_MINUS:
-        
+		switch (operatorType) {
+		case TOKEN_PLUS:
+			compiler.binaryOp(LPC2J.Operation.ADD);
 
-        break;
-//      case TOKEN_STAR:
-//        compiler.multiplication();
-//
-//        break;
-//      case TOKEN_SLASH:
-//        compiler.division();
-//
-//        break;
-//      case TOKEN_PLUS_EQUAL:
-//        break;
-      default:  //Unreachable
-        return;
-    }
-  }
-} //BinaryParselet
+			break;
+		case TOKEN_MINUS:
+			compiler.binaryOp(LPC2J.Operation.SUB);
+
+			break;
+		case TOKEN_STAR:
+			compiler.binaryOp(LPC2J.Operation.MULT);
+
+			break;
+		case TOKEN_SLASH:
+			compiler.binaryOp(LPC2J.Operation.DIV);
+
+			break;
+		default:
+			return;
+		}
+	}
+}

@@ -2,10 +2,13 @@ package io.github.protasm.lpc2j.parser.parselet;
 
 import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.scanner.Token;
 
 public class VariableParselet implements Parselet {
-  //parse(Parser, LPC2J, boolean)
-  public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
-    compiler.namedVariable(parser.previous(), canAssign);
-  }
+	@Override
+	public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+		Token nameToken = compiler.parser().previous();
+
+		compiler.variable(nameToken.lexeme(), canAssign);
+	}
 }

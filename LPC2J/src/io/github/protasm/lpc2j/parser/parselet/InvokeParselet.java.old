@@ -8,16 +8,16 @@ import compiler.C_Compiler;
 import parser.Parser;
 
 public class InvokeParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
+  
   public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
     parser.consume(TOKEN_IDENTIFIER, "Expect method name after '->'.");
 
-    //method name
+    
     int op1 = compiler.emitConstant(parser.previous().lexeme());
 
     parser.consume(TOKEN_LEFT_PAREN, "Expect left parentheses after method name.");
 
-    //arg count
+    
     int op2 = compiler.argumentList();
 
     compiler.emitCode(OP_INVOKE);

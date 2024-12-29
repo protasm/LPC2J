@@ -1,821 +1,546 @@
 package io.github.protasm.lpc2j;
 
-import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class LPC2J {
-  private static final Map<String, J_Type> javaTypeForLPCType;
-
-  static {
-    javaTypeForLPCType = new HashMap<>();
+	public static enum Operation {
+		ADD, SUB, MULT, DIV, GT, LT,
+	}
 
-    javaTypeForLPCType.put("int",    J_Type.INT);
-    javaTypeForLPCType.put("float",  J_Type.FLOAT);
-    javaTypeForLPCType.put("status", J_Type.BOOLEAN);
-    javaTypeForLPCType.put("string", J_Type.STRING);
-    javaTypeForLPCType.put("void",   J_Type.VOID);
-  }
+	private String sysIncludePath;
+	private String quoteIncludePath;
 
-  private Parser parser;
-  private C_MethodBuilder builder;
-  private ClassWriter cw;
+	private ClassBuilder cb;
 
-  //parser()
-  public Parser parser() {
-    return this.parser;
-  }
+	private Parser parser;
+	private List<FieldInitializer> fieldInitializers;
 
-  //compile(String, String, String)
-  public byte[] compile(String sourcePath, String sysInclude, String quoteInclude) throws IOException {
-    Path path = Paths.get(sourcePath);
-    String fileName = path.getFileName().toString();
-    String filePrefix = fileName.substring(0, fileName.lastIndexOf(".lpc"));
-    String source = Files.readString(path);
+	public LPC2J(String sysIncludePath, String quoteIncludePath) {
+		this.sysIncludePath = sysIncludePath;
+		this.quoteIncludePath = quoteIncludePath;
+	}
 
-    parser = new Parser(this, source, sysInclude, quoteInclude);
-    cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+	public LPC2J() {
+		this(".", ".");
+	}
 
-    //advance to the first non-error Token (or EOF)
-    parser.advance();
+	public ClassBuilder cb() {
+		return cb;
+	}
 
-    //loop inherit declarations until exhausted
-    //while(parser.match(TOKEN_INHERIT))
-      //inherit();
-
-    //loop member declarations until EOF
-    while (!parser.match(TOKEN_EOF))
-      member();
+	public Parser parser() {
+		return parser;
+	}
 
-    cw.visitEnd();
+	public byte[] compile(SourceFile sourceFile) throws IOException {
+		cb = new ClassBuilder(sourceFile.className());
 
-    return cw.toByteArray();
-  } //compile(String, String, String)
+		Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
+		parser = new Parser(this, scanner.scan());
+		fieldInitializers = new ArrayList<>();
 
-/*
-  //inherit()
-  private void inherit() {
-    parser.consume(TOKEN_STRING, "Expect inherited object name.");
+		parser.advance(); // to first token
 
-    int index = emitConstant(parser.previous().literal());
+		while (!parser.match(TOKEN_EOF)) {
+			member();
+		}
 
-    parser.consume(TOKEN_SEMICOLON, "Expect semicolon after inherited object name.");
+		constructor();
 
-//    if (identifiersEqual(classToken, parser.previous()))
-//      error("A class can't inherit from itself.");
+		cb.finish();
 
-//    if (currScope.locals().size() >= Props.instance().getInt("MAX_SIGNED_BYTE")) {
-//      parser.error("Too many local variables in function.");
-//
-//      return;
-//    }
+		return cb.bytes();
+	}
 
-    //Record existence of local variable.
-    //Token token = syntheticToken("super"));
-//    currScope.locals().push(new Local(token, -1));
+	private void member() {
+		Token typeToken = parser.parseType("Expect member type.");
+		Token nameToken = parser.parseVariable("Expect member name.");
 
-//    defineVariable(0x00);
+		if (parser.check(TOKEN_LEFT_PAREN))
+			method(typeToken, nameToken);
+		else
+			field(typeToken, nameToken);
 
-//    namedVariable(classToken, false);
-      
-    //emitCode(OP_COMPILE);
-    //emitCode(index);
+		if (parser.panicMode())
+			parser.synchronize();
+	}
 
-    //emitCode(OP_INHERIT);
+	private void field(Token typeToken, Token nameToken) {
+		String name = nameToken.lexeme();
+		String lpcType = typeToken.lexeme();
+		J_Type jType = J_Type.jTypeForLPCType(lpcType);
+		Variable jVar = new Variable(jType, name);
 
-//    currentClass.setHasSuperclass(true);
-  } //inherit()
-*/
+		cb.field(name, jVar.desc());
+		cb.addField(jVar);
 
-  //member()
-  private void member() {
-    Token typeToken = parseType("Expect member type.");
-    Token nameToken = parseVariable("Expect member name.");
+		if (parser.match(TOKEN_EQUAL)) {
+			List<Token> initTokens = new ArrayList<>();
 
-    if (!parser.check(TOKEN_LEFT_PAREN)) //field
-      fieldDeclaration(typeToken, nameToken);
-    else //method
-      methodDeclaration(typeToken, nameToken);
+			initTokens.add(new Token(TOKEN_EQUAL));
+			initTokens.addAll(parser.collectUntil(Arrays.asList(TOKEN_SEMICOLON, TOKEN_COMMA)));
+			initTokens.add(new Token(TOKEN_EOF));
 
-    if (parser.panicMode())
-      parser.synchronize();
-  } //member()
+			FieldInitializer fi = new FieldInitializer(typeToken, nameToken, initTokens);
 
-  //declaration()
-  private void declaration() {
-    if (parser.check(TOKEN_TYPE)) { //variable
-      Token typeToken = parser.previous();
-      Token nameToken = parseVariable("Expect variable name.");
+			fieldInitializers.add(fi);
+		}
 
-      varDeclaration(typeToken, nameToken);
-    } else
-      statement();
+		if (parser.match(TOKEN_COMMA)) {
+			nameToken = parser.parseVariable("Expect field name.");
 
-    if (parser.panicMode())
-      parser.synchronize();
-  } //declaration()
+			field(typeToken, nameToken);
 
-  //parseType(String)
-  private Token parseType(String errorMessage) {
-    //parser.match(TOKEN_STAR); //temp
-    parser.consume(TOKEN_TYPE, errorMessage);
+			return;
+		}
 
-    return parser.previous();
-  } //parseType(String)
+		parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
+	}
 
-  //parseVariable(String)
-  private Token parseVariable(String errorMessage) {
-    parser.consume(TOKEN_IDENTIFIER, errorMessage);
-
-    Token token = parser.previous();
+	private void constructor() {
+		cb.constructor();
 
-    if (
-      builder != null &&
-      builder.scopeDepth() > 0
-    )
-      declareLocalVar(token);
-
-    return token;
-  } //parseVariable(String)
-
-  //fieldDeclaration(Token, Token)
-  private void fieldDeclaration(Token typeToken, Token nameToken) {
-    J_Type type = LPC2J.javaTypeForLPCType.get(typeToken.lexeme());
-    String name = nameToken.lexeme();
-    J_Field field = new J_Field(this.classFile, name, type);
-
-    this.classFile.add(field);
-
-    if (parser.match(TOKEN_EQUAL)) {
-      //compile field initialization code into this.<init>
-      this.builder = new C_MethodBuilder(this.classFile.initMethod());
-
-      emitLoadThis();
-
-      expression(); //leaves expression value on stack
+		for (FieldInitializer fi : fieldInitializers) {
+			String name = fi.nameToken().lexeme();
+			Variable field = cb.getField(name);
 
-      char idx = this.classFile.getRef(field);
-
-      emitPutField(idx);
-    }
-
-    //handle field declarations of the form:
-    //int x = 99, y, z = 1;
-    if (parser.match(TOKEN_COMMA)) {
-      nameToken = parseVariable("Expect field name.");
-      
-      fieldDeclaration(typeToken, nameToken);
+			parser = new Parser(this, fi.initTokens());
 
-      return;
-    }
+			parser.advance(); // to first token
+			parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
 
-    parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
-  } //fieldDeclaration(Token, Token)
+			cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
 
-  //varDeclaration(Token, Token)
-  private void varDeclaration(Token typeToken, Token nameToken) {
-    J_Type type = LPC2J.javaTypeForLPCType.get(typeToken.lexeme());
-    String name = nameToken.lexeme();
+			expression();
 
-    //this.classFile.cp().addField(name, type);
+			cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+		}
 
-    if (parser.match(TOKEN_EQUAL)) {
-      expression(); //leaves expression value on stack
+		cb.mb().emitInstr(InstrType.RETURN);
 
-      //this.classVar.initField(name);
-    }
+		cb.mb().finish();
+	}
 
-    //handle variable declarations of the form:
-    //int x = 99, y, z = 1;
-    if (parser.match(TOKEN_COMMA)) {
-      nameToken = parseVariable("Expect variable name.");
-      
-      varDeclaration(typeToken, nameToken);
+	private void method(Token typeToken, Token nameToken) {
+		String name = nameToken.lexeme();
+		String lpcType = typeToken.lexeme();
+		J_Type jType = J_Type.jTypeForLPCType(lpcType);
+		String desc = J_Type.jDescForLPCType(lpcType);
+		List<Local> params = new ArrayList<>();
 
-      return;
-    }
+		parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-    parser.consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration(s).");
-  } //varDeclaration(Token, Token)
+		if (parser.match(TOKEN_RIGHT_PAREN))
+			desc = "()" + desc;
+		else
+			desc = parameters(params) + desc;
 
-  //declareLocalVar(Token)
-  private void declareLocalVar(Token token) {
-    //A local variable is "declared" when it is added to the
-    //current scope.
-    if (builder.hasLocal(token))
-      parser.error("Already a variable with this name in this scope.");
+		cb.method(jType, name, desc);
 
-    //Record existence of local variable, with sentinel (-1)
-    //scopeDepth to mark it uninitialized
-    C_Local local = new C_Local(token, -1);
+		for (Local param : params)
+			cb.mb().addLocal(param, true);
 
-    builder.addLocal(local);
-  } //declareLocalVar(Token)
+		parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
 
-  //defineVariable()
-  private void defineVariable() {
-    if (builder.scopeDepth() > 0) //local var
-    //A local variable is "defined" and becomes available
-    //for use when it is marked initialized.
-      builder.markTopLocalInitialized(builder.scopeDepth());
-
-      //No instructions needed to "create a local
-      //variable" at runtime; it's just the value
-      //on top of the stack.
-    //} else if (currScope.compilation().type() == TYPE_SCRIPT) { //global var
-      //emitCode(OP_DEF_GLOBAL);
-      //emitCode(index);
-    //}
-  } //defineVariable()
+		block(); // Consumes the right brace
 
-  //expression()
-  public void expression() {
-    parser.parsePrecedence(PREC_ASSIGNMENT);
-  } //expression()
+		cb.mb().finish();
+	}
 
-  //methodDeclaration(Token, Token)
-  private void methodDeclaration(Token typeToken, Token nameToken) {
-    J_Type type = LPC2J.javaTypeForLPCType.get(typeToken.lexeme());
-    String name = nameToken.lexeme();
-
-    J_Method method = new J_Method(this.classFile, name, type);
-    C_MethodBuilder builder = new C_MethodBuilder(method);
-    this.builder = builder;
-
-    //Method declaration's variable is marked "initialized"
-    //before compiling the body so that the name can be
-    //referenced inside the body without generating an error;
-    //e.g., for nested, looping methods
-    this.builder.markTopLocalInitialized(0);
-
-    beginScope();
-
-    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
-
-    if (!parser.check(TOKEN_RIGHT_PAREN))
-      do { //multiple parameters
-        Token paramTypeToken = parseType("Expect parameter type.");
-        parseVariable("Expect parameter name."); //discarded
-
-        J_Type paramType = LPC2J.javaTypeForLPCType.get(paramTypeToken.lexeme());
-
-        method.addParamType(paramType);
-
-        defineVariable(); //mark parameter initialized
-      } while (parser.match(TOKEN_COMMA));
-
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method parameters.");
-    parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
-
-    block(); //consumes right brace
-
-    //No call to endScope() needed here; builder will be discarded
-
-    //add an implicit return to every method
-    emitReturn(J_Type.VOID);
-
-    this.classFile.add(method);
-    this.builder = null;
-  } //methodDeclaration(Token, Token)
-
-  //namedVariable(Token, boolean)
-  public void namedVariable(Token token, boolean canAssign) {
-	if (resolveLocal(token.lexeme()) != -1) { //local
-      namedLocal(token, canAssign);
-    } else if (this.classFile.hasField(token.lexeme())) { //field
-      namedField(token.lexeme(), canAssign);
-    } else { //global
-//      namedGlobal(token, canAssign);
-    }
-  } //namedVariable(Token, boolean)
-
-  //resolveLocal(String)
-  private int resolveLocal(String name) {
-	if (this.builder == null) return -1;
-
-    //traverse locals backward, looking for a match
-    for (int i = builder.locals().size() - 1; i >= 0; i--) {
-      C_Local local = builder.locals().get(i);
-
-      if (name.equals(local.token().lexeme())) {  //found match
-        if (local.scopeDepth() == -1) //"sentinel" depth
-          parser.error("Can't read local variable in its own initializer.");
-
-        return i; //runtime stack position of matching local
-      }
-    }
-
-    //No match; not a local.
-    return -1;
-  } //resolveLocal(String)
-
-  //namedLocal(Token, boolean)
-  private void namedLocal(Token token, boolean canAssign) {
-    //TO DO
-  } //namedLocal(Token, boolean)
-
-  //namedField(String, boolean)
-  private void namedField(String name, boolean canAssign) {
-    if (canAssign && parser.match(TOKEN_EQUAL)) { //assignment
-      emitLoadThis();
-
-      expression(); //leaves expression value on stack
-
-      J_Field field = this.classFile.getField(name);
-      char idx = this.classFile.getRef(field);
-
-      emitPutField(idx);
-    }
-
-	/*
-	    else if (canAssign && parser.match(TOKEN_MINUS_EQUAL))
-	      compoundAssignment(getOp, setOp, OP_SUBTRACT, index);
-	    else if (canAssign && parser.match(TOKEN_PLUS_EQUAL))
-	      compoundAssignment(getOp, setOp, OP_ADD, index);
-	    else if (canAssign && parser.match(TOKEN_SLASH_EQUAL))
-	      compoundAssignment(getOp, setOp, OP_DIVIDE, index);
-	    else if (canAssign && parser.match(TOKEN_STAR_EQUAL))
-	      compoundAssignment(getOp, setOp, OP_MULTIPLY, index);
-	*/
-
-    else { //retrieval
-      emitLoadThis();
-      
-      J_Field field = this.classFile.getField(name);
-      char idx = this.classFile.getRef(field);
-      
-      emitGetField(idx);
-    }
-  } //namedField(String, boolean)
-
-/*
-  ///argumentList()
-  public int argumentList() {
-    int argCount = 0;
-
-    if (!parser.check(TOKEN_RIGHT_PAREN))
-      do {
-        expression();
-
-        argCount++;
-      } while (parser.match(TOKEN_COMMA));
-
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
-
-    return argCount;
-  }
-*/
-
-  //block()
-  private void block() {
-    while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF))
-      declaration();
-
-    parser.consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
-  } //block()
-
-/*
-  //compoundAssignment(byte, byte, byte, int index)
-  private void compoundAssignment(byte getOp, byte setOp, byte assignOp, int index) {
-    //emitCode(getOp);
-    //emitCode(index);
-
-    expression();
-
-    //emitCode(assignOp);
-
-    //emitCode(setOp);
-    //emitCode(index);
-  }
-*/
-
-  ///////////////////////////////////////////
-  // Emitters
-  ///////////////////////////////////////////
-  //emitOpCode(byte)
-  private void emitOpCode(byte opCode) {
-    this.builder.method().addOpCode(opCode);
-  } //emitOpCode(byte)
-  
-  //emitInstruction(J_Instruction)
-  private void emitInstruction(J_Instruction instr) {
-    this.builder.method().addInstruction(instr);
-  } //emitInstruction(J_Instruction)
-  
-  //emitLDC_W(char)
-  private void emitLDC_W(char idx) {
-    emitInstruction(
-      new J_Instruction(
-        J_OpCode.OP_LDC_W,
-        idx
-      )
-    );
-  } //emitLDC_W(char)
-  
-  //emitPutField(char)
-  private void emitPutField(char idx) {
-    emitInstruction(
-      new J_Instruction(
-        J_OpCode.OP_PUTFIELD,
-        idx
-      )
-    );
-  } //emitPutField(char)
-  
-  //emitGetField(char)
-  private void emitGetField(char idx) {
-    emitInstruction(
-      new J_Instruction(
-        J_OpCode.OP_GETFIELD,
-        idx
-      )
-    );
-  } //emitGetField(char)
-  
-  //emitLoadThis()
-  private void emitLoadThis() {
-    emitOpCode(J_OpCode.OP_ALOAD_0);
-  } //emitLoadThis()
-  
-  //emitPop()
-  private void emitPop() {
-    emitOpCode(J_OpCode.OP_POP);
-  } //emitPop()
-  
-  //emitReturn(J_Type)
-  private void emitReturn(J_Type type) {
-	switch(type) {
-	  case VOID:
-        emitOpCode(J_OpCode.OP_RETURN);
-        break;
-	  case STRING:
-	    emitOpCode(J_OpCode.OP_ARETURN);
-	    break;
-	  case INT:
-	    emitOpCode(J_OpCode.OP_IRETURN);
-	    break;
-	  case FLOAT:
-	    emitOpCode(J_OpCode.OP_FRETURN);
-	    break;
-      default:
-        break;
-	} //switch
-  } //emitReturn(J_Type)
-
-/*
-  //emitCode(byte code)
-  public void emitCode(byte code) {
-    if (parser.previous() == null) //may be null for "synthetic" operations
-      currInstrList().addCode(code);
-    else
-      currInstrList().addCode(code, parser.previous().line());
-  }
-*/
-
-/*
-  //emitConstant(Object)
-  public int emitConstant(Object constant) {
-    return currInstrList().add(constant);
-  }
-*/
-
-/*
-  //emitJump(byte)
-  public int emitJump(byte code) {
-    emitCode(code);
-    emitCode(0xFF); //placeholder, later backpatched
-
-    return currInstrList().codes().size() - 1;
-  }
-*/
-
-/*
-  //emitLoop(int)
-  private void emitLoop(int loopStart) {
-    int offset = currInstrList().codes().size() - loopStart + 2;
-
-    emitCode(OP_LOOP);
-    emitCode(offset);
-  }
-*/
-
-  //beginScope()
-  private void beginScope() {
-    builder.incScopeDepth();
-  } //beginScope()
-
-  //endScope()
-  private void endScope() {
-    builder.decScopeDepth();
-
-    //pop all locals belonging to the expiring scope
-    while (
-      !(this.builder.locals().isEmpty()) &&
-      this.builder.locals().peek().scopeDepth() > this.builder.scopeDepth()
-    ) {
-      emitPop();
-
-      this.builder.locals().pop();
-    } //while
-  } //endScope()
-
-  ///////////////////////////////////////////
-  // Parser Callbacks
-  ///////////////////////////////////////////
-
-  //literal(Token)
-  public void literal(Token token) {
-    switch (token.type()) {
-      case TOKEN_NIL:
-        emitOpCode(J_OpCode.OP_ACONST_NULL);
-        break;
-      case TOKEN_FALSE:
-        emitOpCode(J_OpCode.OP_ICONST_0);
-        break;
-      case TOKEN_TRUE:
-    	emitOpCode(J_OpCode.OP_ICONST_1);
-        break;
-      default: //Unreachable
-        break;
-    } //switch
-  } //literal(Token)
-
-  //lpcFloat(Float)
-  public void lpcFloat(Float value) {
-    J_Constant constant = J_Constant.newFloat(value);
-    char idx = this.classFile.cp().add(constant);
-
-    emitLDC_W(idx);
-  } //lpcFloat(Float)
-
-  //lpcInteger(Integer)
-  public void lpcInteger(Integer value) {
-    J_Constant constant = J_Constant.newInteger(value);
-    char idx = this.classFile.cp().add(constant);
-
-    emitLDC_W(idx);
-  } //lpcInteger(Integer)
-
-  //invalidNumber(Object)
-  public void invalidNumber(Object value) {
-    parser.error("Invalid number value.");
-  } //invalidNumber(Object)
-
-  //lpcString(String)
-  public void lpcString(String value) {
-    J_Constant constant = J_Constant.newUtf8(value);
-    char idx = this.classFile.cp().add(constant);
-
-    constant = J_Constant.newString(idx);
-    idx = this.classFile.cp().add(constant);
-
-    emitLDC_W(idx);
-  } //lpcString(String)
-
-  //expressionStatement()
-  private void expressionStatement() {
-    expression();
-
-    parser.consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-
-    //this.emitPop(); //needed?
-  } //expressionStatement()
-
-/*
-  //forStatement()
-  private void forStatement() {
-    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
-
-    //Initializer clause.
-    if (parser.match(TOKEN_SEMICOLON)) {
-      // No initializer.
-    } else if (parser.match(TOKEN_TYPE)) {
-      int index = parseVariable("Expect variable name.");
-
-      varDeclaration(index);
-    } else
-      expressionStatement();
-
-    int loopStart = currInstrList().codes().size();
-
-     //Condition clause.
-    int exitJump = -1;
-
-    if (!parser.match(TOKEN_SEMICOLON)) {
-      expression();
-
-      parser.consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
-
-      // Jump out of the loop if the condition is false.
-      //exitJump = emitJump(OP_JUMP_IF_FALSE);
-
-      //emitCode(OP_POP); // Condition.
-    }
-
-    //Increment clause.
-    if (!parser.match(TOKEN_RIGHT_PAREN)) {
-      int bodyJump = emitJump(OP_JUMP);
-      int incrementStart = currInstrList().codes().size();
-
-      expression();
-
-      //emitCode(OP_POP);
-
-      parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
-
-      //emitLoop(loopStart);
-
-      loopStart = incrementStart;
-
-      patchJump(bodyJump);
-    }
-
-    statement();
-
-    //emitLoop(loopStart);
-
-    if (exitJump != -1) {
-      patchJump(exitJump);
-
-      //emitCode(OP_POP); // Condition.
-    }
-
-    endScope();
-  }
-*/
-
-/*
-  //array()
-  public int array() {
-    int elementCount = 0;
-
-    if (!parser.check(TOKEN_RIGHT_BRACE))
-      do {
-        expression();
-      
-        elementCount++;
-      } while (parser.match(TOKEN_COMMA));
-
-    parser.consume(TOKEN_RIGHT_BRACE, "Expect '}' after array elements.");
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after array.");
-
-    return elementCount;
-  }
-*/
-
-/*
-  //mapping()
-  public int mapping() {
-    int elementCount = 0;
-
-    if (!parser.check(TOKEN_RIGHT_BRACKET))
-      do {
-        expression();
-
-        parser.consume(TOKEN_COLON, "Expect ':' after mapping key.");
-
-        expression();
-
-        elementCount++;
-      } while (parser.match(TOKEN_COMMA));
-
-    parser.consume(TOKEN_RIGHT_BRACKET, "Expect ']' after mapping entries.");
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after mapping.");
-
-    return elementCount;
-  }
-*/
-
-/*
-  //ifStatement()
-  private void ifStatement() {
-    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
-
-    expression();
-
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-
-    int thenJump = emitJump(OP_JUMP_IF_FALSE);
-
-    //emitCode(OP_POP);
-
-    statement();
-
-    //int elseJump = emitJump(OP_JUMP);
-
-    patchJump(thenJump);
-
-    //emitCode(OP_POP);
-
-    if (parser.match(TOKEN_ELSE)) statement();
-
-    patchJump(elseJump);
-  }
-*/
-
-/*
-  //patchJump(int)
-  public void patchJump(int offset) {
-    // -1 to adjust for the jump offset itself.
-    int jump = currInstrList().codes().size() - offset - 1;
-
-    currInstrList().codes().set(offset, (byte)jump);
-  }
-*/
-
-  //returnStatement()
-  private void returnStatement() {
-    if (this.builder == null)
-      parser.error("Can't return from top-level code.");
-
-    if (parser.match(TOKEN_SEMICOLON)) //no return value provided
-      if (this.builder.method().type() != J_Type.VOID)
-        parser.error("Missing return value.");
-      else
-        emitReturn(J_Type.VOID);
-    else { //handle return value
-      expression();
-
-      parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
-
-      emitReturn(this.builder.method().type());
-    } //if-else
-  } //returnStatement()
-
-  //statement()
-  private void statement() {
-//    if (parser.match(TOKEN_FOR))
-//      forStatement();
-//    else if (parser.match(TOKEN_IF))
-//      ifStatement();
-    if (parser.match(TOKEN_RETURN))
-      returnStatement();
-//    else if (parser.match(TOKEN_WHILE))
-//      whileStatement();
-    else if (parser.match(TOKEN_LEFT_BRACE)) {
-      beginScope();
-      
-      block();
-
-      endScope();
-    } else
-      expressionStatement();
-  } //statement()
-
-/*
-  //syntheticToken(String)
-  public Token syntheticToken(String text) {
-    return new Token(text);
-  }
-*/
-
-/*
-  //whileStatement()
-  private void whileStatement() {
-    int loopStart = currInstrList().codes().size();
-
-    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
-
-    expression();
-
-    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-
-    int exitJump = emitJump(OP_JUMP_IF_FALSE);
-
-    emitCode(OP_POP);
-
-    statement();
-
-    emitLoop(loopStart);
-
-    patchJump(exitJump);
-
-    emitCode(OP_POP);
-  }
-*/
-
-  public static void main(String[] args) throws IOException {
-    if (args.length != 1) {
-      System.out.println("Usage: LPC2J <path>");
-
-      return;
-    }
-
-    LPC2J compiler = new LPC2J();
-
-    byte[] bytes = compiler.compile(args[0], ".", ".");
-
-    System.out.println(bytes);
-  } //main(String[])
-} //LPC2J
+	private String parameters(List<Local> params) {
+		StringBuilder desc = new StringBuilder("(");
+
+		// First pass: Parse parameters and build the method descriptor
+		do {
+			Token typeToken = parser.parseType("Expect parameter type.");
+			Token nameToken = parser.parseVariable("Expect parameter name.");
+
+			String name = nameToken.lexeme();
+
+			if (params.stream().anyMatch(local -> name.equals(local.jVar().name()))) {
+				parser.error("Already a parameter with this name for this method.");
+			}
+
+			String lpcType = typeToken.lexeme();
+			J_Type jType = J_Type.jTypeForLPCType(lpcType);
+			Variable jVar = new Variable(jType, name);
+
+			params.add(new Local(jVar));
+
+			desc.append(J_Type.jDescForLPCType(lpcType));
+		} while (parser.match(TOKEN_COMMA));
+
+		parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method parameters.");
+
+		return desc.append(")").toString();
+	}
+
+	public void expression() {
+		parser.parsePrecedence(PREC_ASSIGNMENT);
+	}
+
+	public void variable(String name, boolean canAssign) {
+		int idx = slotForLocal(name);
+
+		if (idx != -1) // initialized local
+			if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+				cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
+
+				expression();
+
+				cb.mb().emitInstr(InstrType.LOC_STORE, idx);
+			} else // retrieval
+				cb.mb().emitInstr(InstrType.LOC_LOAD, idx);
+		else if (cb.hasField(name)) { // field
+			Variable field = cb.getField(name);
+
+			if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+				cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
+
+				expression();
+
+				cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+			} else // retrieval
+				cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
+		}
+//	    else if (resolveMethod(name)) //method
+//	      namedMethod(name);
+		// else if (resolveSuperMethod(name)) //superClass method
+		// namedSuperMethod(name);
+		else
+			parser.error("Unrecognized variable '" + name + "'.");
+	}
+
+	private void block() {
+		while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF))
+			declaration();
+
+		parser.consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+	}
+
+	private void declaration() {
+		if (parser.check(TOKEN_TYPE)) { // local
+			// parser.match(TOKEN_STAR); //temp
+			Token typeToken = parser.parseType("Expect local type.");
+
+			local(typeToken);
+		} else // statement
+			statement();
+
+		if (parser.panicMode())
+			parser.synchronize();
+	}
+
+	private void local(Token typeToken) {
+		do {
+			Token nameToken = parser.parseVariable("Expect local name.");
+			String name = nameToken.lexeme();
+
+			if (cb.mb().hasLocal(name))
+				parser.error("Already a local named '" + name + "' in this scope.");
+
+			String lpcType = typeToken.lexeme();
+			J_Type jType = J_Type.jTypeForLPCType(lpcType);
+			Variable jVar = new Variable(jType, name);
+
+			int idx = cb.mb().addLocal(new Local(jVar), true);
+
+			if (parser.match(TOKEN_EQUAL)) {
+				expression(); // leaves expression value on stack
+
+				cb.mb().emitInstr(InstrType.LOC_STORE, idx);
+			}
+		} while (parser.match(TOKEN_COMMA));
+
+		parser.consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration(s).");
+	}
+
+	private int slotForLocal(String name) {
+		// traverse locals backward, looking for a match
+		for (int i = cb.mb().locals().size() - 1; i >= 0; i--) {
+			Local local = cb.mb().locals().get(i);
+
+			if (name.equals(local.jVar().name())) { // found match
+				if (local.scopeDepth() == -1) // "sentinel" value
+					parser.error("Can't read local variable in its own initializer.");
+
+				return i; // runtime stack position of matching local
+			}
+		} // for
+
+		// No match; not a local.
+		return -1;
+	}
+
+	private void statement() {
+//	    if (parser.match(TOKEN_FOR))
+//	      forStatement();
+//	    else if (parser.match(TOKEN_IF))
+//	      ifStatement();
+//	    else if (parser.match(TOKEN_WHILE))
+//	      whileStatement();
+		if (parser.match(TOKEN_RETURN))
+			returnStatement();
+		else if (parser.match(TOKEN_LEFT_BRACE)) {
+			beginScope();
+
+			block();
+
+			endScope();
+		} else
+			expressionStatement();
+	}
+
+	private void returnStatement() {
+		if (parser.match(TOKEN_SEMICOLON)) // no return value provided
+			if (cb.mb().returnType() != J_Type.VOID)
+				parser.error("Missing return value.");
+			else
+				cb.mb().emitInstr(InstrType.RETURN);
+		else { // handle return value
+			expression();
+
+			parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+
+//	      emitReturn(this.builder.method().type());
+		} // if-else
+	}
+
+	private void expressionStatement() {
+		// An expression statement is an expression in a context where a
+		// statement is expected. Usually used to call a function or evaluate
+		// an assignment for its side effect. The expression is evaluated
+		// and the result is discarded.
+		expression();
+
+		parser.consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+
+		// Any necessary result-popping is handled by the instruction emitters.
+	}
+
+	private void beginScope() {
+		cb.mb().incScopeDepth();
+	}
+
+	private void endScope() {
+		cb.mb().decScopeDepth();
+
+		// pop all locals belonging to the expiring scope
+		while (!(cb.mb().locals().isEmpty()) && cb.mb().locals().peek().scopeDepth() > cb.mb().workingScopeDepth()) {
+			cb.mb().locals().pop();
+
+			cb.mb().emitInstr(InstrType.POP);
+		}
+	}
+
+	public void lpcFloat(Float value) {
+		cb.mb().emitInstr(InstrType.CONST_FLOAT, value);
+	}
+
+	public void lpcInteger(Integer value) {
+		cb.mb().emitInstr(InstrType.CONST_INT, value);
+	}
+
+	public void lpcString(String value) {
+		cb.mb().emitInstr(InstrType.CONST_STR, value);
+	}
+
+	public void negate() {
+		cb.mb().emitInstr(InstrType.NEGATE);
+	}
+
+	public void binaryOp(Operation op) {
+		cb.mb().emitInstr(InstrType.BINARY, op);
+
+		J_Type rhsType = cb.mb().operandTypes().pop();
+		J_Type lhsType = cb.mb().operandTypes().peek();
+
+		// leave LHS Type stacked; reused
+
+		switch (lhsType) {
+		case J_Type.INT:
+			switch (rhsType) {
+			case J_Type.INT:
+				switch (op) {
+				case ADD:
+					cb.mb().instr(Opcodes.IADD);
+					break;
+				case SUB:
+					cb.mb().instr(Opcodes.ISUB);
+					break;
+				case DIV:
+					cb.mb().instr(Opcodes.IDIV);
+					break;
+				case MULT:
+					cb.mb().instr(Opcodes.IMUL);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for INT and INT.");
+				}
+				break;
+			case J_Type.FLOAT:
+				cb.mb().instr(Opcodes.I2F);
+				switch (op) {
+				case ADD:
+					cb.mb().instr(Opcodes.FADD);
+					break;
+				case SUB:
+					cb.mb().instr(Opcodes.FSUB);
+					break;
+				case DIV:
+					cb.mb().instr(Opcodes.FDIV);
+					break;
+				case MULT:
+					cb.mb().instr(Opcodes.FMUL);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for INT and FLOAT.");
+				}
+				break;
+			case J_Type.STRING:
+				switch (op) {
+				case ADD:
+					cb.mb().mv().visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+					cb.mb().instr(Opcodes.DUP);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V",
+							false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(I)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
+							"()Ljava/lang/String;", false);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for INT and STRING.");
+				}
+				break;
+			default:
+				break;
+			}
+			break;
+		case J_Type.FLOAT:
+			switch (rhsType) {
+			case J_Type.INT:
+				cb.mb().instr(Opcodes.I2F);
+				switch (op) {
+				case ADD:
+					cb.mb().instr(Opcodes.FADD);
+					break;
+				case SUB:
+					cb.mb().instr(Opcodes.FSUB);
+					break;
+				case DIV:
+					cb.mb().instr(Opcodes.FDIV);
+					break;
+				case MULT:
+					cb.mb().instr(Opcodes.FMUL);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for FLOAT and INT.");
+				}
+				break;
+			case J_Type.FLOAT:
+				switch (op) {
+				case ADD:
+					cb.mb().instr(Opcodes.FADD);
+					break;
+				case SUB:
+					cb.mb().instr(Opcodes.FSUB);
+					break;
+				case DIV:
+					cb.mb().instr(Opcodes.FDIV);
+					break;
+				case MULT:
+					cb.mb().instr(Opcodes.FMUL);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for FLOAT and FLOAT.");
+				}
+				break;
+			case J_Type.STRING:
+				switch (op) {
+				case ADD:
+					cb.mb().mv().visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+					cb.mb().instr(Opcodes.DUP);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V",
+							false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(F)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
+							"()Ljava/lang/String;", false);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for FLOAT and STRING.");
+				}
+				break;
+			default:
+				break;
+			}
+			break;
+		case J_Type.STRING:
+			switch (rhsType) {
+			case J_Type.INT:
+			case J_Type.FLOAT:
+			case J_Type.STRING:
+				switch (op) {
+				case ADD:
+					cb.mb().mv().visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+					cb.mb().instr(Opcodes.DUP);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V",
+							false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+							"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+					cb.mb().mv().visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString",
+							"()Ljava/lang/String;", false);
+					break;
+				default:
+					throw new UnsupportedOperationException("Invalid operation for STRING.");
+				}
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	public static void main(String[] args) throws IOException {
+		if (args.length != 1) {
+			System.out.println("Usage: LPC2J <path>");
+
+			return;
+		}
+
+		LPC2J compiler = new LPC2J();
+		SourceFile sourceFile = new SourceFile(args[0]);
+
+		byte[] bytes = compiler.compile(sourceFile);
+
+		try (FileOutputStream fos = new FileOutputStream(sourceFile.outputPath())) {
+			fos.write(bytes);
+			System.out.println("Byte array written to: " + sourceFile.outputPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

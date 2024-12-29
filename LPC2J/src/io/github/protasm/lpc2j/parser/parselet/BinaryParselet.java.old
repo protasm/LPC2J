@@ -15,7 +15,7 @@ import parser.Parser;
 import scanner.TokenType;
 
 public class BinaryParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
+  
   public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
     TokenType operatorType = parser.previous().type();
     ParseRule rule = parser.getRule(operatorType);
@@ -68,7 +68,7 @@ public class BinaryParselet implements Parselet {
         break;
       case TOKEN_PLUS_EQUAL:
         break;
-      default:  //Unreachable
+      default:  
         return;
     }
   }

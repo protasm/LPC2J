@@ -1,31 +1,29 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static parser.Parser.Precedence.PREC_UNARY;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_UNARY;
 
-import compiler.C_Compiler;
-import compiler.J.J_OpCode;
-import parser.Parser;
-import scanner.TokenType;
+import io.github.protasm.lpc2j.LPC2J;
+import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.scanner.TokenType;
 
 public class UnaryParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
-  public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
-    TokenType operatorType = parser.previous().type();
 
-    // Compile the single operand.
-    parser.parsePrecedence(PREC_UNARY);
+	@Override
+	public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+		TokenType operatorType = parser.previous().type();
 
-    // Emit the operator instruction.
-    switch (operatorType) {
-      case TOKEN_BANG:
-//        compiler.not();
+		parser.parsePrecedence(PREC_UNARY);
 
-        break;
-      case TOKEN_MINUS:
-        
-        break;
-      default: //Unreachable
-        return;
-    } //switch
-  }
-} //UnaryParselet
+		switch (operatorType) {
+		case TOKEN_BANG:
+
+			break;
+		case TOKEN_MINUS:
+			compiler.negate();
+
+			break;
+		default:
+			return;
+		}
+	}
+}

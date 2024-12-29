@@ -11,19 +11,19 @@ import compiler.C_Compiler;
 import parser.Parser;
 
 public class LParenParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
+  
   public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
-    if (parser.match(TOKEN_LEFT_BRACE)) { //array
+    if (parser.match(TOKEN_LEFT_BRACE)) { 
       int elementCount = compiler.array();
       
       compiler.emitCode(OP_ARRAY);
       compiler.emitCode(elementCount);
-    } else if (parser.match(TOKEN_LEFT_BRACKET)) { //mapping
+    } else if (parser.match(TOKEN_LEFT_BRACKET)) { 
       int entryCount = compiler.mapping();
       
       compiler.emitCode(OP_MAPPING);
       compiler.emitCode(entryCount);
-    } else { //grouping
+    } else { 
       compiler.expression();
 
       parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");

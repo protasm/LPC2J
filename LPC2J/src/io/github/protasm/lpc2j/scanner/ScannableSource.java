@@ -1,162 +1,141 @@
 package io.github.protasm.lpc2j.scanner;
 
 public class ScannableSource {
-  private static final char EOL = '\n';
-  private static final char NULL_CHAR = '\0';
-  private String source;
-  private int head, tail;
-  private int line;
+	private static final char EOL = '\n';
+	private static final char NULL_CHAR = '\0';
+	private String source;
+	private int head, tail;
+	private int line;
 
-  // ScannableSource(String)
-  public ScannableSource(String source) {
-    this.source = source;
+	public ScannableSource(String source) {
+		this.source = source;
 
-    reset();
-  }
+		reset();
+	}
 
-  // advance()
-  public void advance() {
-    // This should be the only place head is incremented,
-    // to ensure that line is also incremented as needed.
-    if (peek() == EOL)
-      line++;
+	public void advance() {
 
-    head++;
-  }
+		if (peek() == EOL) {
+			line++;
+		}
 
-  // advancePast(char)
-  public boolean advancePast(char c) {
-    advanceTo(c);
+		head++;
+	}
 
-    advance();
+	public boolean advancePast(char c) {
+		advanceTo(c);
 
-    return atEnd();
-  }
+		advance();
 
-  // advanceTo(char)
-  public boolean advanceTo(char c) {
-    while (peek() != c && !atEnd())
-      advance();
+		return atEnd();
+	}
 
-    return !atEnd();
-  }
+	public boolean advanceTo(char c) {
+		while (peek() != c && !atEnd()) {
+			advance();
+		}
 
-  // atEnd()
-  public boolean atEnd() {
-    return head >= source.length();
-  }
+		return !atEnd();
+	}
 
-  // atStart()
-  public boolean atStart() {
-    return head == 0;
-  }
+	public boolean atEnd() {
+		return head >= source.length();
+	}
 
-  // consumeOneChar()
-  public char consumeOneChar() {
-    char c = peek();
+	public boolean atStart() {
+		return head == 0;
+	}
 
-    advance();
+	public char consumeOneChar() {
+		char c = peek();
 
-    return c;
-  }
+		advance();
 
-  // head()
-  public int head() {
-    return head;
-  }
+		return c;
+	}
 
-  // line()
-  public int line() {
-    return line;
-  }
+	public int head() {
+		return head;
+	}
 
-  // match()
-  public boolean match(char expected) {
-    if (peek() != expected)
-      return false;
+	public int line() {
+		return line;
+	}
 
-    advance();
+	public boolean match(char expected) {
+		if (peek() != expected) {
+			return false;
+		}
 
-    return true;
-  }
+		advance();
 
-  // nextCharOnLine()
-  public char nextCharOnLine() {
-    int scout = head;
-    char c;
+		return true;
+	}
 
-    do {
-      c = source.charAt(scout++);
-    } while (Character.isWhitespace(c));
+	public char nextCharOnLine() {
+		int scout = head;
+		char c;
 
-    return c;
-  }
+		do {
+			c = source.charAt(scout++);
+		} while (Character.isWhitespace(c));
 
-  // peek()
-  public char peek() {
-    if (atEnd())
-      return NULL_CHAR;
+		return c;
+	}
 
-    return source.charAt(head);
-  }
+	public char peek() {
+		if (atEnd()) {
+			return NULL_CHAR;
+		}
 
-  // peekNext()
-  public char peekNext() {
-    if (head + 1 >= source.length())
-      return NULL_CHAR;
+		return source.charAt(head);
+	}
 
-    return source.charAt(head + 1);
-  }
+	public char peekNext() {
+		if (head + 1 >= source.length()) {
+			return NULL_CHAR;
+		}
 
-  // peekPrev()
-  public char peekPrev() {
-    if (atStart() || atEnd())
-      return NULL_CHAR;
+		return source.charAt(head + 1);
+	}
 
-    return source.charAt(head - 1);
-  }
+	public char peekPrev() {
+		if (atStart() || atEnd()) {
+			return NULL_CHAR;
+		}
 
-  // read()
-  public String read() {
-    // Read string from tail (inclusive) through
-    // head (exclusive);
-    // E.g. "foobar".substring(2, 5) == "oba".
-    // If (tail == head) then this will return a
-    // zero-length string.
-    return source.substring(tail, head);
-  }
+		return source.charAt(head - 1);
+	}
 
-  // readTrimmed()
-  public String readTrimmed() {
-    return source.substring(tail + 1, head - 1);
-  }
+	public String read() {
 
-  // reset()
-  public void reset() {
-    head = 0;
-    tail = 0;
-    line = 1;
-  }
+		return source.substring(tail, head);
+	}
 
-  // source()
-  public String source() {
-    return source;
-  }
+	public String readTrimmed() {
+		return source.substring(tail + 1, head - 1);
+	}
 
-  // syncTailHead()
-  public void syncTailHead() {
-    tail = head;
-  }
+	public void reset() {
+		head = 0;
+		tail = 0;
+		line = 1;
+	}
 
-  // tail()
-  public int tail() {
-    return tail;
-  }
+	public String source() {
+		return source;
+	}
 
+	public void syncTailHead() {
+		tail = head;
+	}
 
-  //toString()
-  @Override
-  public String toString() {
-    return source;
-  }
+	public int tail() {
+		return tail;
+	}
+
+	@Override
+	public String toString() {
+		return source;
+	}
 }

@@ -1,344 +1,373 @@
 package io.github.protasm.lpc2j.scanner;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.*;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_BANG;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_BANG_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COLON;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DBL_AMP;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DBL_PIPE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DOT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ELSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ERROR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_FALSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_FOR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_GREATER;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_GREATER_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_IDENTIFIER;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_IF;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_INHERIT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_INVOKE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_BRACKET;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LESS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LESS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS_MINUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_NIL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_NUM_FLOAT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_NUM_INT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS_PLUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RETURN;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_BRACKET;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SEMICOLON;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SLASH;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SLASH_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STAR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STAR_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STRING;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SUPER;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TRUE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TYPE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_WHILE;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-//import debug.Debugger;
 import org.anarres.cpp.CppReader;
 import org.anarres.cpp.Preprocessor;
 import org.anarres.cpp.StringLexerSource;
 
-public class Scanner implements Iterator<Token> {
-  private static final char EOL = '\n';
-  private static final Map<String, TokenType> lpcTypes;
-  private static final Map<String, TokenType> reservedWords;
-  private static final Map<Character, TokenType> oneCharLexemes;
-  
-  private ScannableSource ss;
+public class Scanner {
+	private static final char EOL = '\n';
+	private static final Map<String, TokenType> lpcTypes;
+	private static final Map<String, TokenType> reservedWords;
+	private static final Map<Character, TokenType> oneCharLexemes;
 
-  static {
-    lpcTypes = new HashMap<>() {
-      private static final long serialVersionUID = 1L;
+	private ScannableSource ss;
 
-      {
-        // LPC Types.
-        put("int", TOKEN_TYPE);
-        put("float", TOKEN_TYPE);
-        put("mapping", TOKEN_TYPE);
-        put("mixed", TOKEN_TYPE);
-        put("object", TOKEN_TYPE);
-        put("status", TOKEN_TYPE);
-        put("string", TOKEN_TYPE);
-        put("void", TOKEN_TYPE);
-      }
-    };
+	static {
+		lpcTypes = new HashMap<>() {
+			private static final long serialVersionUID = 1L;
 
-    reservedWords = new HashMap<>() {
-      private static final long serialVersionUID = 1L;
+			{
 
-      {
-        // Keywords.
-        put("else", TOKEN_ELSE);
-        put("false", TOKEN_FALSE);
-        put("for", TOKEN_FOR);
-        put("if", TOKEN_IF);
-        put("inherit", TOKEN_INHERIT);
-        put("nil", TOKEN_NIL);
-        put("return", TOKEN_RETURN);
-//        put("this", TOKEN_THIS);
-        put("true", TOKEN_TRUE);
-        put("while", TOKEN_WHILE);
-      }
-    };
+				put("int", TOKEN_TYPE);
+				put("float", TOKEN_TYPE);
+				put("mapping", TOKEN_TYPE);
+				put("mixed", TOKEN_TYPE);
+				put("object", TOKEN_TYPE);
+				put("status", TOKEN_TYPE);
+				put("string", TOKEN_TYPE);
+				put("void", TOKEN_TYPE);
+			}
+		};
 
-    oneCharLexemes = new HashMap<>() {
-      private static final long serialVersionUID = 1L;
+		reservedWords = new HashMap<>() {
+			private static final long serialVersionUID = 1L;
 
-      {
-        put('(', TOKEN_LEFT_PAREN);
-        put(')', TOKEN_RIGHT_PAREN);
-        put('{', TOKEN_LEFT_BRACE);
-        put('}', TOKEN_RIGHT_BRACE);
-        put('[', TOKEN_LEFT_BRACKET);
-        put(']', TOKEN_RIGHT_BRACKET);
-        put('.', TOKEN_DOT);
-        put(',', TOKEN_COMMA);
-        put(';', TOKEN_SEMICOLON);
-      }
-    };
-  }
+			{
 
-  // Scanner(String, String, String)
-  public Scanner(String source, String sysPath, String quotePath) {
-    try (Preprocessor pp = new Preprocessor()) {
-      pp.addInput(new StringLexerSource(source, true));
-      pp.getSystemIncludePath().add(".");
-      
-      // Set Quote Include Path
-      List<String> quotePaths = new ArrayList<>();
-      quotePaths.add(quotePath);
-      pp.setQuoteIncludePath(quotePaths);
+				put("else", TOKEN_ELSE);
+				put("false", TOKEN_FALSE);
+				put("for", TOKEN_FOR);
+				put("if", TOKEN_IF);
+				put("inherit", TOKEN_INHERIT);
+				put("nil", TOKEN_NIL);
+				put("return", TOKEN_RETURN);
+				put("true", TOKEN_TRUE);
+				put("while", TOKEN_WHILE);
+			}
+		};
 
-      // Set System Include Path
-      List<String> systemPaths = new ArrayList<>();
-      systemPaths.add(sysPath);
-      pp.setSystemIncludePath(systemPaths);
+		oneCharLexemes = new HashMap<>() {
+			private static final long serialVersionUID = 1L;
 
-      try (CppReader reader = new CppReader(pp)) {
-		StringBuilder output = new StringBuilder();
+			{
 
-		int ch;
-		  
-		while ((ch = reader.read()) != -1) {
-		  output.append((char) ch);
+				put('(', TOKEN_LEFT_PAREN);
+				put(')', TOKEN_RIGHT_PAREN);
+				put('{', TOKEN_LEFT_BRACE);
+				put('}', TOKEN_RIGHT_BRACE);
+				put('[', TOKEN_LEFT_BRACKET);
+				put(']', TOKEN_RIGHT_BRACKET);
+				put('.', TOKEN_DOT);
+				put(',', TOKEN_COMMA);
+				put(';', TOKEN_SEMICOLON);
+			}
+		};
+	}
+
+	public Scanner(String source, String sysInclPath, String quoteInclPath) {
+		try (Preprocessor pp = new Preprocessor()) {
+			pp.addInput(new StringLexerSource(source, true));
+			pp.getSystemIncludePath().add(".");
+
+			List<String> systemPaths = new ArrayList<>();
+			systemPaths.add(sysInclPath);
+			pp.setSystemIncludePath(systemPaths);
+
+			List<String> quotePaths = new ArrayList<>();
+			quotePaths.add(quoteInclPath);
+			pp.setQuoteIncludePath(quotePaths);
+
+			try (CppReader reader = new CppReader(pp)) {
+				StringBuilder output = new StringBuilder();
+
+				int ch;
+
+				while ((ch = reader.read()) != -1) {
+					output.append((char) ch);
+				}
+
+				ss = new ScannableSource(output.toString());
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public List<Token> scan() {
+		List<Token> tokens = new ArrayList<>();
+
+		Token token;
+
+		do {
+			token = lexToken();
+
+			if (token != null) {
+				tokens.add(token);
+			}
+		} while (token == null || token.type() != TOKEN_EOF);
+
+		return tokens;
+	}
+
+	private Token lexToken() {
+		if (ss.atEnd()) {
+			return new Token(TOKEN_EOF, "", null, ss.line());
 		}
 
-		ss = new ScannableSource(output.toString());
-	  }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+		ss.syncTailHead();
 
-    //debugger.printSource(ss.toString());
+		char c = ss.consumeOneChar();
 
-    //debugger.printProgress("Scanner initialized");
-  }
+		if (oneCharLexemes.containsKey(c)) {
+			return makeToken(oneCharLexemes.get(c));
+		}
 
-  // lexToken()
-  public Token lexToken() {
-    if (ss.atEnd())
-      return new Token(TOKEN_EOF, "", null, ss.line());
+		if (isDigit(c)) {
+			return number();
+		}
 
-    ss.syncTailHead(); // reset (tail = head)
+		if (isAlpha(c)) {
+			return identifier();
+		}
 
-    char c = ss.consumeOneChar();
+		switch (c) {
+		case EOL:
+			return null;
+		case '"':
+			return string();
+		case '&':
+			if (ss.match('&')) {
+				return makeToken(TOKEN_DBL_AMP);
+			} else {
+				return unexpectedChar(c);
+			}
+		case '|':
+			if (ss.match('|')) {
+				return makeToken(TOKEN_DBL_PIPE);
+			} else {
+				return unexpectedChar(c);
+			}
+		case ':':
+			if (ss.match(':')) {
+				return makeToken(TOKEN_SUPER);
+			} else {
+				return makeToken(TOKEN_COLON);
+			}
+		case '-':
+			if (ss.match('-')) {
+				return makeToken(TOKEN_MINUS_MINUS);
+			} else if (ss.match('=')) {
+				return makeToken(TOKEN_MINUS_EQUAL);
+			} else if (ss.match('>')) {
+				return makeToken(TOKEN_INVOKE);
+			} else {
+				return makeToken(TOKEN_MINUS);
+			}
+		case '+':
+			if (ss.match('+')) {
+				return makeToken(TOKEN_PLUS_PLUS);
+			} else if (ss.match('=')) {
+				return makeToken(TOKEN_PLUS_EQUAL);
+			} else {
+				return makeToken(TOKEN_PLUS);
+			}
+		case '!':
+			return makeToken(ss.match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+		case '=':
+			return makeToken(ss.match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+		case '<':
+			return makeToken(ss.match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+		case '>':
+			return makeToken(ss.match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+		case '/':
+			if (ss.match('/')) {
+				return lineComment();
+			} else if (ss.match('*')) {
+				return blockComment();
+			} else if (ss.match('=')) {
+				return makeToken(TOKEN_SLASH_EQUAL);
+			} else {
+				return makeToken(TOKEN_SLASH);
+			}
+		case '*':
+			return makeToken(ss.match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
+		case ' ':
+		case '\r':
+		case '\t':
+			while (isWhitespace(ss.peek())) {
+				ss.advance();
+			}
 
-    // one-char lexeme
-    if (oneCharLexemes.containsKey(c))
-      return makeToken(oneCharLexemes.get(c));
+			return null;
+		default:
+			return unexpectedChar(c);
+		}
+	}
 
-    // number
-    if (isDigit(c))
-      return number();
+	private Token lineComment() {
+		ss.advanceTo(EOL);
 
-    // identifier
-    if (isAlpha(c))
-      return identifier();
+		return null;
+	}
 
-    // symbol
-    switch (c) {
-    case EOL:
-      return null;
-    case '"':
-      return string();
-    case '&':
-      if (ss.match('&'))
-        return makeToken(TOKEN_DBL_AMP);
-      else
-        return unexpectedChar(c);
-    case '|':
-      if (ss.match('|'))
-        return makeToken(TOKEN_DBL_PIPE);
-      else
-        return unexpectedChar(c);
-    case ':':
-      if (ss.match(':'))
-        return makeToken(TOKEN_SUPER);
-      else
-        return makeToken(TOKEN_COLON);
-    case '-':
-      if (ss.match('-'))
-        return makeToken(TOKEN_MINUS_MINUS);
-      else if (ss.match('='))
-        return makeToken(TOKEN_MINUS_EQUAL);
-      else if (ss.match('>'))
-        return makeToken(TOKEN_INVOKE);
-      else
-        return makeToken(TOKEN_MINUS);
-    case '+':
-      if (ss.match('+'))
-        return makeToken(TOKEN_PLUS_PLUS);
-      else if (ss.match('='))
-        return makeToken(TOKEN_PLUS_EQUAL);
-      else
-        return makeToken(TOKEN_PLUS);
-    case '!':
-      return makeToken(ss.match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
-    case '=':
-      return makeToken(ss.match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
-    case '<':
-      return makeToken(ss.match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-    case '>':
-      return makeToken(ss.match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
-    case '/':
-      if (ss.match('/'))
-        return lineComment();
-      else if (ss.match('*'))
-        return blockComment();
-      else if (ss.match('='))
-        return makeToken(TOKEN_SLASH_EQUAL);
-      else
-        return makeToken(TOKEN_SLASH);
-    case '*':
-      return makeToken(ss.match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
-    case ' ':
-    case '\r':
-    case '\t':
-      while (isWhitespace(ss.peek()))
-        ss.advance(); // fast-forward through whitespace
+	private Token blockComment() {
+		while (!ss.atEnd()) {
+			ss.advanceTo('*');
 
-      return null;
-    default:
-      return unexpectedChar(c);
-    } // switch
-  }
+			if (ss.peekPrev() == '/') {
+				return errorToken("Nested block comment");
+			}
 
-  // lineComment()
-  private Token lineComment() {
-    ss.advanceTo(EOL);
+			ss.advance();
 
-    return null;
-  }
+			if (ss.match('/')) {
+				return null;
+			}
+		}
 
-  // blockComment()
-  private Token blockComment() {
-    while (!ss.atEnd()) {
-      ss.advanceTo('*');
+		return errorToken("Unterminated block comment.");
+	}
 
-      if (ss.peekPrev() == '/')
-        return errorToken("Nested block comment");
+	private Token identifier() {
+		while (isAlphaNumeric(ss.peek())) {
+			ss.advance();
+		}
 
-      ss.advance();
+		String str = ss.read();
 
-      if (ss.match('/'))
-        return null;
-    } // while
+		TokenType type = lpcTypes.get(str);
 
-    // Error if we get here.
-    return errorToken("Unterminated block comment.");
-  }
+		if (type == null) {
 
-  // identifier()
-  private Token identifier() {
-    while (isAlphaNumeric(ss.peek()))
-      ss.advance();
+			type = reservedWords.get(str);
+		}
 
-    String str = ss.read();
+		if (type == null) {
 
-    // check LPC types first
-    TokenType type = lpcTypes.get(str);
+			type = TOKEN_IDENTIFIER;
+		}
 
-    if (type == null)
-      // check reserved words next
-      type = reservedWords.get(str);
+		return makeToken(type);
+	}
 
-    if (type == null)
-      // treat as identifier
-      type = TOKEN_IDENTIFIER;
+	private Token number() {
+		boolean isFloat = false;
 
-    return makeToken(type);
-  }
+		while (isDigit(ss.peek())) {
+			ss.advance();
+		}
 
-  // number()
-  private Token number() {
-	boolean isFloat = false;
+		if (ss.peek() == '.' && isDigit(ss.peekNext())) {
+			isFloat = true;
 
-    while (isDigit(ss.peek()))
-      ss.advance();
+			ss.advance();
 
-    // Look for a fractional part.
-    if (ss.peek() == '.' && isDigit(ss.peekNext())) {
-      isFloat = true;
+			while (isDigit(ss.peek())) {
+				ss.advance();
+			}
+		}
 
-      ss.advance(); // consume the '.'
+		if (isFloat) {
+			return makeToken(TOKEN_NUM_FLOAT, Float.parseFloat(ss.read()));
+		} else {
+			return makeToken(TOKEN_NUM_INT, Integer.parseInt(ss.read()));
+		}
+	}
 
-      while (isDigit(ss.peek()))
-        ss.advance();
-    }
+	private Token string() {
+		if (!ss.advanceTo('"')) {
+			return errorToken("Unterminated string.");
+		}
 
-    if (isFloat)
-      return makeToken(TOKEN_NUM_FLOAT, Float.parseFloat(ss.read()));
-    else
-      return makeToken(TOKEN_NUM_INT, Integer.parseInt(ss.read()));
-  }
+		ss.advance();
 
-  // string()
-  private Token string() {
-    if (!ss.advanceTo('"'))
-      return errorToken("Unterminated string.");
+		return makeToken(TOKEN_STRING, ss.readTrimmed());
+	}
 
-    ss.advance(); // consume the closing '"'
+	private boolean isWhitespace(char c) {
+		return (c == ' ') || (c == '\r') || (c == '\t');
+	}
 
-    return makeToken(TOKEN_STRING, ss.readTrimmed());
-  }
+	private boolean isAlpha(char c) {
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+	}
 
-  // isWhitespace(char)
-  private boolean isWhitespace(char c) {
-    return (c == ' ') || (c == '\r') || (c == '\t');
-  }
+	private boolean isAlphaNumeric(char c) {
+		return isAlpha(c) || isDigit(c);
+	}
 
-  // isAlpha(char)
-  private boolean isAlpha(char c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
-  }
+	private boolean isDigit(char c) {
+		return c >= '0' && c <= '9';
+	}
 
-  // isAlphaNumeric(char)
-  private boolean isAlphaNumeric(char c) {
-    return isAlpha(c) || isDigit(c);
-  }
+	private Token unexpectedChar(char c) {
+		return errorToken("Unexpected character: '" + c + "'.");
+	}
 
-  // isDigit(char)
-  private boolean isDigit(char c) {
-    return c >= '0' && c <= '9';
-  }
+	private Token errorToken(String message) {
+		return new Token(TOKEN_ERROR, message, null, ss.line());
+	}
 
-  // unexpectedChar(char)
-  private Token unexpectedChar(char c) {
-    return errorToken("Unexpected character: '" + c + "'.");
-  }
+	private Token makeToken(TokenType type) {
+		return makeToken(type, null);
+	}
 
-  // errorToken(String)
-  private Token errorToken(String message) {
-    return new Token(TOKEN_ERROR, message, null, ss.line());
-  }
-
-  // makeToken(TokenType)
-  private Token makeToken(TokenType type) {
-    return makeToken(type, null);
-  }
-
-  // makeToken(TokenType, Object)
-  private Token makeToken(TokenType type, Object literal) {
-    return new Token(type, ss.read(), literal, ss.line());
-  }
-
-  // hasNext()
-  @Override
-  public boolean hasNext() {
-    return true;
-  }
-
-  // next()
-  @Override
-  public Token next() {
-    Token token;
-
-    do {
-      token = lexToken();
-    } while (token == null);
-
-    return token;
-  }
-
-  // remove()
-  @Override
-  public void remove() {
-    throw new UnsupportedOperationException();
-  }
+	private Token makeToken(TokenType type, Object literal) {
+		return new Token(type, ss.read(), literal, ss.line());
+	}
 }

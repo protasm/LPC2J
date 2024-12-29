@@ -9,13 +9,13 @@ import compiler.C_Compiler;
 import parser.Parser;
 
 public class IndexParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
+  
   public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
-    compiler.expression(); //element index
+    compiler.expression(); 
     
     parser.consume(TOKEN_RIGHT_BRACKET, "Expect ']' after array element index.");
     
-    if (parser.match(TOKEN_EQUAL)) { //assignment
+    if (parser.match(TOKEN_EQUAL)) { 
       compiler.expression();
 
       compiler.emitCode(OP_SET_ITEM);

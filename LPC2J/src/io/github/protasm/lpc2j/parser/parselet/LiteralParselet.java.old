@@ -8,7 +8,7 @@ import compiler.C_Compiler;
 import parser.Parser;
 
 public class LiteralParselet implements Parselet {
-  //parse(Parser, C_Compiler, boolean)
+  
   public void parse(Parser parser, C_Compiler compiler, boolean canAssign) {
     switch (parser.previous().type()) {
       case TOKEN_FALSE:
@@ -23,7 +23,7 @@ public class LiteralParselet implements Parselet {
         compiler.emitCode(OP_TRUE);
 
         break;
-      default: //Unreachable
+      default: 
         return;
     }
   }

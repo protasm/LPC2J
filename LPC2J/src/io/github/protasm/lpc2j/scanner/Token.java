@@ -1,56 +1,52 @@
 package io.github.protasm.lpc2j.scanner;
 
 public class Token {
-  private TokenType type;
-  private String lexeme;
-  private Object literal;
-  private int line;
+	private TokenType type;
+	private String lexeme;
+	private Object literal;
+	private int line;
 
-  //Token()
-  public Token() {
-    this(null, null, null, -1);
-  }
+	public Token() {
+		this(null, null, null, -1);
+	}
 
-  //Token(String)
-  public Token(String lexeme) {
-    this(null, lexeme, null, -1);
-  }
+	public Token(TokenType type) {
+		this(type, null, null, -1);
+	}
 
-  //Token(TokenType, String, Object, int)
-  public Token(TokenType type, String lexeme, Object literal, int line) {
-    this.type = type;
-    this.lexeme = lexeme;
-    this.literal = literal;
-    this.line = line;
-  }
+	public Token(String lexeme) {
+		this(null, lexeme, null, -1);
+	}
 
-  //type()
-  public TokenType type() {
-    return type;
-  }
+	public Token(TokenType type, String lexeme, Object literal, int line) {
+		this.type = type;
+		this.lexeme = lexeme;
+		this.literal = literal;
+		this.line = line;
+	}
 
-  //lexeme()
-  public String lexeme() {
-    return lexeme;
-  }
+	public TokenType type() {
+		return type;
+	}
 
-  //length()
-  public int length() {
-    return lexeme.length();
-  }
+	public String lexeme() {
+		return lexeme;
+	}
 
-  //literal()
-  public Object literal() {
-    return literal;
-  }
+	public int length() {
+		return lexeme.length();
+	}
 
-  //line()
-  public int line() {
-    return line;
-  }
+	public Object literal() {
+		return literal;
+	}
 
-  //toString()
-  public String toString() {
-    return type + "," + lexeme + "," + literal + " (" + line + ")";
-  }
+	public int line() {
+		return line;
+	}
+
+	@Override
+	public String toString() {
+		return type + "," + lexeme + "," + literal + " (" + line + ")";
+	}
 }

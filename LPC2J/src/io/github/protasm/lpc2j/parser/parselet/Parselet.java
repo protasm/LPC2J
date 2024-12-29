@@ -1,9 +1,9 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import compiler.C_Compiler;
-import parser.Parser;
+import io.github.protasm.lpc2j.LPC2J;
+import io.github.protasm.lpc2j.parser.Parser;
 
 public interface Parselet {
-  //parse(Parser, C_Compiler, boolean);
-  void parse(Parser parser, C_Compiler compiler, boolean canAssign);
+
+	void parse(Parser parser, LPC2J compiler, boolean canAssign);
 }

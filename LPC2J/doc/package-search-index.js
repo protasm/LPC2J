@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.github.protasm.lpc2j"},{"l":"io.github.protasm.lpc2j.parser"},{"l":"io.github.protasm.lpc2j.parser.parselet"},{"l":"io.github.protasm.lpc2j.scanner"}];updateSearchResults();

@@ -8,5 +8,8 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="libs/anarres-cpp.jar"/>
 	<classpathentry kind="lib" path="libs/asm-9.7.1.jar"/>
+	<classpathentry kind="lib" path="libs/asm-util-9.7.1.jar"/>
+	<classpathentry kind="lib" path="libs/asm-tree-9.7.1.jar"/>
+	<classpathentry kind="lib" path="libs/asm-analysis-9.7.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -187,75 +187,75 @@ public class Scanner {
 
 		switch (c) {
 		case EOL:
-			return null;
+		return null;
 		case '"':
-			return string();
+		return string();
 		case '&':
-			if (ss.match('&')) {
-				return makeToken(TOKEN_DBL_AMP);
-			} else {
-				return unexpectedChar(c);
-			}
+		if (ss.match('&')) {
+			return makeToken(TOKEN_DBL_AMP);
+		} else {
+			return unexpectedChar(c);
+		}
 		case '|':
-			if (ss.match('|')) {
-				return makeToken(TOKEN_DBL_PIPE);
-			} else {
-				return unexpectedChar(c);
-			}
+		if (ss.match('|')) {
+			return makeToken(TOKEN_DBL_PIPE);
+		} else {
+			return unexpectedChar(c);
+		}
 		case ':':
-			if (ss.match(':')) {
-				return makeToken(TOKEN_SUPER);
-			} else {
-				return makeToken(TOKEN_COLON);
-			}
+		if (ss.match(':')) {
+			return makeToken(TOKEN_SUPER);
+		} else {
+			return makeToken(TOKEN_COLON);
+		}
 		case '-':
-			if (ss.match('-')) {
-				return makeToken(TOKEN_MINUS_MINUS);
-			} else if (ss.match('=')) {
-				return makeToken(TOKEN_MINUS_EQUAL);
-			} else if (ss.match('>')) {
-				return makeToken(TOKEN_INVOKE);
-			} else {
-				return makeToken(TOKEN_MINUS);
-			}
+		if (ss.match('-')) {
+			return makeToken(TOKEN_MINUS_MINUS);
+		} else if (ss.match('=')) {
+			return makeToken(TOKEN_MINUS_EQUAL);
+		} else if (ss.match('>')) {
+			return makeToken(TOKEN_INVOKE);
+		} else {
+			return makeToken(TOKEN_MINUS);
+		}
 		case '+':
-			if (ss.match('+')) {
-				return makeToken(TOKEN_PLUS_PLUS);
-			} else if (ss.match('=')) {
-				return makeToken(TOKEN_PLUS_EQUAL);
-			} else {
-				return makeToken(TOKEN_PLUS);
-			}
+		if (ss.match('+')) {
+			return makeToken(TOKEN_PLUS_PLUS);
+		} else if (ss.match('=')) {
+			return makeToken(TOKEN_PLUS_EQUAL);
+		} else {
+			return makeToken(TOKEN_PLUS);
+		}
 		case '!':
-			return makeToken(ss.match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+		return makeToken(ss.match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
 		case '=':
-			return makeToken(ss.match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+		return makeToken(ss.match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
 		case '<':
-			return makeToken(ss.match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+		return makeToken(ss.match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
 		case '>':
-			return makeToken(ss.match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+		return makeToken(ss.match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 		case '/':
-			if (ss.match('/')) {
-				return lineComment();
-			} else if (ss.match('*')) {
-				return blockComment();
-			} else if (ss.match('=')) {
-				return makeToken(TOKEN_SLASH_EQUAL);
-			} else {
-				return makeToken(TOKEN_SLASH);
-			}
+		if (ss.match('/')) {
+			return lineComment();
+		} else if (ss.match('*')) {
+			return blockComment();
+		} else if (ss.match('=')) {
+			return makeToken(TOKEN_SLASH_EQUAL);
+		} else {
+			return makeToken(TOKEN_SLASH);
+		}
 		case '*':
-			return makeToken(ss.match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
+		return makeToken(ss.match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
 		case ' ':
 		case '\r':
 		case '\t':
-			while (isWhitespace(ss.peek())) {
-				ss.advance();
-			}
+		while (isWhitespace(ss.peek())) {
+			ss.advance();
+		}
 
-			return null;
+		return null;
 		default:
-			return unexpectedChar(c);
+		return unexpectedChar(c);
 		}
 	}
 

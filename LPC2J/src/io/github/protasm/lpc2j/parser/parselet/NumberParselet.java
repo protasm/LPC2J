@@ -13,14 +13,14 @@ public class NumberParselet implements Parselet {
 
 		switch (numType) {
 		case TOKEN_NUM_INT:
-			compiler.lpcInteger((Integer) literal);
+		compiler.lpcInteger((Integer) literal);
 
-			return;
+		return;
 		case TOKEN_NUM_FLOAT:
 
-			return;
+		return;
 		default:
-			break;
+		break;
 		}
 	}
 }

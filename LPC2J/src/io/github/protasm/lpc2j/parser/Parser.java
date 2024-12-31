@@ -105,10 +105,10 @@ public class Parser {
 			case TOKEN_IF:
 			case TOKEN_WHILE:
 			case TOKEN_RETURN:
-				return;
+			return;
 
 			default:
-				break;
+			break;
 			}
 
 			advance();

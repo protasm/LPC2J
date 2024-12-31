@@ -16,23 +16,23 @@ public class BinaryParselet implements Parselet {
 
 		switch (operatorType) {
 		case TOKEN_PLUS:
-			compiler.binaryOp(LPC2J.Operation.ADD);
+		compiler.binaryOp(LPC2J.Operation.ADD);
 
-			break;
+		break;
 		case TOKEN_MINUS:
-			compiler.binaryOp(LPC2J.Operation.SUB);
+		compiler.binaryOp(LPC2J.Operation.SUB);
 
-			break;
+		break;
 		case TOKEN_STAR:
-			compiler.binaryOp(LPC2J.Operation.MULT);
+		compiler.binaryOp(LPC2J.Operation.MULT);
 
-			break;
+		break;
 		case TOKEN_SLASH:
-			compiler.binaryOp(LPC2J.Operation.DIV);
+		compiler.binaryOp(LPC2J.Operation.DIV);
 
-			break;
+		break;
 		default:
-			return;
+		return;
 		}
 	}
 }

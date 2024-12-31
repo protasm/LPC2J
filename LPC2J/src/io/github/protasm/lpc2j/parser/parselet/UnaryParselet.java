@@ -17,13 +17,13 @@ public class UnaryParselet implements Parselet {
 		switch (operatorType) {
 		case TOKEN_BANG:
 
-			break;
+		break;
 		case TOKEN_MINUS:
-			compiler.negate();
+		compiler.negate();
 
-			break;
+		break;
 		default:
-			return;
+		return;
 		}
 	}
 }

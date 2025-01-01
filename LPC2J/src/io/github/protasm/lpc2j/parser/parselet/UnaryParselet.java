@@ -9,10 +9,10 @@ import io.github.protasm.lpc2j.scanner.TokenType;
 public class UnaryParselet implements Parselet {
 
     @Override
-    public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+    public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
 	TokenType operatorType = parser.previous().type();
 
-	parser.parsePrecedence(PREC_UNARY);
+	parser.parsePrecedence(PREC_UNARY, false);
 
 	switch (operatorType) {
 	case TOKEN_BANG:

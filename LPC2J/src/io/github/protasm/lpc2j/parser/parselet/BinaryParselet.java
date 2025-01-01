@@ -7,14 +7,12 @@ import io.github.protasm.lpc2j.scanner.TokenType;
 
 public class BinaryParselet implements Parselet {
     @Override
-    public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+    public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
 	TokenType operatorType = parser.previous().type();
 	ParseRule rule = parser.getRule(operatorType);
 
-	// right HERE we need to know if we have to type-promote LHS
-
 	// evaluate and load RHS operand
-	parser.parsePrecedence(rule.precedence() + 1);
+	parser.parsePrecedence(rule.precedence() + 1, true);
 
 	switch (operatorType) {
 	case TOKEN_PLUS:

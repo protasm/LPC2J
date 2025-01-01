@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import io.github.protasm.lpc2j.J_Type;
 import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.parselet.BinaryParselet;
 import io.github.protasm.lpc2j.parser.parselet.LiteralParselet;
@@ -199,7 +200,7 @@ public class Parser {
 	hadError = true;
     }
 
-    public void parsePrecedence(int precedence) {
+    public void parsePrecedence(int precedence, boolean inBinaryOp) {
 	advance();
 
 	Parselet prefixParselet = getRule(previous.type()).prefix();
@@ -212,14 +213,14 @@ public class Parser {
 
 	boolean canAssign = (precedence <= PREC_ASSIGNMENT);
 
-	prefixParselet.parse(this, compiler, canAssign);
+	prefixParselet.parse(this, compiler, canAssign, inBinaryOp);
 
 	while (precedence <= getRule(current.type()).precedence()) {
 	    advance();
 
 	    Parselet infixParselet = getRule(previous.type()).infix();
 
-	    infixParselet.parse(this, compiler, canAssign);
+	    infixParselet.parse(this, compiler, canAssign, false);
 	}
 
 	if (canAssign) {
@@ -259,8 +260,8 @@ public class Parser {
 	register(TOKEN_MINUS, new UnaryParselet(), new BinaryParselet(), PREC_TERM);
 
 	register(TOKEN_PLUS, null, new BinaryParselet(), PREC_TERM);
-	register(TOKEN_STAR, null, new BinaryParselet(), PREC_TERM);
-	register(TOKEN_SLASH, null, new BinaryParselet(), PREC_TERM);
+	register(TOKEN_STAR, null, new BinaryParselet(), PREC_FACTOR);
+	register(TOKEN_SLASH, null, new BinaryParselet(), PREC_FACTOR);
 
 	register(TOKEN_FALSE, new LiteralParselet(), null, PREC_NONE);
 	register(TOKEN_IDENTIFIER, new VariableParselet(), null, PREC_NONE);

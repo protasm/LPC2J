@@ -123,6 +123,10 @@ public class MethodBuilder {
 	case FIELD_STORE:
 	    fieldStoreInstr((Variable) args[0]);
 	    break;
+	case I2F:
+	    i2fInstr();
+
+	    break;
 	case LOC_LOAD:
 	    locLoadInstr((Integer) args[0]);
 	    break;
@@ -289,6 +293,13 @@ public class MethodBuilder {
 	operandTypes.pop(); // object reference
 
 	mv.visitFieldInsn(Opcodes.PUTFIELD, cb.className(), field.name(), field.desc());
+    }
+
+    private void i2fInstr() {
+	operandTypes.pop();
+	operandTypes.push(J_Type.FLOAT);
+
+	mv.visitInsn(Opcodes.I2F);
     }
 
     private void methodInstr(int opCode, String owner, String name, String desc) {

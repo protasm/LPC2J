@@ -187,7 +187,7 @@ public class LPC2J {
     }
 
     public void expression() {
-	parser.parsePrecedence(PREC_ASSIGNMENT);
+	parser.parsePrecedence(PREC_ASSIGNMENT, false);
     }
 
     public void variable(String name, boolean canAssign) {
@@ -362,6 +362,10 @@ public class LPC2J {
 
     public void binaryOp(Operation op) {
 	cb.mb().emitInstr(InstrType.BINARY, op);
+    }
+
+    public void i2f() {
+	cb.mb().emitInstr(InstrType.I2F);
     }
 
     public static void main(String[] args) throws IOException {

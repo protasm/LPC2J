@@ -6,33 +6,35 @@ import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.TokenType;
 
 public class BinaryParselet implements Parselet {
-	@Override
-	public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
-		TokenType operatorType = parser.previous().type();
-		ParseRule rule = parser.getRule(operatorType);
+    @Override
+    public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+	TokenType operatorType = parser.previous().type();
+	ParseRule rule = parser.getRule(operatorType);
 
-		// evaluate and load RHS operand
-		parser.parsePrecedence(rule.precedence() + 1);
+	// right HERE we need to know if we have to type-promote LHS
 
-		switch (operatorType) {
-		case TOKEN_PLUS:
-		compiler.binaryOp(LPC2J.Operation.ADD);
+	// evaluate and load RHS operand
+	parser.parsePrecedence(rule.precedence() + 1);
 
-		break;
-		case TOKEN_MINUS:
-		compiler.binaryOp(LPC2J.Operation.SUB);
+	switch (operatorType) {
+	case TOKEN_PLUS:
+	    compiler.binaryOp(LPC2J.Operation.ADD);
 
-		break;
-		case TOKEN_STAR:
-		compiler.binaryOp(LPC2J.Operation.MULT);
+	    break;
+	case TOKEN_MINUS:
+	    compiler.binaryOp(LPC2J.Operation.SUB);
 
-		break;
-		case TOKEN_SLASH:
-		compiler.binaryOp(LPC2J.Operation.DIV);
+	    break;
+	case TOKEN_STAR:
+	    compiler.binaryOp(LPC2J.Operation.MULT);
 
-		break;
-		default:
-		return;
-		}
-	}
+	    break;
+	case TOKEN_SLASH:
+	    compiler.binaryOp(LPC2J.Operation.DIV);
+
+	    break;
+	default:
+	    return;
+	} // switch (operatorType)
+    }
 }

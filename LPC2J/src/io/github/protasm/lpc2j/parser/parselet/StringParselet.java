@@ -5,10 +5,10 @@ import io.github.protasm.lpc2j.parser.Parser;
 
 public class StringParselet implements Parselet {
 
-	@Override
-	public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
-		String value = (String) parser.previous().literal();
+    @Override
+    public void parse(Parser parser, LPC2J compiler, boolean canAssign) {
+	String value = (String) parser.previous().literal();
 
-		compiler.lpcString(value);
-	}
+	compiler.lpcString(value);
+    }
 }

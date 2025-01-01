@@ -1,15 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-23">
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-23">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="libs/anarres-cpp.jar"/>
-	<classpathentry kind="lib" path="libs/asm-9.7.1.jar"/>
-	<classpathentry kind="lib" path="libs/asm-util-9.7.1.jar"/>
-	<classpathentry kind="lib" path="libs/asm-tree-9.7.1.jar"/>
-	<classpathentry kind="lib" path="libs/asm-analysis-9.7.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/anarres-cpp.jar"/>
+	<classpathentry exported="true" kind="lib" path="libs/asm-9.7.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

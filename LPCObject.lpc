@@ -1,0 +1,11 @@
+int x = 4;
+string s = "hello";
+float f = 1;
+
+void foo() {
+	x = 99;
+	s = "world";
+	f = 3.13;
+
+	return;
+}

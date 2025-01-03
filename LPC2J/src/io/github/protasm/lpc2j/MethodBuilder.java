@@ -4,19 +4,22 @@ import java.util.ListIterator;
 import java.util.Stack;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import static org.objectweb.asm.Opcodes.*;
+
+import static io.github.protasm.lpc2j.BinaryOpType.*;
+import static io.github.protasm.lpc2j.JType.*;
 
 public class MethodBuilder {
     private ClassBuilder cb;
-    private J_Type returnType;
+    private JType returnType;
     private String name;
     private String desc;
     private MethodVisitor mv;
     private Stack<Local> locals;
-    private Stack<J_Type> operandTypes;
+    private Stack<JType> operandTypes;
     private int workingScopeDepth;
 
-    public MethodBuilder(ClassBuilder cb, J_Type returnType, String name, String desc) {
+    public MethodBuilder(ClassBuilder cb, JType returnType, String name, String desc) {
 	this.cb = cb;
 	this.returnType = returnType;
 	this.name = name;
@@ -30,8 +33,7 @@ public class MethodBuilder {
 	operandTypes = new Stack<>();
 
 	// Locals slot 0 reserved for "this" (non-static methods only)
-	Variable jVar = new Variable(J_Type.OBJECT, "this");
-	Local local = new Local(jVar);
+	Local local = new Local(JOBJECT, "this");
 	addLocal(local, true);
 
 	workingScopeDepth = 1;
@@ -40,12 +42,12 @@ public class MethodBuilder {
 
 	if (name.equals("<init>")) {
 	    locLoadInstr(0);
-	    methodInstr(Opcodes.INVOKESPECIAL, "java/lang/Object", name, desc);
+	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", name, desc, false);
 	}
     }
 
-    public J_Type returnType() {
-	return returnType();
+    public JType returnType() {
+	return returnType;
     }
 
     public String name() {
@@ -60,7 +62,7 @@ public class MethodBuilder {
 	return locals;
     }
 
-    public Stack<J_Type> operandTypes() {
+    public Stack<JType> operandTypes() {
 	return operandTypes;
     }
 
@@ -82,7 +84,7 @@ public class MethodBuilder {
 	while (localsItr.hasPrevious()) {
 	    Local local = localsItr.previous();
 
-	    if (local.jVar().name().equals(name)) {
+	    if (local.name().equals(name)) {
 		return true;
 	    }
 	}
@@ -106,7 +108,7 @@ public class MethodBuilder {
     public void emitInstr(InstrType instrType, Object... args) {
 	switch (instrType) {
 	case BINARY:
-	    binaryOp((LPC2J.Operation) args[0]);
+	    binaryOp((BinaryOpType) args[0]);
 	    break;
 	case CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
@@ -118,10 +120,10 @@ public class MethodBuilder {
 	    constStrInstr((String) args[0]);
 	    break;
 	case FIELD_LOAD:
-	    fieldLoadInstr((Variable) args[0]);
+	    fieldLoadInstr((Field) args[0]);
 	    break;
 	case FIELD_STORE:
-	    fieldStoreInstr((Variable) args[0]);
+	    fieldStoreInstr((Field) args[0]);
 	    break;
 	case I2F:
 	    i2fInstr();
@@ -145,38 +147,38 @@ public class MethodBuilder {
 	} // switch (instrType)
     }
 
-    private void binaryOpInts(LPC2J.Operation op, J_Type lhsType, J_Type rhsType) {
+    private void binaryOpInts(BinaryOpType op, JType lhsType, JType rhsType) {
 	switch (op) {
-	case ADD:
-	    mv.visitInsn(Opcodes.IADD);
+	case BOP_ADD:
+	    mv.visitInsn(IADD);
 	    break;
-	case SUB:
-	    mv.visitInsn(Opcodes.ISUB);
+	case BOP_SUB:
+	    mv.visitInsn(ISUB);
 	    break;
-	case DIV:
-	    mv.visitInsn(Opcodes.IDIV);
+	case BOP_DIV:
+	    mv.visitInsn(IDIV);
 	    break;
-	case MULT:
-	    mv.visitInsn(Opcodes.IMUL);
+	case BOP_MULT:
+	    mv.visitInsn(IMUL);
 	    break;
 	default:
 	    throw new UnsupportedOperationException("Invalid operation for " + lhsType + " and " + rhsType + ".");
 	}
     }
 
-    private void binaryOpFloats(LPC2J.Operation op, J_Type lhsType, J_Type rhsType) {
+    private void binaryOpFloats(BinaryOpType op, JType lhsType, JType rhsType) {
 	switch (op) {
-	case ADD:
-	    mv.visitInsn(Opcodes.FADD);
+	case BOP_ADD:
+	    mv.visitInsn(FADD);
 	    break;
-	case SUB:
-	    mv.visitInsn(Opcodes.FSUB);
+	case BOP_SUB:
+	    mv.visitInsn(FSUB);
 	    break;
-	case DIV:
-	    mv.visitInsn(Opcodes.FDIV);
+	case BOP_DIV:
+	    mv.visitInsn(FDIV);
 	    break;
-	case MULT:
-	    mv.visitInsn(Opcodes.FMUL);
+	case BOP_MULT:
+	    mv.visitInsn(FMUL);
 	    break;
 	default:
 	    throw new UnsupportedOperationException("Invalid operation for " + lhsType + " and " + rhsType + ".");
@@ -184,44 +186,42 @@ public class MethodBuilder {
     }
 
     private void binaryOpStrings() {
-	mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
-	mv.visitInsn(Opcodes.DUP);
-	mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
-	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;",
-		false);
-	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-		"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
-	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+	mv.visitTypeInsn(NEW, "java/lang/StringBuilder");
+	mv.visitInsn(DUP);
+	mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
     }
 
-    private void binaryOp(LPC2J.Operation op) {
-	J_Type rhsType = operandTypes.pop();
-	J_Type lhsType = operandTypes.peek();
+    private void binaryOp(BinaryOpType op) {
+	JType rhsType = operandTypes.pop();
+	JType lhsType = operandTypes.peek();
 
 	// leave LHS Type stacked; reused
 
 	switch (lhsType) {
-	case INT:
-	    if (rhsType == J_Type.INT)
+	case JINT:
+	    if (rhsType == JINT)
 		binaryOpInts(op, lhsType, rhsType);
-	    else if (rhsType == J_Type.STRING && op == LPC2J.Operation.ADD)
+	    else if (rhsType == JSTRING && op == BOP_ADD)
 		binaryOpStrings();
 	    else
 		invalidBinaryOp(op, lhsType, rhsType);
 
 	    break;
-	case FLOAT:
-	    if (rhsType == J_Type.FLOAT)
+	case JFLOAT:
+	    if (rhsType == JFLOAT)
 		binaryOpFloats(op, lhsType, rhsType);
-	    else if (rhsType == J_Type.STRING && op == LPC2J.Operation.ADD)
+	    else if (rhsType == JSTRING && op == BOP_ADD)
 		binaryOpStrings();
 	    else
 		invalidBinaryOp(op, lhsType, rhsType);
 
 	    break;
-	case STRING:
-	    if ((rhsType == J_Type.INT || rhsType == J_Type.FLOAT || rhsType == J_Type.STRING)
-		    && (op == LPC2J.Operation.ADD))
+	case JSTRING:
+	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING)
+		    && (op == BOP_ADD))
 		binaryOpStrings();
 	    else
 		invalidBinaryOp(op, lhsType, rhsType);
@@ -232,95 +232,91 @@ public class MethodBuilder {
 	}
     }
 
-    private void invalidBinaryOp(LPC2J.Operation op, J_Type lhsType, J_Type rhsType) {
+    private void invalidBinaryOp(BinaryOpType op, JType lhsType, JType rhsType) {
 	throw new UnsupportedOperationException(
-		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + ".");
+		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + "."
+	);
     }
 
     private void constFloatInstr(Float value) {
-	operandTypes.push(J_Type.FLOAT);
+	operandTypes.push(JFLOAT);
 
 	if (value == 0.0f)
-	    mv.visitInsn(Opcodes.FCONST_0);
+	    mv.visitInsn(FCONST_0);
 	else if (value == 1.0f)
-	    mv.visitInsn(Opcodes.FCONST_1);
+	    mv.visitInsn(FCONST_1);
 	else if (value == 2.0f)
-	    mv.visitInsn(Opcodes.FCONST_2);
+	    mv.visitInsn(FCONST_2);
 	else
 	    mv.visitLdcInsn(value);
     }
 
     private void constIntInstr(Integer value) {
-	operandTypes.push(J_Type.INT);
+	operandTypes.push(JINT);
 
 	if (value == -1)
-	    mv.visitInsn(Opcodes.ICONST_M1);
+	    mv.visitInsn(ICONST_M1);
 	else if (value == 0)
-	    mv.visitInsn(Opcodes.ICONST_0);
+	    mv.visitInsn(ICONST_0);
 	else if (value == 1)
-	    mv.visitInsn(Opcodes.ICONST_1);
+	    mv.visitInsn(ICONST_1);
 	else if (value == 2)
-	    mv.visitInsn(Opcodes.ICONST_2);
+	    mv.visitInsn(ICONST_2);
 	else if (value == 3)
-	    mv.visitInsn(Opcodes.ICONST_3);
+	    mv.visitInsn(ICONST_3);
 	else if (value == 4)
-	    mv.visitInsn(Opcodes.ICONST_4);
+	    mv.visitInsn(ICONST_4);
 	else if (value == 5)
-	    mv.visitInsn(Opcodes.ICONST_5);
+	    mv.visitInsn(ICONST_5);
 	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
-	    mv.visitIntInsn(Opcodes.BIPUSH, value);
+	    mv.visitIntInsn(BIPUSH, value);
 	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
-	    mv.visitIntInsn(Opcodes.SIPUSH, value);
+	    mv.visitIntInsn(SIPUSH, value);
 	else
 	    mv.visitLdcInsn(value);
     }
 
     private void constStrInstr(String value) {
-	operandTypes.push(J_Type.STRING);
+	operandTypes.push(JSTRING);
 
 	mv.visitLdcInsn(value);
     }
 
-    private void fieldLoadInstr(Variable field) {
+    private void fieldLoadInstr(Field field) {
 	operandTypes.pop();
-	operandTypes.push(field.type());
+	operandTypes.push(field.jType());
 
-	mv.visitFieldInsn(Opcodes.GETFIELD, cb.className(), field.name(), field.desc());
+	mv.visitFieldInsn(GETFIELD, cb.name(), field.name(), field.desc());
     }
 
-    private void fieldStoreInstr(Variable field) {
+    private void fieldStoreInstr(Field field) {
 	operandTypes.pop(); // value being stored
 	operandTypes.pop(); // object reference
 
-	mv.visitFieldInsn(Opcodes.PUTFIELD, cb.className(), field.name(), field.desc());
+	mv.visitFieldInsn(PUTFIELD, cb.name(), field.name(), field.desc());
     }
 
     private void i2fInstr() {
 	operandTypes.pop();
-	operandTypes.push(J_Type.FLOAT);
+	operandTypes.push(JFLOAT);
 
-	mv.visitInsn(Opcodes.I2F);
-    }
-
-    private void methodInstr(int opCode, String owner, String name, String desc) {
-//	 operandTypes management needed here?
-	mv.visitMethodInsn(opCode, owner, name, desc, false);
+	mv.visitInsn(I2F);
     }
 
     private void locLoadInstr(int idx) {
 	Local local = locals.get(idx);
-	J_Type type = local.jVar().type();
+	JType type = local.jType();
 
 	switch (type) {
-	case INT:
-	    mv.visitVarInsn(Opcodes.ILOAD, idx);
+	case JINT:
+	    mv.visitVarInsn(ILOAD, idx);
 	    break;
-	case FLOAT:
-	    mv.visitVarInsn(Opcodes.FLOAD, idx);
+	case JFLOAT:
+	    mv.visitVarInsn(FLOAD, idx);
 	    break;
-	case OBJECT:
-	case STRING:
-	    mv.visitVarInsn(Opcodes.ALOAD, idx);
+	case JOBJECT:
+	case JSTRING:
+	    mv.visitVarInsn(ALOAD, idx);
 	    break;
 	default:
 	    return;
@@ -331,18 +327,18 @@ public class MethodBuilder {
 
     private void locStoreInstr(int idx) {
 	Local local = locals.get(idx);
-	J_Type type = local.jVar().type();
+	JType type = local.jType();
 
 	switch (type) {
-	case INT:
-	    mv.visitVarInsn(Opcodes.ISTORE, idx);
+	case JINT:
+	    mv.visitVarInsn(ISTORE, idx);
 	    break;
-	case FLOAT:
-	    mv.visitVarInsn(Opcodes.FSTORE, idx);
+	case JFLOAT:
+	    mv.visitVarInsn(FSTORE, idx);
 	    break;
-	case OBJECT:
-	case STRING:
-	    mv.visitVarInsn(Opcodes.ASTORE, idx);
+	case JOBJECT:
+	case JSTRING:
+	    mv.visitVarInsn(ASTORE, idx);
 	    break;
 	default:
 	    return;
@@ -352,16 +348,16 @@ public class MethodBuilder {
     }
 
     private void negateInstr() {
-	J_Type type = operandTypes.peek();
+	JType type = operandTypes.peek();
 
-	if (type == J_Type.INT)
-	    mv.visitInsn(Opcodes.INEG);
-	else if (type == J_Type.FLOAT)
-	    mv.visitInsn(Opcodes.FNEG);
-	else if (type == J_Type.LONG)
-	    mv.visitInsn(Opcodes.LNEG);
-	else if (type == J_Type.DOUBLE)
-	    mv.visitInsn(Opcodes.DNEG);
+	if (type == JINT)
+	    mv.visitInsn(INEG);
+	else if (type == JFLOAT)
+	    mv.visitInsn(FNEG);
+	else if (type == JLONG)
+	    mv.visitInsn(LNEG);
+	else if (type == JDOUBLE)
+	    mv.visitInsn(DNEG);
 	else
 	    throw new IllegalArgumentException("Unsupported type for negation: " + type);
     }
@@ -369,11 +365,11 @@ public class MethodBuilder {
     private void popInstr() {
 	operandTypes.pop();
 
-	mv.visitInsn(Opcodes.POP);
+	mv.visitInsn(POP);
     }
 
     private void returnInstr() {
-	mv.visitInsn(Opcodes.RETURN);
+	mv.visitInsn(RETURN);
     }
 
     public void finish() {

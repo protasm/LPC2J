@@ -14,10 +14,6 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class LPC2J {
-    public static enum Operation {
-	ADD, SUB, MULT, DIV, GT, LT,
-    }
-
     private String sysIncludePath;
     private String quoteIncludePath;
 
@@ -77,13 +73,7 @@ public class LPC2J {
     }
 
     private void field(Token typeToken, Token nameToken) {
-	String name = nameToken.lexeme();
-	String lpcType = typeToken.lexeme();
-	J_Type jType = J_Type.jTypeForLPCType(lpcType);
-	Variable jVar = new Variable(jType, name);
-
-	cb.field(name, jVar.desc());
-	cb.addField(jVar);
+	cb.field(new Field(typeToken, nameToken));
 
 	if (parser.match(TOKEN_EQUAL)) {
 	    List<Token> initTokens = new ArrayList<>();
@@ -113,7 +103,7 @@ public class LPC2J {
 
 	for (FieldInitializer fi : fieldInitializers) {
 	    String name = fi.nameToken().lexeme();
-	    Variable field = cb.getField(name);
+	    Field field = cb.getField(name);
 
 	    parser = new Parser(this, fi.initTokens());
 
@@ -135,8 +125,8 @@ public class LPC2J {
     private void method(Token typeToken, Token nameToken) {
 	String name = nameToken.lexeme();
 	String lpcType = typeToken.lexeme();
-	J_Type jType = J_Type.jTypeForLPCType(lpcType);
-	String desc = J_Type.jDescForLPCType(lpcType);
+	JType jType = JType.jTypeForLPCType(lpcType);
+	String desc = JType.jDescForLPCType(lpcType);
 	List<Local> params = new ArrayList<>();
 
 	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
@@ -168,17 +158,17 @@ public class LPC2J {
 
 	    String name = nameToken.lexeme();
 
-	    if (params.stream().anyMatch(local -> name.equals(local.jVar().name()))) {
+	    if (params.stream().anyMatch(local -> name.equals(local.name()))) {
 		parser.error("Already a parameter with this name for this method.");
 	    }
 
 	    String lpcType = typeToken.lexeme();
-	    J_Type jType = J_Type.jTypeForLPCType(lpcType);
-	    Variable jVar = new Variable(jType, name);
+	    JType jType = JType.jTypeForLPCType(lpcType);
+	    Local local = new Local(jType, name);
 
-	    params.add(new Local(jVar));
+	    params.add(local);
 
-	    desc.append(J_Type.jDescForLPCType(lpcType));
+	    desc.append(JType.jDescForLPCType(lpcType));
 	} while (parser.match(TOKEN_COMMA));
 
 	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method parameters.");
@@ -203,7 +193,7 @@ public class LPC2J {
 	    } else // retrieval
 		cb.mb().emitInstr(InstrType.LOC_LOAD, idx);
 	else if (cb.hasField(name)) { // field
-	    Variable field = cb.getField(name);
+	    Field field = cb.getField(name);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
 		cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
@@ -251,10 +241,10 @@ public class LPC2J {
 		parser.error("Already a local named '" + name + "' in this scope.");
 
 	    String lpcType = typeToken.lexeme();
-	    J_Type jType = J_Type.jTypeForLPCType(lpcType);
-	    Variable jVar = new Variable(jType, name);
+	    JType jType = JType.jTypeForLPCType(lpcType);
+	    Local local = new Local(jType, name);
 
-	    int idx = cb.mb().addLocal(new Local(jVar), true);
+	    int idx = cb.mb().addLocal(local, true);
 
 	    if (parser.match(TOKEN_EQUAL)) {
 		expression(); // leaves expression value on stack
@@ -271,7 +261,7 @@ public class LPC2J {
 	for (int i = cb.mb().locals().size() - 1; i >= 0; i--) {
 	    Local local = cb.mb().locals().get(i);
 
-	    if (name.equals(local.jVar().name())) { // found match
+	    if (name.equals(local.name())) { // found match
 		if (local.scopeDepth() == -1) // "sentinel" value
 		    parser.error("Can't read local variable in its own initializer.");
 
@@ -291,7 +281,7 @@ public class LPC2J {
 //	    else if (parser.match(TOKEN_WHILE))
 //	      whileStatement();
 	if (parser.match(TOKEN_RETURN))
-	    returnStatement();
+	    explicitReturnStatement();
 	else if (parser.match(TOKEN_LEFT_BRACE)) {
 	    beginScope();
 
@@ -302,13 +292,14 @@ public class LPC2J {
 	    expressionStatement();
     }
 
-    private void returnStatement() {
-	if (parser.match(TOKEN_SEMICOLON)) // no return value provided
-	    if (cb.mb().returnType() != J_Type.VOID)
+    //TODO: Handle implicit returns correctly.
+    private void explicitReturnStatement() {
+	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
+	    if (cb.mb().returnType() != JType.JVOID)
 		parser.error("Missing return value.");
 	    else
 		cb.mb().emitInstr(InstrType.RETURN);
-	else { // handle return value
+	} else { // handle return value
 	    expression();
 
 	    parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
@@ -360,7 +351,7 @@ public class LPC2J {
 	cb.mb().emitInstr(InstrType.NEGATE);
     }
 
-    public void binaryOp(Operation op) {
+    public void binaryOp(BinaryOpType op) {
 	cb.mb().emitInstr(InstrType.BINARY, op);
     }
 

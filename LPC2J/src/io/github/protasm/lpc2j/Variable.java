@@ -1,16 +1,25 @@
 package io.github.protasm.lpc2j;
 
-public class Variable {
-    private J_Type type;
+import io.github.protasm.lpc2j.scanner.Token;
+
+public abstract class Variable {
+    private JType jType;
     private String name;
 
-    public Variable(J_Type type, String name) {
-	this.type = type;
+    public Variable(JType type, String name) {
+	this.jType = type;
 	this.name = name;
     }
 
-    public J_Type type() {
-	return type;
+    public Variable(Token typeToken, Token nameToken) {
+	String lpcType = typeToken.lexeme();
+
+	this.jType = JType.jTypeForLPCType(lpcType);;
+	this.name = nameToken.lexeme();;
+    }
+    
+    public JType jType() {
+	return jType;
     }
 
     public String name() {
@@ -18,6 +27,6 @@ public class Variable {
     }
 
     public String desc() {
-	return type.descriptor();
+	return jType.descriptor();
     }
 }

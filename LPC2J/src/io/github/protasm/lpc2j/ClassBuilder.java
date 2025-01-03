@@ -10,7 +10,7 @@ public class ClassBuilder {
     private String name;
     private ClassWriter cw;
     private MethodBuilder mb;
-    private Map<String, Variable> fields = new HashMap<>();
+    private Map<String, Field> fields = new HashMap<>();
 
     public ClassBuilder(String className) {
 	this.name = className;
@@ -20,16 +20,21 @@ public class ClassBuilder {
 	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, className, null, "java/lang/Object", null);
     }
 
-    public void field(String name, String desc) {
-	cw.visitField(0, name, desc, null, null).visitEnd();
+    public void field(Field field) {
+	cw.visitField(0, field.name(), field.desc(), null, null).visitEnd();
+	fields.put(field.name(), field);
     }
 
     public void constructor() {
-	method(J_Type.VOID, "<init>", "()V");
+	method(JType.JVOID, "<init>", "()V");
     }
 
-    public void method(J_Type returnType, String name, String desc) {
+    public void method(JType returnType, String name, String desc) {
 	mb = new MethodBuilder(this, returnType, name, desc);
+    }
+
+    public String name() {
+	return name;
     }
 
     public ClassWriter cw() {
@@ -40,15 +45,7 @@ public class ClassBuilder {
 	return mb;
     }
 
-    public String className() {
-	return name;
-    }
-
-    public void addField(Variable jVar) {
-	fields.put(jVar.name(), jVar);
-    }
-
-    public Variable getField(String name) {
+    public Field getField(String name) {
 	return fields.get(name);
     }
 

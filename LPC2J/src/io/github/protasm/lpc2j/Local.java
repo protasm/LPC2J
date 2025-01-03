@@ -1,19 +1,23 @@
 package io.github.protasm.lpc2j;
 
-public class Local {
-    private Variable jVar;
+import io.github.protasm.lpc2j.scanner.Token;
+
+public class Local extends Variable {
     private int scopeDepth;
     private boolean isCaptured;
 
-    public Local(Variable jVar) {
-	this.jVar = jVar;
-	this.scopeDepth = -1;
+    public Local(JType jType, String name) {
+	super(jType, name);
 
+	scopeDepth = -1;
 	isCaptured = false;
     }
-
-    public Variable jVar() {
-	return jVar;
+    
+    public Local(Token typeToken, Token nameToken) {
+	super(typeToken, nameToken);
+	
+	scopeDepth = -1;
+	isCaptured = false;
     }
 
     public int scopeDepth() {
@@ -34,6 +38,6 @@ public class Local {
 
     @Override
     public String toString() {
-	return "[ " + jVar.name() + " (" + scopeDepth + ") ]";
+	return "[ " + name() + " (" + scopeDepth + ") ]";
     }
 }

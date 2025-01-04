@@ -14,10 +14,12 @@ public abstract class Variable {
     public Variable(Token typeToken, Token nameToken) {
 	String lpcType = typeToken.lexeme();
 
-	this.jType = JType.jTypeForLPCType(lpcType);;
-	this.name = nameToken.lexeme();;
+	this.jType = JType.jTypeForLPCType(lpcType);
+	;
+	this.name = nameToken.lexeme();
+	;
     }
-    
+
     public JType jType() {
 	return jType;
     }

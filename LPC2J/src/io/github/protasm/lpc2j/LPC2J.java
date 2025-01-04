@@ -110,7 +110,7 @@ public class LPC2J {
 	    parser.advance(); // to first token
 	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
 
-	    cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
+	    cb.mb().emitInstr(InstrType.THIS);
 
 	    expression();
 
@@ -185,7 +185,7 @@ public class LPC2J {
 
 	if (idx != -1) // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
+		cb.mb().emitInstr(InstrType.THIS);
 
 		expression();
 
@@ -196,13 +196,15 @@ public class LPC2J {
 	    Field field = cb.getField(name);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.LOC_LOAD, 0); // this
+		cb.mb().emitInstr(InstrType.THIS);
 
 		expression();
 
 		cb.mb().emitInstr(InstrType.FIELD_STORE, field);
-	    } else // retrieval
+	    } else { // retrieval
+		cb.mb().emitInstr(InstrType.THIS);
 		cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
+	    }
 	}
 //	    else if (resolveMethod(name)) //method
 //	      namedMethod(name);
@@ -292,7 +294,7 @@ public class LPC2J {
 	    expressionStatement();
     }
 
-    //TODO: Handle implicit returns correctly.
+    // TODO: Handle implicit returns correctly.
     private void explicitReturnStatement() {
 	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
 	    if (cb.mb().returnType() != JType.JVOID)
@@ -300,11 +302,15 @@ public class LPC2J {
 	    else
 		cb.mb().emitInstr(InstrType.RETURN);
 	} else { // handle return value
-	    expression();
+	    if (cb.mb().returnType() == JType.JVOID)
+		parser.error("Return value encountered in void method.");
+	    else {
+		expression();
 
-	    parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		cb.mb().emitInstr(InstrType.RETURNVAL);
 
-//	      emitReturn(this.builder.method().type());
+		parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+	    }
 	} // if-else
     }
 

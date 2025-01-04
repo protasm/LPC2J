@@ -25,9 +25,7 @@ public class MethodBuilder {
 	this.name = name;
 	this.desc = desc;
 
-	MethodVisitor mv = cb.cw().visitMethod(0, name, desc, null, null);
-
-	this.mv = mv;
+	this.mv = cb.cw().visitMethod(0, name, desc, null, null);
 
 	locals = new Stack<>();
 	operandTypes = new Stack<>();
@@ -127,7 +125,6 @@ public class MethodBuilder {
 	    break;
 	case I2F:
 	    i2fInstr();
-
 	    break;
 	case LOC_LOAD:
 	    locLoadInstr((Integer) args[0]);
@@ -143,6 +140,12 @@ public class MethodBuilder {
 	    break;
 	case RETURN:
 	    returnInstr();
+	    break;
+	case RETURNVAL:
+	    returnValInstr();
+	    break;
+	case THIS:
+	    loadThis();
 	    break;
 	} // switch (instrType)
     }
@@ -190,7 +193,8 @@ public class MethodBuilder {
 	mv.visitInsn(DUP);
 	mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", false);
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+		"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
     }
 
@@ -220,8 +224,7 @@ public class MethodBuilder {
 
 	    break;
 	case JSTRING:
-	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING)
-		    && (op == BOP_ADD))
+	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING) && (op == BOP_ADD))
 		binaryOpStrings();
 	    else
 		invalidBinaryOp(op, lhsType, rhsType);
@@ -234,8 +237,7 @@ public class MethodBuilder {
 
     private void invalidBinaryOp(BinaryOpType op, JType lhsType, JType rhsType) {
 	throw new UnsupportedOperationException(
-		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + "."
-	);
+		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + ".");
     }
 
     private void constFloatInstr(Float value) {
@@ -283,7 +285,6 @@ public class MethodBuilder {
     }
 
     private void fieldLoadInstr(Field field) {
-	operandTypes.pop();
 	operandTypes.push(field.jType());
 
 	mv.visitFieldInsn(GETFIELD, cb.name(), field.name(), field.desc());
@@ -301,6 +302,10 @@ public class MethodBuilder {
 	operandTypes.push(JFLOAT);
 
 	mv.visitInsn(I2F);
+    }
+    
+    private void loadThis() {
+	mv.visitVarInsn(ALOAD, 0);
     }
 
     private void locLoadInstr(int idx) {
@@ -320,7 +325,7 @@ public class MethodBuilder {
 	    break;
 	default:
 	    return;
-	} // switch(type)
+	} // switch (type)
 
 	operandTypes.push(type);
     }
@@ -370,6 +375,17 @@ public class MethodBuilder {
 
     private void returnInstr() {
 	mv.visitInsn(RETURN);
+    }
+
+    private void returnValInstr() {
+	JType type = operandTypes.peek();
+
+	if (type == JINT)
+	    mv.visitInsn(IRETURN);
+	else if (type == JFLOAT)
+	    mv.visitInsn(FRETURN);
+	else if (type == JSTRING)
+	    mv.visitInsn(ARETURN);
     }
 
     public void finish() {

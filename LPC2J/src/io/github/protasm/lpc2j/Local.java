@@ -12,10 +12,10 @@ public class Local extends Variable {
 	scopeDepth = -1;
 	isCaptured = false;
     }
-    
+
     public Local(Token typeToken, Token nameToken) {
 	super(typeToken, nameToken);
-	
+
 	scopeDepth = -1;
 	isCaptured = false;
     }

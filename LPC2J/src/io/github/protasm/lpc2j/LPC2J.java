@@ -180,40 +180,6 @@ public class LPC2J {
 	parser.parsePrecedence(PREC_ASSIGNMENT, false);
     }
 
-    public void variable(String name, boolean canAssign) {
-	int idx = slotForLocal(name);
-
-	if (idx != -1) // initialized local
-	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.THIS);
-
-		expression();
-
-		cb.mb().emitInstr(InstrType.LOC_STORE, idx);
-	    } else // retrieval
-		cb.mb().emitInstr(InstrType.LOC_LOAD, idx);
-	else if (cb.hasField(name)) { // field
-	    Field field = cb.getField(name);
-
-	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.THIS);
-
-		expression();
-
-		cb.mb().emitInstr(InstrType.FIELD_STORE, field);
-	    } else { // retrieval
-		cb.mb().emitInstr(InstrType.THIS);
-		cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
-	    }
-	}
-//	    else if (resolveMethod(name)) //method
-//	      namedMethod(name);
-	// else if (resolveSuperMethod(name)) //superClass method
-	// namedSuperMethod(name);
-	else
-	    parser.error("Unrecognized variable '" + name + "'.");
-    }
-
     private void block() {
 	while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF))
 	    declaration();
@@ -258,7 +224,7 @@ public class LPC2J {
 	parser.consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration(s).");
     }
 
-    private int slotForLocal(String name) {
+    private int slotForLocalNamed(String name) {
 	// traverse locals backward, looking for a match
 	for (int i = cb.mb().locals().size() - 1; i >= 0; i--) {
 	    Local local = cb.mb().locals().get(i);
@@ -339,6 +305,43 @@ public class LPC2J {
 
 	    cb.mb().emitInstr(InstrType.POP);
 	}
+    }
+
+    //
+    // Parser Callbacks
+    //
+    
+    public void variable(String name, boolean canAssign) {
+	int idx = slotForLocalNamed(name);
+
+	if (idx != -1) // initialized local
+	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+		cb.mb().emitInstr(InstrType.THIS);
+
+		expression();
+
+		cb.mb().emitInstr(InstrType.LOC_STORE, idx);
+	    } else // retrieval
+		cb.mb().emitInstr(InstrType.LOC_LOAD, idx);
+	else if (cb.hasField(name)) { // field
+	    Field field = cb.getField(name);
+
+	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+		cb.mb().emitInstr(InstrType.THIS);
+
+		expression();
+
+		cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+	    } else { // retrieval
+		cb.mb().emitInstr(InstrType.THIS);
+		cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
+	    }
+	} else if (resolveMethod(name)) //method
+	    namedMethod(name);
+	// else if (resolveSuperMethod(name)) //superClass method
+	// namedSuperMethod(name);
+	else
+	    parser.error("Unrecognized variable '" + name + "'.");
     }
 
     public void lpcFloat(Float value) {

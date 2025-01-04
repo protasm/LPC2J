@@ -1,7 +1,4 @@
 class JObject {
-int x = 4;
-
-int bar(int y) {
-  return y + x;
-}
+  void foo(int x, String s, float f) {}
+  void bar() { foo(9, "hello", 3.14f); }
 }

@@ -9,20 +9,18 @@ import static org.objectweb.asm.Opcodes.*;
 import static io.github.protasm.lpc2j.BinaryOpType.*;
 import static io.github.protasm.lpc2j.JType.*;
 
-public class MethodBuilder {
+public class Method extends Symbol {
     private ClassBuilder cb;
-    private JType returnType;
-    private String name;
     private String desc;
     private MethodVisitor mv;
     private Stack<Local> locals;
     private Stack<JType> operandTypes;
     private int workingScopeDepth;
 
-    public MethodBuilder(ClassBuilder cb, JType returnType, String name, String desc) {
+    public Method(ClassBuilder cb, JType type, String name, String desc) {
+	super(type, name);
+
 	this.cb = cb;
-	this.returnType = returnType;
-	this.name = name;
 	this.desc = desc;
 
 	this.mv = cb.cw().visitMethod(0, name, desc, null, null);
@@ -42,14 +40,6 @@ public class MethodBuilder {
 	    locLoadInstr(0);
 	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", name, desc, false);
 	}
-    }
-
-    public JType returnType() {
-	return returnType;
-    }
-
-    public String name() {
-	return name;
     }
 
     public String desc() {
@@ -107,6 +97,9 @@ public class MethodBuilder {
 	switch (instrType) {
 	case BINARY:
 	    binaryOp((BinaryOpType) args[0]);
+	    break;
+	case CALL:
+	    call();
 	    break;
 	case CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
@@ -240,6 +233,11 @@ public class MethodBuilder {
 		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + ".");
     }
 
+    private void call() {
+	mv.visitMethodInsn(INVOKEVIRTUAL, cb.name(), this.name, this.desc, false);
+
+    }
+
     private void constFloatInstr(Float value) {
 	operandTypes.push(JFLOAT);
 
@@ -303,7 +301,7 @@ public class MethodBuilder {
 
 	mv.visitInsn(I2F);
     }
-    
+
     private void loadThis() {
 	mv.visitVarInsn(ALOAD, 0);
     }

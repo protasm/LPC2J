@@ -2,6 +2,8 @@ package io.github.protasm.lpc2j;
 
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
+import static scanner.TokenType.TOKEN_COMMA;
+import static scanner.TokenType.TOKEN_RIGHT_PAREN;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -98,30 +100,6 @@ public class LPC2J {
 	parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
     }
 
-    private void constructor() {
-	cb.constructor();
-
-	for (FieldInitializer fi : fieldInitializers) {
-	    String name = fi.nameToken().lexeme();
-	    Field field = cb.getField(name);
-
-	    parser = new Parser(this, fi.initTokens());
-
-	    parser.advance(); // to first token
-	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
-
-	    cb.mb().emitInstr(InstrType.THIS);
-
-	    expression();
-
-	    cb.mb().emitInstr(InstrType.FIELD_STORE, field);
-	}
-
-	cb.mb().emitInstr(InstrType.RETURN);
-
-	cb.mb().finish();
-    }
-
     private void method(Token typeToken, Token nameToken) {
 	String name = nameToken.lexeme();
 	String lpcType = typeToken.lexeme();
@@ -144,6 +122,30 @@ public class LPC2J {
 	parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
 
 	block(); // Consumes the right brace
+
+	cb.mb().finish();
+    }
+
+    private void constructor() {
+	cb.constructor();
+
+	for (FieldInitializer fi : fieldInitializers) {
+	    String name = fi.nameToken().lexeme();
+	    Field field = cb.getField(name);
+
+	    parser = new Parser(this, fi.initTokens());
+
+	    parser.advance(); // to first token
+	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
+
+	    cb.mb().emitInstr(InstrType.THIS);
+
+	    expression();
+
+	    cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+	}
+
+	cb.mb().emitInstr(InstrType.RETURN);
 
 	cb.mb().finish();
     }
@@ -224,7 +226,7 @@ public class LPC2J {
 	parser.consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration(s).");
     }
 
-    private int slotForLocalNamed(String name) {
+    private int slotForLocal(String name) {
 	// traverse locals backward, looking for a match
 	for (int i = cb.mb().locals().size() - 1; i >= 0; i--) {
 	    Local local = cb.mb().locals().get(i);
@@ -239,6 +241,10 @@ public class LPC2J {
 
 	// No match; not a local.
 	return -1;
+    }
+
+    private void namedMethod(String name) {
+
     }
 
     private void statement() {
@@ -263,12 +269,12 @@ public class LPC2J {
     // TODO: Handle implicit returns correctly.
     private void explicitReturnStatement() {
 	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
-	    if (cb.mb().returnType() != JType.JVOID)
+	    if (cb.mb().jType() != JType.JVOID)
 		parser.error("Missing return value.");
 	    else
 		cb.mb().emitInstr(InstrType.RETURN);
 	} else { // handle return value
-	    if (cb.mb().returnType() == JType.JVOID)
+	    if (cb.mb().jType() == JType.JVOID)
 		parser.error("Return value encountered in void method.");
 	    else {
 		expression();
@@ -310,9 +316,18 @@ public class LPC2J {
     //
     // Parser Callbacks
     //
-    
+
+    public void argumentList() {
+	if (!parser.check(TOKEN_RIGHT_PAREN))
+	    do {
+		expression();
+	    } while (parser.match(TOKEN_COMMA));
+
+	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method call arguments.");
+    }
+
     public void variable(String name, boolean canAssign) {
-	int idx = slotForLocalNamed(name);
+	int idx = slotForLocal(name);
 
 	if (idx != -1) // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
@@ -336,7 +351,7 @@ public class LPC2J {
 		cb.mb().emitInstr(InstrType.THIS);
 		cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
 	    }
-	} else if (resolveMethod(name)) //method
+	} else if (cb.hasMethod(name)) // method
 	    namedMethod(name);
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);

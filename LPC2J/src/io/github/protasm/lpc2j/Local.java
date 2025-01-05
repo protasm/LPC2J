@@ -2,7 +2,7 @@ package io.github.protasm.lpc2j;
 
 import io.github.protasm.lpc2j.scanner.Token;
 
-public class Local extends Variable {
+public class Local extends Symbol {
     private int scopeDepth;
     private boolean isCaptured;
 

@@ -4,9 +4,11 @@ import java.util.ListIterator;
 import java.util.Stack;
 
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 import static org.objectweb.asm.Opcodes.*;
 
 import static io.github.protasm.lpc2j.BinaryOpType.*;
+import static io.github.protasm.lpc2j.InstrType.POP;
 import static io.github.protasm.lpc2j.JType.*;
 
 public class Method extends Symbol {
@@ -87,6 +89,12 @@ public class Method extends Symbol {
 	    markTopLocalInitialized();
 
 	return locals.size() - 1;
+    }
+
+    public void popLocal() {
+	locals().pop();
+
+	emitInstr(POP);
     }
 
     public void markTopLocalInitialized() {
@@ -368,7 +376,7 @@ public class Method extends Symbol {
     private void popInstr() {
 	operandTypes.pop();
 
-	mv.visitInsn(POP);
+	mv.visitInsn(Opcodes.POP);
     }
 
     private void returnInstr() {

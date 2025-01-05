@@ -1,9 +1,8 @@
 package io.github.protasm.lpc2j;
 
+import static io.github.protasm.lpc2j.InstrType.*;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
-import static scanner.TokenType.TOKEN_COMMA;
-import static scanner.TokenType.TOKEN_RIGHT_PAREN;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -138,14 +137,14 @@ public class LPC2J {
 	    parser.advance(); // to first token
 	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
 
-	    cb.mb().emitInstr(InstrType.THIS);
+	    cb.mb().emitInstr(THIS);
 
 	    expression();
 
-	    cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+	    cb.mb().emitInstr(FIELD_STORE, field);
 	}
 
-	cb.mb().emitInstr(InstrType.RETURN);
+	cb.mb().emitInstr(RETURN);
 
 	cb.mb().finish();
     }
@@ -219,7 +218,7 @@ public class LPC2J {
 	    if (parser.match(TOKEN_EQUAL)) {
 		expression(); // leaves expression value on stack
 
-		cb.mb().emitInstr(InstrType.LOC_STORE, idx);
+		cb.mb().emitInstr(LOC_STORE, idx);
 	    }
 	} while (parser.match(TOKEN_COMMA));
 
@@ -241,10 +240,6 @@ public class LPC2J {
 
 	// No match; not a local.
 	return -1;
-    }
-
-    private void namedMethod(String name) {
-
     }
 
     private void statement() {
@@ -272,14 +267,14 @@ public class LPC2J {
 	    if (cb.mb().jType() != JType.JVOID)
 		parser.error("Missing return value.");
 	    else
-		cb.mb().emitInstr(InstrType.RETURN);
+		cb.mb().emitInstr(RETURN);
 	} else { // handle return value
 	    if (cb.mb().jType() == JType.JVOID)
 		parser.error("Return value encountered in void method.");
 	    else {
 		expression();
 
-		cb.mb().emitInstr(InstrType.RETURNVAL);
+		cb.mb().emitInstr(RETURNVAL);
 
 		parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
 	    }
@@ -307,9 +302,7 @@ public class LPC2J {
 
 	// pop all locals belonging to the expiring scope
 	while (!(cb.mb().locals().isEmpty()) && cb.mb().locals().peek().scopeDepth() > cb.mb().workingScopeDepth()) {
-	    cb.mb().locals().pop();
-
-	    cb.mb().emitInstr(InstrType.POP);
+	    cb.mb().popLocal();
 	}
     }
 
@@ -317,42 +310,45 @@ public class LPC2J {
     // Parser Callbacks
     //
 
-    public void argumentList() {
-	if (!parser.check(TOKEN_RIGHT_PAREN))
-	    do {
-		expression();
-	    } while (parser.match(TOKEN_COMMA));
-
-	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method call arguments.");
-    }
-
     public void variable(String name, boolean canAssign) {
 	int idx = slotForLocal(name);
 
 	if (idx != -1) // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.THIS);
+		cb.mb().emitInstr(THIS);
 
 		expression();
 
-		cb.mb().emitInstr(InstrType.LOC_STORE, idx);
+		cb.mb().emitInstr(LOC_STORE, idx);
 	    } else // retrieval
-		cb.mb().emitInstr(InstrType.LOC_LOAD, idx);
+		cb.mb().emitInstr(LOC_LOAD, idx);
 	else if (cb.hasField(name)) { // field
 	    Field field = cb.getField(name);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(InstrType.THIS);
+		cb.mb().emitInstr(THIS);
 
 		expression();
 
-		cb.mb().emitInstr(InstrType.FIELD_STORE, field);
+		cb.mb().emitInstr(FIELD_STORE, field);
 	    } else { // retrieval
-		cb.mb().emitInstr(InstrType.THIS);
-		cb.mb().emitInstr(InstrType.FIELD_LOAD, field);
+		cb.mb().emitInstr(THIS);
+		cb.mb().emitInstr(FIELD_LOAD, field);
 	    }
-	} else if (cb.hasMethod(name)) // method
-	    namedMethod(name);
+	} else if (cb.hasMethod(name)) {// method
+	    cb.mb().emitInstr(THIS);
+
+	    if (!parser.check(TOKEN_RIGHT_PAREN))
+		do
+		    expression();
+		while (parser.match(TOKEN_COMMA));
+
+	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method call arguments.");
+
+	    cb.mb().emitInstr(CALL);
+
+	    parser.consume(TOKEN_SEMICOLON, "Expect semicolon after method call.");
+	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);
 	else
@@ -360,27 +356,27 @@ public class LPC2J {
     }
 
     public void lpcFloat(Float value) {
-	cb.mb().emitInstr(InstrType.CONST_FLOAT, value);
+	cb.mb().emitInstr(CONST_FLOAT, value);
     }
 
     public void lpcInteger(Integer value) {
-	cb.mb().emitInstr(InstrType.CONST_INT, value);
+	cb.mb().emitInstr(CONST_INT, value);
     }
 
     public void lpcString(String value) {
-	cb.mb().emitInstr(InstrType.CONST_STR, value);
+	cb.mb().emitInstr(CONST_STR, value);
     }
 
     public void negate() {
-	cb.mb().emitInstr(InstrType.NEGATE);
+	cb.mb().emitInstr(NEGATE);
     }
 
     public void binaryOp(BinaryOpType op) {
-	cb.mb().emitInstr(InstrType.BINARY, op);
+	cb.mb().emitInstr(BINARY, op);
     }
 
     public void i2f() {
-	cb.mb().emitInstr(InstrType.I2F);
+	cb.mb().emitInstr(I2F);
     }
 
     public static void main(String[] args) throws IOException {

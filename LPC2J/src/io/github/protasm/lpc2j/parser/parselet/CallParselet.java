@@ -6,8 +6,8 @@ import io.github.protasm.lpc2j.parser.Parser;
 public class CallParselet implements Parselet {
     @Override
     public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
-		compiler.argumentList();
+	compiler.argumentList();
 
-		// compiler.call()
+	// compiler.call()
     }
 }

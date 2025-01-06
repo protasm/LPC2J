@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import io.github.protasm.lpc2j.JType;
 import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.parselet.BinaryParselet;
 import io.github.protasm.lpc2j.parser.parselet.LiteralParselet;

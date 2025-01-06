@@ -13,6 +13,7 @@ public enum JType {
     static {
 	jTypeForLPCType.put("int", JType.JINT);
 	jTypeForLPCType.put("float", JType.JFLOAT);
+	jTypeForLPCType.put("object", JOBJECT);
 	jTypeForLPCType.put("status", JType.JBOOLEAN);
 	jTypeForLPCType.put("string", JType.JSTRING);
 	jTypeForLPCType.put("void", JType.JVOID);

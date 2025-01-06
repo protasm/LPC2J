@@ -88,7 +88,6 @@ public class Scanner {
 	    private static final long serialVersionUID = 1L;
 
 	    {
-
 		put("else", TOKEN_ELSE);
 		put("false", TOKEN_FALSE);
 		put("for", TOKEN_FOR);
@@ -105,7 +104,6 @@ public class Scanner {
 	    private static final long serialVersionUID = 1L;
 
 	    {
-
 		put('(', TOKEN_LEFT_PAREN);
 		put(')', TOKEN_RIGHT_PAREN);
 		put('{', TOKEN_LEFT_BRACE);

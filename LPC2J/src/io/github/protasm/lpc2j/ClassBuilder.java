@@ -6,6 +6,8 @@ import java.util.Map;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
+import io.github.protasm.lpc2j.scanner.Token;
+
 public class ClassBuilder {
     private String name;
     private ClassWriter cw;
@@ -39,29 +41,37 @@ public class ClassBuilder {
 	fields.put(field.name(), field);
     }
 
-    public void method(JType returnType, String name, String desc) {
-	currMethod = new Method(this, returnType, name, desc);
+    public void newMethod(JType jType, String name, String fullDesc) {
+	currMethod = new Method(this, jType, name, fullDesc);
 	methods.put(currMethod.name(), currMethod);
     }
 
-    public void constructor() {
-	method(JType.JVOID, "<init>", "()V");
+    public void newMethod(Token typeToken, Token nameToken, String paramsDesc) {
+	String lpcType = typeToken.lexeme();
+	JType jType = JType.jTypeForLPCType(lpcType);
+	String name = nameToken.lexeme();
+
+	this.newMethod(jType, name, paramsDesc + jType.descriptor());
     }
 
-    public Field getField(String name) {
-	return fields.get(name);
+    public void constructor() {
+	newMethod(JType.JVOID, "<init>", "()V");
     }
 
     public boolean hasField(String name) {
 	return fields.containsKey(name);
     }
 
-    public Method getMethod(String name) {
-	return methods.get(name);
+    public Field getField(String name) {
+	return fields.get(name);
     }
 
     public boolean hasMethod(String name) {
 	return methods.containsKey(name);
+    }
+
+    public Method getMethod(String name) {
+	return methods.get(name);
     }
 
     public byte[] bytes() {

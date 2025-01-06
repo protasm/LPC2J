@@ -107,7 +107,11 @@ public class Method extends Symbol {
 	    binaryOp((BinaryOpType) args[0]);
 	    break;
 	case CALL:
-	    call();
+	    String owner = (String) args[0];
+	    String name = (String) args[1];
+	    String desc = (String) args[2];
+	    
+	    call(owner, name, desc);
 	    break;
 	case CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
@@ -241,9 +245,8 @@ public class Method extends Symbol {
 		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + ".");
     }
 
-    private void call() {
-	mv.visitMethodInsn(INVOKEVIRTUAL, cb.name(), this.name, this.desc, false);
-
+    private void call(String owner, String name, String desc) {
+	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
     }
 
     private void constFloatInstr(Float value) {

@@ -100,20 +100,11 @@ public class LPC2J {
     }
 
     private void method(Token typeToken, Token nameToken) {
-	String name = nameToken.lexeme();
-	String lpcType = typeToken.lexeme();
-	JType jType = JType.jTypeForLPCType(lpcType);
-	String desc = JType.jDescForLPCType(lpcType);
 	List<Local> params = new ArrayList<>();
 
 	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	if (parser.match(TOKEN_RIGHT_PAREN))
-	    desc = "()" + desc;
-	else
-	    desc = parameters(params) + desc;
-
-	cb.method(jType, name, desc);
+	cb.newMethod(typeToken, nameToken, parameters(params));
 
 	for (Local param : params)
 	    cb.mb().addLocal(param, true);
@@ -152,25 +143,26 @@ public class LPC2J {
     private String parameters(List<Local> params) {
 	StringBuilder desc = new StringBuilder("(");
 
-	// First pass: Parse parameters and build the method descriptor
-	do {
-	    Token typeToken = parser.parseType("Expect parameter type.");
-	    Token nameToken = parser.parseVariable("Expect parameter name.");
+	if (!parser.check(TOKEN_RIGHT_PAREN))
+	    // First pass: Parse parameters and build the method descriptor
+	    do {
+		Token typeToken = parser.parseType("Expect parameter type.");
+		Token nameToken = parser.parseVariable("Expect parameter name.");
 
-	    String name = nameToken.lexeme();
+		String name = nameToken.lexeme();
 
-	    if (params.stream().anyMatch(local -> name.equals(local.name()))) {
-		parser.error("Already a parameter with this name for this method.");
-	    }
+		if (params.stream().anyMatch(local -> name.equals(local.name()))) {
+		    parser.error("Already a parameter with this name for this method.");
+		}
 
-	    String lpcType = typeToken.lexeme();
-	    JType jType = JType.jTypeForLPCType(lpcType);
-	    Local local = new Local(jType, name);
+		String lpcType = typeToken.lexeme();
+		JType jType = JType.jTypeForLPCType(lpcType);
+		Local local = new Local(jType, name);
 
-	    params.add(local);
+		params.add(local);
 
-	    desc.append(JType.jDescForLPCType(lpcType));
-	} while (parser.match(TOKEN_COMMA));
+		desc.append(JType.jDescForLPCType(lpcType));
+	    } while (parser.match(TOKEN_COMMA));
 
 	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method parameters.");
 
@@ -335,19 +327,21 @@ public class LPC2J {
 		cb.mb().emitInstr(THIS);
 		cb.mb().emitInstr(FIELD_LOAD, field);
 	    }
-	} else if (cb.hasMethod(name)) {// method
+	} else if (cb.hasMethod(name)) { // method
+	    Method method = cb.getMethod(name);
+	    
 	    cb.mb().emitInstr(THIS);
+	    
+	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
 	    if (!parser.check(TOKEN_RIGHT_PAREN))
 		do
 		    expression();
 		while (parser.match(TOKEN_COMMA));
 
-	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method call arguments.");
+	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
 
-	    cb.mb().emitInstr(CALL);
-
-	    parser.consume(TOKEN_SEMICOLON, "Expect semicolon after method call.");
+	    cb.mb().emitInstr(CALL, cb.name(), method.name(), method.desc());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);

@@ -1,9 +1,13 @@
+/*
 int x = 4;
 
-int foo(int y) {
-  return y + x;
+int foo (int y) {
+  return x + y;
 }
 
-int bar(int z) {
-  return foo(z);
+int bar(int y) {
+  return foo(y * 4) + 100;
 }
+*/
+
+object obj;

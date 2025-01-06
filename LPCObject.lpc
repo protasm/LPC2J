@@ -1,5 +1,9 @@
 int x = 4;
 
-int bar(int y) {
+int foo(int y) {
   return y + x;
+}
+
+int bar(int z) {
+  return foo(z);
 }

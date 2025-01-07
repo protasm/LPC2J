@@ -16,12 +16,12 @@ public class ClassBuilder {
     private Map<String, Field> fields = new HashMap<>();
     private Map<String, Method> methods = new HashMap<>();
 
-    public ClassBuilder(String className) {
-	this.name = className;
+    public ClassBuilder(String name) {
+	this.name = "brainjar/" + name;
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
-	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, className, null, "java/lang/Object", null);
+	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, this.name, null, "io/github/protasm/lpc2j/LPCObject", null);
     }
 
     public String name() {

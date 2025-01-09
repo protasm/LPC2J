@@ -1,7 +1,44 @@
 package io.github.protasm.lpc2j.parser;
 
-import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
-import static io.github.protasm.lpc2j.scanner.TokenType.*;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_FACTOR;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_NONE;
+import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_TERM;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COLON;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DOT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ELSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ERROR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_FALSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_FOR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_IDENTIFIER;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_IF;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_INHERIT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_INVOKE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_MINUS_MINUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_NUM_FLOAT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_NUM_INT;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_PLUS_PLUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RETURN;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_BRACKET;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SEMICOLON;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SLASH;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SLASH_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STAR;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STAR_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_STRING;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TRUE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TYPE;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_WHILE;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +48,7 @@ import java.util.Map;
 
 import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.parselet.BinaryParselet;
+import io.github.protasm.lpc2j.parser.parselet.CallParselet;
 import io.github.protasm.lpc2j.parser.parselet.LiteralParselet;
 import io.github.protasm.lpc2j.parser.parselet.NumberParselet;
 import io.github.protasm.lpc2j.parser.parselet.Parselet;
@@ -261,6 +299,8 @@ public class Parser {
 	register(TOKEN_PLUS, null, new BinaryParselet(), PREC_TERM);
 	register(TOKEN_STAR, null, new BinaryParselet(), PREC_FACTOR);
 	register(TOKEN_SLASH, null, new BinaryParselet(), PREC_FACTOR);
+
+	register(TOKEN_INVOKE, null, new CallParselet(), PREC_NONE);
 
 	register(TOKEN_FALSE, new LiteralParselet(), null, PREC_NONE);
 	register(TOKEN_IDENTIFIER, new VariableParselet(), null, PREC_NONE);

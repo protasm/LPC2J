@@ -1,15 +1,60 @@
 package io.github.protasm.lpc2j;
 
+import static io.github.protasm.lpc2j.BinaryOpType.BOP_ADD;
+import static io.github.protasm.lpc2j.InstrType.POP;
+import static io.github.protasm.lpc2j.JType.JDOUBLE;
+import static io.github.protasm.lpc2j.JType.JFLOAT;
+import static io.github.protasm.lpc2j.JType.JINT;
+import static io.github.protasm.lpc2j.JType.JLONG;
+import static io.github.protasm.lpc2j.JType.JOBJECT;
+import static io.github.protasm.lpc2j.JType.JSTRING;
+import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.Opcodes.ARETURN;
+import static org.objectweb.asm.Opcodes.ASTORE;
+import static org.objectweb.asm.Opcodes.BIPUSH;
+import static org.objectweb.asm.Opcodes.DNEG;
+import static org.objectweb.asm.Opcodes.DUP;
+import static org.objectweb.asm.Opcodes.FADD;
+import static org.objectweb.asm.Opcodes.FCONST_0;
+import static org.objectweb.asm.Opcodes.FCONST_1;
+import static org.objectweb.asm.Opcodes.FCONST_2;
+import static org.objectweb.asm.Opcodes.FDIV;
+import static org.objectweb.asm.Opcodes.FLOAD;
+import static org.objectweb.asm.Opcodes.FMUL;
+import static org.objectweb.asm.Opcodes.FNEG;
+import static org.objectweb.asm.Opcodes.FRETURN;
+import static org.objectweb.asm.Opcodes.FSTORE;
+import static org.objectweb.asm.Opcodes.FSUB;
+import static org.objectweb.asm.Opcodes.GETFIELD;
+import static org.objectweb.asm.Opcodes.I2F;
+import static org.objectweb.asm.Opcodes.IADD;
+import static org.objectweb.asm.Opcodes.ICONST_0;
+import static org.objectweb.asm.Opcodes.ICONST_1;
+import static org.objectweb.asm.Opcodes.ICONST_2;
+import static org.objectweb.asm.Opcodes.ICONST_3;
+import static org.objectweb.asm.Opcodes.ICONST_4;
+import static org.objectweb.asm.Opcodes.ICONST_5;
+import static org.objectweb.asm.Opcodes.ICONST_M1;
+import static org.objectweb.asm.Opcodes.IDIV;
+import static org.objectweb.asm.Opcodes.ILOAD;
+import static org.objectweb.asm.Opcodes.IMUL;
+import static org.objectweb.asm.Opcodes.INEG;
+import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
+import static org.objectweb.asm.Opcodes.IRETURN;
+import static org.objectweb.asm.Opcodes.ISTORE;
+import static org.objectweb.asm.Opcodes.ISUB;
+import static org.objectweb.asm.Opcodes.LNEG;
+import static org.objectweb.asm.Opcodes.NEW;
+import static org.objectweb.asm.Opcodes.PUTFIELD;
+import static org.objectweb.asm.Opcodes.RETURN;
+import static org.objectweb.asm.Opcodes.SIPUSH;
+
 import java.util.ListIterator;
 import java.util.Stack;
 
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import static org.objectweb.asm.Opcodes.*;
-
-import static io.github.protasm.lpc2j.BinaryOpType.*;
-import static io.github.protasm.lpc2j.InstrType.POP;
-import static io.github.protasm.lpc2j.JType.*;
 
 public class Method extends Symbol {
     private ClassBuilder cb;
@@ -44,6 +89,7 @@ public class Method extends Symbol {
 	}
     }
 
+    @Override
     public String desc() {
 	return desc;
     }
@@ -85,8 +131,9 @@ public class Method extends Symbol {
     public int addLocal(Local local, boolean markInitialized) {
 	locals.push(local);
 
-	if (markInitialized)
+	if (markInitialized) {
 	    markTopLocalInitialized();
+	}
 
 	return locals.size() - 1;
     }
@@ -110,7 +157,7 @@ public class Method extends Symbol {
 	    String owner = (String) args[0];
 	    String name = (String) args[1];
 	    String desc = (String) args[2];
-	    
+
 	    call(owner, name, desc);
 	    break;
 	case CONST_FLOAT:
@@ -211,28 +258,31 @@ public class Method extends Symbol {
 
 	switch (lhsType) {
 	case JINT:
-	    if (rhsType == JINT)
+	    if (rhsType == JINT) {
 		binaryOpInts(op, lhsType, rhsType);
-	    else if (rhsType == JSTRING && op == BOP_ADD)
+	    } else if (rhsType == JSTRING && op == BOP_ADD) {
 		binaryOpStrings();
-	    else
+	    } else {
 		invalidBinaryOp(op, lhsType, rhsType);
+	    }
 
 	    break;
 	case JFLOAT:
-	    if (rhsType == JFLOAT)
+	    if (rhsType == JFLOAT) {
 		binaryOpFloats(op, lhsType, rhsType);
-	    else if (rhsType == JSTRING && op == BOP_ADD)
+	    } else if (rhsType == JSTRING && op == BOP_ADD) {
 		binaryOpStrings();
-	    else
+	    } else {
 		invalidBinaryOp(op, lhsType, rhsType);
+	    }
 
 	    break;
 	case JSTRING:
-	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING) && (op == BOP_ADD))
+	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING) && (op == BOP_ADD)) {
 		binaryOpStrings();
-	    else
+	    } else {
 		invalidBinaryOp(op, lhsType, rhsType);
+	    }
 
 	    break;
 	default:
@@ -252,39 +302,41 @@ public class Method extends Symbol {
     private void constFloatInstr(Float value) {
 	operandTypes.push(JFLOAT);
 
-	if (value == 0.0f)
+	if (value == 0.0f) {
 	    mv.visitInsn(FCONST_0);
-	else if (value == 1.0f)
+	} else if (value == 1.0f) {
 	    mv.visitInsn(FCONST_1);
-	else if (value == 2.0f)
+	} else if (value == 2.0f) {
 	    mv.visitInsn(FCONST_2);
-	else
+	} else {
 	    mv.visitLdcInsn(value);
+	}
     }
 
     private void constIntInstr(Integer value) {
 	operandTypes.push(JINT);
 
-	if (value == -1)
+	if (value == -1) {
 	    mv.visitInsn(ICONST_M1);
-	else if (value == 0)
+	} else if (value == 0) {
 	    mv.visitInsn(ICONST_0);
-	else if (value == 1)
+	} else if (value == 1) {
 	    mv.visitInsn(ICONST_1);
-	else if (value == 2)
+	} else if (value == 2) {
 	    mv.visitInsn(ICONST_2);
-	else if (value == 3)
+	} else if (value == 3) {
 	    mv.visitInsn(ICONST_3);
-	else if (value == 4)
+	} else if (value == 4) {
 	    mv.visitInsn(ICONST_4);
-	else if (value == 5)
+	} else if (value == 5) {
 	    mv.visitInsn(ICONST_5);
-	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
+	} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
 	    mv.visitIntInsn(BIPUSH, value);
-	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
+	} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
 	    mv.visitIntInsn(SIPUSH, value);
-	else
+	} else {
 	    mv.visitLdcInsn(value);
+	}
     }
 
     private void constStrInstr(String value) {
@@ -364,16 +416,17 @@ public class Method extends Symbol {
     private void negateInstr() {
 	JType type = operandTypes.peek();
 
-	if (type == JINT)
+	if (type == JINT) {
 	    mv.visitInsn(INEG);
-	else if (type == JFLOAT)
+	} else if (type == JFLOAT) {
 	    mv.visitInsn(FNEG);
-	else if (type == JLONG)
+	} else if (type == JLONG) {
 	    mv.visitInsn(LNEG);
-	else if (type == JDOUBLE)
+	} else if (type == JDOUBLE) {
 	    mv.visitInsn(DNEG);
-	else
+	} else {
 	    throw new IllegalArgumentException("Unsupported type for negation: " + type);
+	}
     }
 
     private void popInstr() {
@@ -389,12 +442,13 @@ public class Method extends Symbol {
     private void returnValInstr() {
 	JType type = operandTypes.peek();
 
-	if (type == JINT)
+	if (type == JINT) {
 	    mv.visitInsn(IRETURN);
-	else if (type == JFLOAT)
+	} else if (type == JFLOAT) {
 	    mv.visitInsn(FRETURN);
-	else if (type == JSTRING)
+	} else if (type == JSTRING) {
 	    mv.visitInsn(ARETURN);
+	}
     }
 
     public void finish() {

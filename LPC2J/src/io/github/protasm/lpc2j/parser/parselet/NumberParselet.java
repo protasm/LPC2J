@@ -16,13 +16,15 @@ public class NumberParselet implements Parselet {
 	case TOKEN_NUM_INT:
 	    compiler.lpcInteger((Integer) literal);
 
-	    if (inBinaryOp && lhsType == JType.JFLOAT)
+	    if (inBinaryOp && lhsType == JType.JFLOAT) {
 		compiler.i2f();
+	    }
 
 	    return;
 	case TOKEN_NUM_FLOAT:
-	    if (inBinaryOp && lhsType == JType.JINT)
+	    if (inBinaryOp && lhsType == JType.JINT) {
 		compiler.i2f();
+	    }
 
 	    compiler.lpcFloat((Float) literal);
 

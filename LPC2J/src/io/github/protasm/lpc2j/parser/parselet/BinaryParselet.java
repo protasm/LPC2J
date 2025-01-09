@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.BinaryOpType;
+import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.ParseRule;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.TokenType;

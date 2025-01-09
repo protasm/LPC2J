@@ -1,7 +1,7 @@
 class JMain {
   public static void main(String[] args) {
-    LPCObject lpcObject = new LPCObject();
+    JCaller caller = new JCaller();
 
-    System.out.println(lpcObject.bar(8));
+    caller.foo();
   }
 }

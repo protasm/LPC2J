@@ -6,7 +6,6 @@ import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COLON;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DBL_AMP;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DBL_PIPE;
-import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DOT;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ELSE;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL;
@@ -110,7 +109,7 @@ public class Scanner {
 		put('}', TOKEN_RIGHT_BRACE);
 		put('[', TOKEN_LEFT_BRACKET);
 		put(']', TOKEN_RIGHT_BRACKET);
-		put('.', TOKEN_DOT);
+//		put('.', TOKEN_DOT);
 		put(',', TOKEN_COMMA);
 		put(';', TOKEN_SEMICOLON);
 	    }
@@ -163,25 +162,21 @@ public class Scanner {
     }
 
     private Token lexToken() {
-	if (ss.atEnd()) {
+	if (ss.atEnd())
 	    return new Token(TOKEN_EOF, "", null, ss.line());
-	}
 
 	ss.syncTailHead();
 
 	char c = ss.consumeOneChar();
 
-	if (oneCharLexemes.containsKey(c)) {
+	if (oneCharLexemes.containsKey(c))
 	    return makeToken(oneCharLexemes.get(c));
-	}
 
-	if (isDigit(c)) {
+	if (isDigit(c))
 	    return number();
-	}
 
-	if (isAlpha(c)) {
+	if (isAlpha(c))
 	    return identifier();
-	}
 
 	switch (c) {
 	case EOL:
@@ -189,41 +184,36 @@ public class Scanner {
 	case '"':
 	    return string();
 	case '&':
-	    if (ss.match('&')) {
+	    if (ss.match('&'))
 		return makeToken(TOKEN_DBL_AMP);
-	    } else {
+	    else
 		return unexpectedChar(c);
-	    }
 	case '|':
-	    if (ss.match('|')) {
+	    if (ss.match('|'))
 		return makeToken(TOKEN_DBL_PIPE);
-	    } else {
+	    else
 		return unexpectedChar(c);
-	    }
 	case ':':
-	    if (ss.match(':')) {
+	    if (ss.match(':'))
 		return makeToken(TOKEN_SUPER);
-	    } else {
+	    else
 		return makeToken(TOKEN_COLON);
-	    }
 	case '-':
-	    if (ss.match('-')) {
+	    if (ss.match('-'))
 		return makeToken(TOKEN_MINUS_MINUS);
-	    } else if (ss.match('=')) {
+	    else if (ss.match('='))
 		return makeToken(TOKEN_MINUS_EQUAL);
-	    } else if (ss.match('>')) {
+	    else if (ss.match('>'))
 		return makeToken(TOKEN_INVOKE);
-	    } else {
+	    else
 		return makeToken(TOKEN_MINUS);
-	    }
 	case '+':
-	    if (ss.match('+')) {
+	    if (ss.match('+'))
 		return makeToken(TOKEN_PLUS_PLUS);
-	    } else if (ss.match('=')) {
+	    else if (ss.match('='))
 		return makeToken(TOKEN_PLUS_EQUAL);
-	    } else {
+	    else
 		return makeToken(TOKEN_PLUS);
-	    }
 	case '!':
 	    return makeToken(ss.match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
 	case '=':
@@ -233,23 +223,21 @@ public class Scanner {
 	case '>':
 	    return makeToken(ss.match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 	case '/':
-	    if (ss.match('/')) {
+	    if (ss.match('/'))
 		return lineComment();
-	    } else if (ss.match('*')) {
+	    else if (ss.match('*'))
 		return blockComment();
-	    } else if (ss.match('=')) {
+	    else if (ss.match('='))
 		return makeToken(TOKEN_SLASH_EQUAL);
-	    } else {
+	    else
 		return makeToken(TOKEN_SLASH);
-	    }
 	case '*':
 	    return makeToken(ss.match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
 	case ' ':
 	case '\r':
 	case '\t':
-	    while (isWhitespace(ss.peek())) {
+	    while (isWhitespace(ss.peek()))
 		ss.advance();
-	    }
 
 	    return null;
 	default:

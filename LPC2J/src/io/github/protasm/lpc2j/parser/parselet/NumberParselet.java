@@ -10,7 +10,7 @@ public class NumberParselet implements Parselet {
     public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
 	Object literal = parser.previous().literal();
 	TokenType numType = parser.previous().type();
-	JType lhsType = compiler.cb().mb().operandTypes().peek();
+	JType lhsType = compiler.cb().currMethod().operandTypes().peek();
 
 	switch (numType) {
 	case TOKEN_NUM_INT:

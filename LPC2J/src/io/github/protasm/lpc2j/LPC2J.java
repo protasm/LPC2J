@@ -18,6 +18,7 @@ import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_INVOKE;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_BRACE;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_LEFT_PAREN;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RETURN;
@@ -71,9 +72,8 @@ public class LPC2J {
 
 	parser.advance(); // to first token
 
-	while (!parser.match(TOKEN_EOF)) {
-	    member();
-	}
+	while (!parser.match(TOKEN_EOF))
+	    memberDeclaration();
 
 	constructor();
 
@@ -82,22 +82,21 @@ public class LPC2J {
 	return cb.bytes();
     }
 
-    private void member() {
+    private void memberDeclaration() {
 	Token typeToken = parser.parseType("Expect member type.");
 	Token nameToken = parser.parseVariable("Expect member name.");
 
-	if (parser.check(TOKEN_LEFT_PAREN)) {
-	    method(typeToken, nameToken);
-	} else {
-	    field(typeToken, nameToken);
-	}
+	if (parser.check(TOKEN_LEFT_PAREN))
+	    methodDeclaration(typeToken, nameToken);
+	else
+	    fieldDeclaration(typeToken, nameToken);
 
 	if (parser.panicMode()) {
 	    parser.synchronize();
 	}
     }
 
-    private void field(Token typeToken, Token nameToken) {
+    private void fieldDeclaration(Token typeToken, Token nameToken) {
 	cb.field(new Field(typeToken, nameToken));
 
 	if (parser.match(TOKEN_EQUAL)) {
@@ -115,7 +114,7 @@ public class LPC2J {
 	if (parser.match(TOKEN_COMMA)) {
 	    nameToken = parser.parseVariable("Expect field name.");
 
-	    field(typeToken, nameToken);
+	    fieldDeclaration(typeToken, nameToken);
 
 	    return;
 	}
@@ -123,22 +122,21 @@ public class LPC2J {
 	parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
     }
 
-    private void method(Token typeToken, Token nameToken) {
+    private void methodDeclaration(Token typeToken, Token nameToken) {
 	List<Local> params = new ArrayList<>();
 
 	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
 	cb.newMethod(typeToken, nameToken, parameters(params));
 
-	for (Local param : params) {
-	    cb.mb().addLocal(param, true);
-	}
+	for (Local param : params)
+	    cb.currMethod().addLocal(param, true);
 
 	parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
 
 	block(); // Consumes the right brace
 
-	cb.mb().finish();
+	cb.currMethod().finish();
     }
 
     private void constructor() {
@@ -153,16 +151,16 @@ public class LPC2J {
 	    parser.advance(); // to first token
 	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
 
-	    cb.mb().emitInstr(THIS);
+	    cb.currMethod().emitInstr(THIS);
 
 	    expression();
 
-	    cb.mb().emitInstr(FIELD_STORE, field);
+	    cb.currMethod().emitInstr(FIELD_STORE, field);
 	}
 
-	cb.mb().emitInstr(RETURN);
+	cb.currMethod().emitInstr(RETURN);
 
-	cb.mb().finish();
+	cb.currMethod().finish();
     }
 
     private String parameters(List<Local> params) {
@@ -176,9 +174,8 @@ public class LPC2J {
 
 		String name = nameToken.lexeme();
 
-		if (params.stream().anyMatch(local -> name.equals(local.name()))) {
+		if (params.stream().anyMatch(local -> name.equals(local.name())))
 		    parser.error("Already a parameter with this name for this method.");
-		}
 
 		String lpcType = typeToken.lexeme();
 		JType jType = JType.jTypeForLPCType(lpcType);
@@ -200,9 +197,8 @@ public class LPC2J {
     }
 
     private void block() {
-	while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF)) {
+	while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF))
 	    declaration();
-	}
 
 	parser.consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
     }
@@ -214,7 +210,7 @@ public class LPC2J {
 
 	    local(typeToken);
 	} else { // local
-		statement();
+	    statement();
 	}
 
 	if (parser.panicMode()) {
@@ -227,7 +223,7 @@ public class LPC2J {
 	    Token nameToken = parser.parseVariable("Expect local name.");
 	    String name = nameToken.lexeme();
 
-	    if (cb.mb().hasLocal(name)) {
+	    if (cb.currMethod().hasLocal(name)) {
 		parser.error("Already a local named '" + name + "' in this scope.");
 	    }
 
@@ -235,12 +231,12 @@ public class LPC2J {
 	    JType jType = JType.jTypeForLPCType(lpcType);
 	    Local local = new Local(jType, name);
 
-	    int idx = cb.mb().addLocal(local, true);
+	    int idx = cb.currMethod().addLocal(local, true);
 
 	    if (parser.match(TOKEN_EQUAL)) {
 		expression(); // leaves expression value on stack
 
-		cb.mb().emitInstr(LOC_STORE, idx);
+		cb.currMethod().emitInstr(LOC_STORE, idx);
 	    }
 	} while (parser.match(TOKEN_COMMA));
 
@@ -249,12 +245,12 @@ public class LPC2J {
 
     private int slotForLocal(String name) {
 	// traverse locals backward, looking for a match
-	for (int i = cb.mb().locals().size() - 1; i >= 0; i--) {
-	    Local local = cb.mb().locals().get(i);
+	for (int i = cb.currMethod().locals().size() - 1; i >= 0; i--) {
+	    Local local = cb.currMethod().locals().get(i);
 
 	    if (name.equals(local.name())) { // found match
 		if (local.scopeDepth() == -1) { // "sentinel" value
-			parser.error("Can't read local variable in its own initializer.");
+		    parser.error("Can't read local variable in its own initializer.");
 		}
 
 		return i; // runtime stack position of matching local
@@ -288,18 +284,18 @@ public class LPC2J {
     // TODO: Handle implicit returns correctly.
     private void explicitReturnStatement() {
 	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
-	    if (cb.mb().jType() != JType.JVOID) {
+	    if (cb.currMethod().jType() != JType.JVOID) {
 		parser.error("Missing return value.");
 	    } else {
-		cb.mb().emitInstr(RETURN);
+		cb.currMethod().emitInstr(RETURN);
 	    }
 	} else { // handle return value
-	    if (cb.mb().jType() == JType.JVOID) {
+	    if (cb.currMethod().jType() == JType.JVOID) {
 		parser.error("Return value encountered in void method.");
 	    } else {
 		expression();
 
-		cb.mb().emitInstr(RETURNVAL);
+		cb.currMethod().emitInstr(RETURNVAL);
 
 		parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
 	    }
@@ -319,15 +315,15 @@ public class LPC2J {
     }
 
     private void beginScope() {
-	cb.mb().incScopeDepth();
+	cb.currMethod().incScopeDepth();
     }
 
     private void endScope() {
-	cb.mb().decScopeDepth();
+	cb.currMethod().decScopeDepth();
 
 	// pop all locals belonging to the expiring scope
-	while (!(cb.mb().locals().isEmpty()) && cb.mb().locals().peek().scopeDepth() > cb.mb().workingScopeDepth()) {
-	    cb.mb().popLocal();
+	while (!(cb.currMethod().locals().isEmpty()) && cb.currMethod().locals().peek().scopeDepth() > cb.currMethod().workingScopeDepth()) {
+	    cb.currMethod().popLocal();
 	}
     }
 
@@ -339,71 +335,84 @@ public class LPC2J {
 	int idx = slotForLocal(name);
 
 	if (idx != -1) { // initialized local
-		if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(THIS);
+	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+		cb.currMethod().emitInstr(THIS);
 		expression();
-		cb.mb().emitInstr(LOC_STORE, idx);
-		} else // retrieval
-		cb.mb().emitInstr(LOC_LOAD, idx);
+		cb.currMethod().emitInstr(LOC_STORE, idx);
+	    } else if (parser.match(TOKEN_INVOKE)) { // object method invocation
+		parser.parseVariable("Expect method name.");
+
+		cb.currMethod().emitInstr(LOC_LOAD, idx);
+
+		parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+
+		if (!parser.check(TOKEN_RIGHT_PAREN))
+		    do
+			expression();
+		    while (parser.match(TOKEN_COMMA));
+
+		parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+
+//		cb.mb().emitInstr(CALL, cb.name(), method.name(), method.desc());
+	    } else // retrieval
+		cb.currMethod().emitInstr(LOC_LOAD, idx);
 	} else if (cb.hasField(name)) { // field
 	    Field field = cb.getField(name);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.mb().emitInstr(THIS);
+		cb.currMethod().emitInstr(THIS);
 
 		expression();
 
-		cb.mb().emitInstr(FIELD_STORE, field);
+		cb.currMethod().emitInstr(FIELD_STORE, field);
 	    } else { // retrieval
-		cb.mb().emitInstr(THIS);
-		cb.mb().emitInstr(FIELD_LOAD, field);
+		cb.currMethod().emitInstr(THIS);
+		cb.currMethod().emitInstr(FIELD_LOAD, field);
 	    }
 	} else if (cb.hasMethod(name)) { // method
 	    Method method = cb.getMethod(name);
 
-	    cb.mb().emitInstr(THIS);
+	    cb.currMethod().emitInstr(THIS);
 
 	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	    if (!parser.check(TOKEN_RIGHT_PAREN)) {
-		do {
+	    if (!parser.check(TOKEN_RIGHT_PAREN))
+		do
 		    expression();
-		} while (parser.match(TOKEN_COMMA));
-	    }
+		while (parser.match(TOKEN_COMMA));
 
 	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
 
-	    cb.mb().emitInstr(CALL, cb.name(), method.name(), method.desc());
+	    cb.currMethod().emitInstr(CALL, cb.name(), method.name(), method.desc());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);
- else { // method
-		parser.error("Unrecognized variable '" + name + "'.");
-	}
+	else // method
+	    parser.error("Unrecognized variable '" + name + "'.");
     }
 
     public void lpcFloat(Float value) {
-	cb.mb().emitInstr(CONST_FLOAT, value);
+	cb.currMethod().emitInstr(CONST_FLOAT, value);
     }
 
     public void lpcInteger(Integer value) {
-	cb.mb().emitInstr(CONST_INT, value);
+	cb.currMethod().emitInstr(CONST_INT, value);
     }
 
     public void lpcString(String value) {
-	cb.mb().emitInstr(CONST_STR, value);
+	cb.currMethod().emitInstr(CONST_STR, value);
     }
 
     public void negate() {
-	cb.mb().emitInstr(NEGATE);
+	cb.currMethod().emitInstr(NEGATE);
     }
 
     public void binaryOp(BinaryOpType op) {
-	cb.mb().emitInstr(BINARY, op);
+	cb.currMethod().emitInstr(BINARY, op);
     }
 
     public void i2f() {
-	cb.mb().emitInstr(I2F);
+	cb.currMethod().emitInstr(I2F);
     }
 
     public static void main(String[] args) throws IOException {

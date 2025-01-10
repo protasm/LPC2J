@@ -32,7 +32,7 @@ public class ClassBuilder {
 	return cw;
     }
 
-    public Method mb() {
+    public Method currMethod() {
 	return currMethod;
     }
 

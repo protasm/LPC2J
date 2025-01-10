@@ -6,7 +6,6 @@ import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_NONE;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_TERM;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COLON;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
-import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_DOT;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_ELSE;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EQUAL;
@@ -311,7 +310,6 @@ public class Parser {
 
 	register(TOKEN_COLON, null, null, PREC_NONE);
 	register(TOKEN_COMMA, null, null, PREC_NONE);
-	register(TOKEN_DOT, null, null, PREC_NONE);
 	register(TOKEN_ELSE, null, null, PREC_NONE);
 	register(TOKEN_EOF, null, null, PREC_NONE);
 	register(TOKEN_EQUAL, null, null, PREC_NONE);

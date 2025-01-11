@@ -14,6 +14,8 @@ import static io.github.protasm.lpc2j.InstrType.NEGATE;
 import static io.github.protasm.lpc2j.InstrType.RETURN;
 import static io.github.protasm.lpc2j.InstrType.RETURNVAL;
 import static io.github.protasm.lpc2j.InstrType.THIS;
+import static io.github.protasm.lpc2j.JType.JOBJECT;
+import static io.github.protasm.lpc2j.SymbolType.SYM_LOCAL;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_EOF;
@@ -97,7 +99,11 @@ public class LPC2J {
     }
 
     private void fieldDeclaration(Token typeToken, Token nameToken) {
-	cb.field(new Field(typeToken, nameToken));
+	String lpcType = typeToken.lexeme();
+	JType jType = JType.jTypeForLPCType(lpcType);
+	String name = nameToken.lexeme();
+	
+	cb.newField(jType, name);
 
 	if (parser.match(TOKEN_EQUAL)) {
 	    List<Token> initTokens = new ArrayList<>();
@@ -174,16 +180,16 @@ public class LPC2J {
 
 		String name = nameToken.lexeme();
 
-		if (params.stream().anyMatch(local -> name.equals(local.name())))
+		if (params.stream().anyMatch(local -> name.equals(local.identifier())))
 		    parser.error("Already a parameter with this name for this method.");
 
-		String lpcType = typeToken.lexeme();
-		JType jType = JType.jTypeForLPCType(lpcType);
-		Local local = new Local(jType, name);
+		JType jType = JType.jTypeForLPCType(typeToken.lexeme());
+		Symbol symbol = new Symbol(cb, SYM_LOCAL, jType, name, jType.descriptor());
+		Local local = new Local(symbol);
 
 		params.add(local);
 
-		desc.append(JType.jDescForLPCType(lpcType));
+		desc.append(jType.descriptor());
 	    } while (parser.match(TOKEN_COMMA));
 	}
 
@@ -223,13 +229,12 @@ public class LPC2J {
 	    Token nameToken = parser.parseVariable("Expect local name.");
 	    String name = nameToken.lexeme();
 
-	    if (cb.currMethod().hasLocal(name)) {
+	    if (cb.currMethod().hasLocal(name))
 		parser.error("Already a local named '" + name + "' in this scope.");
-	    }
 
-	    String lpcType = typeToken.lexeme();
-	    JType jType = JType.jTypeForLPCType(lpcType);
-	    Local local = new Local(jType, name);
+	    JType jType = JType.jTypeForLPCType(typeToken.lexeme());
+	    Symbol symbol = new Symbol(cb, SYM_LOCAL, jType, name, jType.descriptor());
+	    Local local = new Local(symbol);
 
 	    int idx = cb.currMethod().addLocal(local, true);
 
@@ -248,10 +253,9 @@ public class LPC2J {
 	for (int i = cb.currMethod().locals().size() - 1; i >= 0; i--) {
 	    Local local = cb.currMethod().locals().get(i);
 
-	    if (name.equals(local.name())) { // found match
-		if (local.scopeDepth() == -1) { // "sentinel" value
+	    if (name.equals(local.identifier())) { // found match
+		if (local.scopeDepth() == -1) // "sentinel" value
 		    parser.error("Can't read local variable in its own initializer.");
-		}
 
 		return i; // runtime stack position of matching local
 	    }
@@ -268,31 +272,29 @@ public class LPC2J {
 //	      ifStatement();
 //	    else if (parser.match(TOKEN_WHILE))
 //	      whileStatement();
-	if (parser.match(TOKEN_RETURN)) {
+	if (parser.match(TOKEN_RETURN))
 	    explicitReturnStatement();
-	} else if (parser.match(TOKEN_LEFT_BRACE)) {
+	else if (parser.match(TOKEN_LEFT_BRACE)) {
 	    beginScope();
 
 	    block();
 
 	    endScope();
-	} else {
+	} else
 	    expressionStatement();
-	}
     }
 
     // TODO: Handle implicit returns correctly.
     private void explicitReturnStatement() {
 	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
-	    if (cb.currMethod().jType() != JType.JVOID) {
+	    if (cb.currMethod().jType() != JType.JVOID)
 		parser.error("Missing return value.");
-	    } else {
+	    else
 		cb.currMethod().emitInstr(RETURN);
-	    }
 	} else { // handle return value
-	    if (cb.currMethod().jType() == JType.JVOID) {
+	    if (cb.currMethod().jType() == JType.JVOID)
 		parser.error("Return value encountered in void method.");
-	    } else {
+	    else {
 		expression();
 
 		cb.currMethod().emitInstr(RETURNVAL);
@@ -383,7 +385,7 @@ public class LPC2J {
 
 	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
 
-	    cb.currMethod().emitInstr(CALL, cb.name(), method.name(), method.desc());
+	    cb.currMethod().emitInstr(CALL, cb.className(), method.identifier(), method.descriptor());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);

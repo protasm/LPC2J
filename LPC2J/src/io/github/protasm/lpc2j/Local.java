@@ -1,20 +1,12 @@
 package io.github.protasm.lpc2j;
 
-import io.github.protasm.lpc2j.scanner.Token;
-
-public class Local extends Symbol {
+public class Local implements HasSymbol {
+    private Symbol symbol;
     private int scopeDepth;
     private boolean isCaptured;
 
-    public Local(JType jType, String name) {
-	super(jType, name);
-
-	scopeDepth = -1;
-	isCaptured = false;
-    }
-
-    public Local(Token typeToken, Token nameToken) {
-	super(typeToken, nameToken);
+    public Local(Symbol symbol) {
+	this.symbol = symbol;
 
 	scopeDepth = -1;
 	isCaptured = false;
@@ -38,6 +30,31 @@ public class Local extends Symbol {
 
     @Override
     public String toString() {
-	return "[ " + name() + " (" + scopeDepth + ") ]";
+	return "[ " + symbol.identifier() + " (" + scopeDepth + ") ]";
+    }
+    
+    @Override
+    public String className() {
+	return symbol.className();
+    }
+    
+    @Override
+    public SymbolType sType() {
+	return symbol.sType();
+    }
+    
+    @Override
+    public JType jType() {
+	return symbol.jType();
+    }
+    
+    @Override
+    public String identifier() {
+	return symbol.identifier();
+    }
+    
+    @Override
+    public String descriptor() {
+	return symbol.descriptor();
     }
 }

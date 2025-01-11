@@ -4,12 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ClassBuilder {
-    private String name;
+    private String className;
     private ClassWriter cw;
     private Method currMethod;
 
@@ -17,15 +18,15 @@ public class ClassBuilder {
     private Map<String, Method> methods = new HashMap<>();
 
     public ClassBuilder(String name) {
-	this.name = "brainjar/" + name;
+	this.className = "brainjar/" + name;
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
-	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, this.name, null, "io/github/protasm/lpc2j/LPCObject", null);
+	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, this.className, null, "io/github/protasm/lpc2j/LPCObject", null);
     }
 
-    public String name() {
-	return name;
+    public String className() {
+	return className;
     }
 
     public ClassWriter cw() {
@@ -36,14 +37,20 @@ public class ClassBuilder {
 	return currMethod;
     }
 
-    public void field(Field field) {
-	cw.visitField(0, field.name(), field.desc(), null, null).visitEnd();
-	fields.put(field.name(), field);
+    public void newField(JType jType, String identifier) {
+	Symbol symbol = new Symbol(this, SymbolType.SYM_FIELD, jType, identifier, jType.descriptor());
+	Field field = new Field(symbol);
+	
+	cw.visitField(0, identifier, jType.descriptor(), null, null).visitEnd();
+	fields.put(identifier, field);
     }
 
-    public void newMethod(JType jType, String name, String fullDesc) {
-	currMethod = new Method(this, jType, name, fullDesc);
-	methods.put(currMethod.name(), currMethod);
+    public void newMethod(JType jType, String identifier, String descriptor) {
+	Symbol symbol = new Symbol(this, SymbolType.SYM_METHOD, jType, identifier, descriptor);
+	MethodVisitor mv = cw.visitMethod(0, identifier, descriptor, null, null);
+	currMethod = new Method(symbol, mv);
+
+	methods.put(identifier, currMethod);
     }
 
     public void newMethod(Token typeToken, Token nameToken, String paramsDesc) {

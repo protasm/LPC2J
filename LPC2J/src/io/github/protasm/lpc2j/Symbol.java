@@ -1,34 +1,41 @@
 package io.github.protasm.lpc2j;
 
-import io.github.protasm.lpc2j.scanner.Token;
+public class Symbol {
+    private ClassBuilder cb;
+    private SymbolType sType;
+    private JType jType;
+    private String identifier;
+    private String descriptor;
 
-public abstract class Symbol {
-    protected JType jType;
-    protected String name;
-
-    protected Symbol(JType type, String name) {
-	this.jType = type;
-	this.name = name;
+    protected Symbol(ClassBuilder cb, SymbolType sType, JType jType, String identifier, String descriptor) {
+	this.cb = cb;
+	this.sType = sType;
+	this.jType = jType;
+	this.identifier = identifier;
+	this.descriptor = descriptor;
     }
 
-    protected Symbol(Token typeToken, Token nameToken) {
-	String lpcType = typeToken.lexeme();
-
-	this.jType = JType.jTypeForLPCType(lpcType);
-
-	this.name = nameToken.lexeme();
-
+    public ClassBuilder cb() {
+	return cb;
+    }
+    
+    public String className() {
+	return cb.className();
     }
 
+    public SymbolType sType() {
+	return sType;
+    }
+    
     public JType jType() {
 	return jType;
     }
 
-    public String name() {
-	return name;
+    public String identifier() {
+	return identifier;
     }
 
-    public String desc() {
-	return jType.descriptor();
+    public String descriptor() {
+	return descriptor;
     }
 }

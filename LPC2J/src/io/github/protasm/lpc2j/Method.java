@@ -8,6 +8,7 @@ import static io.github.protasm.lpc2j.JType.JINT;
 import static io.github.protasm.lpc2j.JType.JLONG;
 import static io.github.protasm.lpc2j.JType.JOBJECT;
 import static io.github.protasm.lpc2j.JType.JSTRING;
+import static io.github.protasm.lpc2j.SymbolType.*;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.ASTORE;
@@ -56,42 +57,34 @@ import java.util.Stack;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class Method extends Symbol {
-    private ClassBuilder cb;
-    private String desc;
+public class Method implements HasSymbol {
+    private Symbol symbol;
     private MethodVisitor mv;
     private Stack<Local> locals;
     private Stack<JType> operandTypes;
     private int workingScopeDepth;
 
-    public Method(ClassBuilder cb, JType type, String name, String desc) {
-	super(type, name);
-
-	this.cb = cb;
-	this.desc = desc;
-
-	this.mv = cb.cw().visitMethod(0, name, desc, null, null);
+    public Method(Symbol symbol, MethodVisitor mv) {
+	this.symbol = symbol;
+	this.mv = mv;
 
 	locals = new Stack<>();
 	operandTypes = new Stack<>();
 
 	// Locals slot 0 reserved for "this" (non-static methods only)
-	Local local = new Local(JOBJECT, "this");
+	Symbol localSymbol = new Symbol(symbol.cb(), SYM_LOCAL, JOBJECT, "this", JOBJECT.descriptor());
+	Local local = new Local(localSymbol);
+
 	addLocal(local, true);
 
 	workingScopeDepth = 1;
 
 	mv.visitCode();
 
-	if (name.equals("<init>")) {
+	if (symbol.identifier().equals("<init>")) {
 	    locLoadInstr(0);
-	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", name, desc, false);
+	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "V", false);
 	}
-    }
-
-    @Override
-    public String desc() {
-	return desc;
     }
 
     public Stack<Local> locals() {
@@ -120,9 +113,8 @@ public class Method extends Symbol {
 	while (localsItr.hasPrevious()) {
 	    Local local = localsItr.previous();
 
-	    if (local.name().equals(name)) {
+	    if (local.identifier().equals(name))
 		return true;
-	    }
 	}
 
 	return false;
@@ -245,8 +237,7 @@ public class Method extends Symbol {
 	mv.visitInsn(DUP);
 	mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", false);
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
-		"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
     }
 
@@ -258,31 +249,28 @@ public class Method extends Symbol {
 
 	switch (lhsType) {
 	case JINT:
-	    if (rhsType == JINT) {
+	    if (rhsType == JINT)
 		binaryOpInts(op, lhsType, rhsType);
-	    } else if (rhsType == JSTRING && op == BOP_ADD) {
+	    else if (rhsType == JSTRING && op == BOP_ADD)
 		binaryOpStrings();
-	    } else {
+	    else
 		invalidBinaryOp(op, lhsType, rhsType);
-	    }
 
 	    break;
 	case JFLOAT:
-	    if (rhsType == JFLOAT) {
+	    if (rhsType == JFLOAT)
 		binaryOpFloats(op, lhsType, rhsType);
-	    } else if (rhsType == JSTRING && op == BOP_ADD) {
+	    else if (rhsType == JSTRING && op == BOP_ADD)
 		binaryOpStrings();
-	    } else {
+	    else
 		invalidBinaryOp(op, lhsType, rhsType);
-	    }
 
 	    break;
 	case JSTRING:
-	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING) && (op == BOP_ADD)) {
+	    if ((rhsType == JINT || rhsType == JFLOAT || rhsType == JSTRING) && (op == BOP_ADD))
 		binaryOpStrings();
-	    } else {
+	    else
 		invalidBinaryOp(op, lhsType, rhsType);
-	    }
 
 	    break;
 	default:
@@ -302,41 +290,39 @@ public class Method extends Symbol {
     private void constFloatInstr(Float value) {
 	operandTypes.push(JFLOAT);
 
-	if (value == 0.0f) {
+	if (value == 0.0f)
 	    mv.visitInsn(FCONST_0);
-	} else if (value == 1.0f) {
+	else if (value == 1.0f)
 	    mv.visitInsn(FCONST_1);
-	} else if (value == 2.0f) {
+	else if (value == 2.0f)
 	    mv.visitInsn(FCONST_2);
-	} else {
+	else
 	    mv.visitLdcInsn(value);
-	}
     }
 
     private void constIntInstr(Integer value) {
 	operandTypes.push(JINT);
 
-	if (value == -1) {
+	if (value == -1)
 	    mv.visitInsn(ICONST_M1);
-	} else if (value == 0) {
+	else if (value == 0)
 	    mv.visitInsn(ICONST_0);
-	} else if (value == 1) {
+	else if (value == 1)
 	    mv.visitInsn(ICONST_1);
-	} else if (value == 2) {
+	else if (value == 2)
 	    mv.visitInsn(ICONST_2);
-	} else if (value == 3) {
+	else if (value == 3)
 	    mv.visitInsn(ICONST_3);
-	} else if (value == 4) {
+	else if (value == 4)
 	    mv.visitInsn(ICONST_4);
-	} else if (value == 5) {
+	else if (value == 5)
 	    mv.visitInsn(ICONST_5);
-	} else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE) {
+	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
 	    mv.visitIntInsn(BIPUSH, value);
-	} else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE) {
+	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
 	    mv.visitIntInsn(SIPUSH, value);
-	} else {
+	else
 	    mv.visitLdcInsn(value);
-	}
     }
 
     private void constStrInstr(String value) {
@@ -348,14 +334,14 @@ public class Method extends Symbol {
     private void fieldLoadInstr(Field field) {
 	operandTypes.push(field.jType());
 
-	mv.visitFieldInsn(GETFIELD, cb.name(), field.name(), field.desc());
+	mv.visitFieldInsn(GETFIELD, field.className(), field.identifier(), field.descriptor());
     }
 
     private void fieldStoreInstr(Field field) {
 	operandTypes.pop(); // value being stored
 	operandTypes.pop(); // object reference
 
-	mv.visitFieldInsn(PUTFIELD, cb.name(), field.name(), field.desc());
+	mv.visitFieldInsn(PUTFIELD, field.className(), field.identifier(), field.descriptor());
     }
 
     private void i2fInstr() {
@@ -455,5 +441,30 @@ public class Method extends Symbol {
 	mv.visitMaxs(0, 0);
 
 	mv.visitEnd();
+    }
+    
+    @Override
+    public String className() {
+	return symbol.className();
+    }
+    
+    @Override
+    public SymbolType sType() {
+	return symbol.sType();
+    }
+    
+    @Override
+    public JType jType() {
+	return symbol.jType();
+    }
+    
+    @Override
+    public String identifier() {
+	return symbol.identifier();
+    }
+    
+    @Override
+    public String descriptor() {
+	return symbol.descriptor();
     }
 }

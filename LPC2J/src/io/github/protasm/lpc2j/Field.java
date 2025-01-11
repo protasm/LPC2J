@@ -1,13 +1,34 @@
 package io.github.protasm.lpc2j;
 
-import io.github.protasm.lpc2j.scanner.Token;
-
-public class Field extends Symbol {
-    public Field(JType type, String name) {
-	super(type, name);
+public class Field implements HasSymbol {
+    private Symbol symbol;
+    
+    public Field(Symbol symbol) {
+	this.symbol = symbol;
     }
-
-    public Field(Token typeToken, Token nameToken) {
-	super(typeToken, nameToken);
+    
+    @Override
+    public String className() {
+	return symbol.className();
+    }
+    
+    @Override
+    public SymbolType sType() {
+	return symbol.sType();
+    }
+    
+    @Override
+    public JType jType() {
+	return symbol.jType();
+    }
+    
+    @Override
+    public String identifier() {
+	return symbol.identifier();
+    }
+    
+    @Override
+    public String descriptor() {
+	return symbol.descriptor();
     }
 }

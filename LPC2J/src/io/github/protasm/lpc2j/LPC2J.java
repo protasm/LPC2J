@@ -333,12 +333,11 @@ public class LPC2J {
 	    } else if (parser.match(TOKEN_INVOKE)) { // method of another object
 		Token nameToken = parser.parseVariable("Expect method name.");
 
-//		cb.currMethod().emitInstr(LOC_LOAD, idx);
+		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 
-//		arguments();
+		arguments();
 
-		cb.currMethod().emitInstr(IT_INVOKE_OTHER, idx, nameToken.lexeme());
-//		    cb.currMethod().emitInstr(INVOKE, cb.className(), method.identifier(), method.descriptor());
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER, nameToken.lexeme(), "(I)I");
 	    } else // retrieval
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 	} else if (cb.hasField(identifier)) { // field

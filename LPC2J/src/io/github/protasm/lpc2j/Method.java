@@ -14,19 +14,22 @@ import static org.objectweb.asm.Opcodes.*;
 import java.util.ListIterator;
 import java.util.Stack;
 
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class Method implements HasSymbol {
     private Symbol symbol;
     private MethodVisitor mv;
+    private Handle bootstrapMethod;
     private Stack<Local> locals;
     private Stack<JType> operandTypes;
     private int workingScopeDepth;
 
-    public Method(Symbol symbol, MethodVisitor mv) {
+    public Method(Symbol symbol, MethodVisitor mv, Handle bootstrapMethod) {
 	this.symbol = symbol;
 	this.mv = mv;
+	this.bootstrapMethod = bootstrapMethod;
 
 	locals = new Stack<>();
 	operandTypes = new Stack<>();
@@ -131,10 +134,10 @@ public class Method implements HasSymbol {
 	    invoke(invokeOwner, invokeName, invokeDesc);
 	    break;
 	case IT_INVOKE_OTHER:
-	    Integer invokeOtherLocalIdx = (Integer) args[0];
-	    String invokeOtherName = (String) args[1];
-	    
-	    invokeOther(invokeOtherLocalIdx, invokeOtherName);
+	    String invokeOtherName = (String) args[0];
+	    String invokeOtherDesc = (String) args[1];
+
+	    invokeOther(invokeOtherName, invokeOtherDesc);
 	    break;
 	case IT_LITERAL:
 	    LiteralType lType = (LiteralType) args[0];
@@ -322,47 +325,9 @@ public class Method implements HasSymbol {
     private void invoke(String owner, String name, String desc) {
 	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
     }
-    
-    private void invokeOther(Integer localIdx, String name) {
-	// Step 1: Load local variable representing the target object
-	mv.visitVarInsn(ALOAD, localIdx);
 
-	// Step 2: Get the runtime class of target object
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
-
-	// Step 3: Push the method name
-	mv.visitLdcInsn(name);
-
-	// Step 4: Load the parameter type array for method name
-	mv.visitInsn(ICONST_1); // Array size: 1 (for a single int argument)
-	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class"); // Create a new array of Class objects
-	mv.visitInsn(DUP); // Duplicate the array reference
-	mv.visitInsn(ICONST_0); // Index 0
-	mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;"); // Load int.class
-	mv.visitInsn(AASTORE); // Store int.class in the array
-
-	// Step 5: Use reflection to get the 'bar' method
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod", 
-	    "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
-
-	// Step 6: Load target of the method invocation again
-	mv.visitVarInsn(ALOAD, localIdx);
-
-	// Step 7: Prepare the arguments for the method call
-	mv.visitInsn(ICONST_1); // Array size: 1
-	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create a new Object array
-	mv.visitInsn(DUP); // Duplicate the array reference
-	mv.visitInsn(ICONST_0); // Index 0
-	mv.visitLdcInsn(9); // Push the integer value 9
-	mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false); // Box int to Integer
-	mv.visitInsn(AASTORE); // Store the boxed Integer in the array
-
-	// Step 8: Dynamically invoke the method
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", 
-	    "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
-
-	// Step 9: Handle the return value (if any)
-	mv.visitInsn(POP); // Discard the return value since 'bar' returns void
+    private void invokeOther(String name, String descriptor) {
+	mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethod);
     }
 
     private void literalInstr(LiteralType lType) {

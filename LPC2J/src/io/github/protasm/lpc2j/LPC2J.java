@@ -337,7 +337,8 @@ public class LPC2J {
 
 		arguments();
 
-		cb.currMethod().emitInstr(IT_INVOKE_OTHER, nameToken.lexeme(), "(I)I");
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER, nameToken.lexeme(), "(Ljava/lang/Object;I)I");
+		
 	    } else // retrieval
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 	} else if (cb.hasField(identifier)) { // field
@@ -401,25 +402,5 @@ public class LPC2J {
 
     public void i2f() {
 	cb.currMethod().emitInstr(IT_I2F);
-    }
-
-    public static void main(String[] args) throws IOException {
-	if (args.length != 1) {
-	    System.out.println("Usage: LPC2J <path>");
-
-	    return;
-	}
-
-	LPC2J compiler = new LPC2J();
-	SourceFile sourceFile = new SourceFile(args[0]);
-
-	byte[] bytes = compiler.compile(sourceFile);
-
-	try (FileOutputStream fos = new FileOutputStream(sourceFile.outputPath())) {
-	    fos.write(bytes);
-	    System.out.println("Byte array written to: " + sourceFile.outputPath());
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
     }
 }

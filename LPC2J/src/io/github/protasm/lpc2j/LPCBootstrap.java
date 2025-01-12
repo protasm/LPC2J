@@ -4,10 +4,19 @@ import java.lang.invoke.*;
 
 public class LPCBootstrap {
     public static CallSite bootstrap(MethodHandles.Lookup lookup, String methodName, MethodType methodType)
-	    throws Throwable {
-	// Dynamically resolve the target method on the object
-	MethodHandle target = lookup.findVirtual(Object.class, methodName, methodType);
+	        throws Throwable {
+	    // Extract the runtime class of the receiver
+	    Class<?> receiverClass = methodType.parameterType(0);
 
-	return new ConstantCallSite(target);
-    }
+	    if (receiverClass == Object.class) {
+	        throw new IllegalStateException("Receiver class cannot be java.lang.Object. Ensure a specific runtime type.");
+	    }
+
+	    // Dynamically resolve the method on the runtime receiver class
+	    MethodHandle target = lookup.findVirtual(receiverClass, methodName, methodType.dropParameterTypes(0, 1));
+
+	    // Return a CallSite with the resolved MethodHandle
+	    return new ConstantCallSite(target);
+	}
+
 }

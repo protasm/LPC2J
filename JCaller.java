@@ -8,4 +8,8 @@ class JCaller {
   void foo() {
     callee.bar();
   }
+
+  void bar() {
+    System.out.println("bar() in JCaller.");
+  }
 }

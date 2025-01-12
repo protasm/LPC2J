@@ -3,5 +3,6 @@ class JMain {
     JCaller caller = new JCaller();
 
     caller.foo();
+    caller.bar();
   }
 }

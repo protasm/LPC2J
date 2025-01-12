@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j;
 
 import static io.github.protasm.lpc2j.BinaryOpType.BOP_ADD;
-import static io.github.protasm.lpc2j.InstrType.POP;
+import static io.github.protasm.lpc2j.InstrType.IT_POP;
 import static io.github.protasm.lpc2j.JType.JDOUBLE;
 import static io.github.protasm.lpc2j.JType.JFLOAT;
 import static io.github.protasm.lpc2j.JType.JINT;
@@ -9,48 +9,7 @@ import static io.github.protasm.lpc2j.JType.JLONG;
 import static io.github.protasm.lpc2j.JType.JOBJECT;
 import static io.github.protasm.lpc2j.JType.JSTRING;
 import static io.github.protasm.lpc2j.SymbolType.*;
-import static org.objectweb.asm.Opcodes.ACONST_NULL;
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ARETURN;
-import static org.objectweb.asm.Opcodes.ASTORE;
-import static org.objectweb.asm.Opcodes.BIPUSH;
-import static org.objectweb.asm.Opcodes.DNEG;
-import static org.objectweb.asm.Opcodes.DUP;
-import static org.objectweb.asm.Opcodes.FADD;
-import static org.objectweb.asm.Opcodes.FCONST_0;
-import static org.objectweb.asm.Opcodes.FCONST_1;
-import static org.objectweb.asm.Opcodes.FCONST_2;
-import static org.objectweb.asm.Opcodes.FDIV;
-import static org.objectweb.asm.Opcodes.FLOAD;
-import static org.objectweb.asm.Opcodes.FMUL;
-import static org.objectweb.asm.Opcodes.FNEG;
-import static org.objectweb.asm.Opcodes.FRETURN;
-import static org.objectweb.asm.Opcodes.FSTORE;
-import static org.objectweb.asm.Opcodes.FSUB;
-import static org.objectweb.asm.Opcodes.GETFIELD;
-import static org.objectweb.asm.Opcodes.I2F;
-import static org.objectweb.asm.Opcodes.IADD;
-import static org.objectweb.asm.Opcodes.ICONST_0;
-import static org.objectweb.asm.Opcodes.ICONST_1;
-import static org.objectweb.asm.Opcodes.ICONST_2;
-import static org.objectweb.asm.Opcodes.ICONST_3;
-import static org.objectweb.asm.Opcodes.ICONST_4;
-import static org.objectweb.asm.Opcodes.ICONST_5;
-import static org.objectweb.asm.Opcodes.ICONST_M1;
-import static org.objectweb.asm.Opcodes.IDIV;
-import static org.objectweb.asm.Opcodes.ILOAD;
-import static org.objectweb.asm.Opcodes.IMUL;
-import static org.objectweb.asm.Opcodes.INEG;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
-import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
-import static org.objectweb.asm.Opcodes.IRETURN;
-import static org.objectweb.asm.Opcodes.ISTORE;
-import static org.objectweb.asm.Opcodes.ISUB;
-import static org.objectweb.asm.Opcodes.LNEG;
-import static org.objectweb.asm.Opcodes.NEW;
-import static org.objectweb.asm.Opcodes.PUTFIELD;
-import static org.objectweb.asm.Opcodes.RETURN;
-import static org.objectweb.asm.Opcodes.SIPUSH;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.util.ListIterator;
 import java.util.Stack;
@@ -134,7 +93,7 @@ public class Method implements HasSymbol {
     public void popLocal() {
 	locals().pop();
 
-	emitInstr(POP);
+	emitInstr(IT_POP);
     }
 
     public void markTopLocalInitialized() {
@@ -143,58 +102,64 @@ public class Method implements HasSymbol {
 
     public void emitInstr(InstrType instrType, Object... args) {
 	switch (instrType) {
-	case BINARY:
+	case IT_BINARY:
 	    binaryOp((BinaryOpType) args[0]);
 	    break;
-	case INVOKE:
-	    String owner = (String) args[0];
-	    String name = (String) args[1];
-	    String desc = (String) args[2];
-
-	    invoke(owner, name, desc);
-	    break;
-	case CONST_FLOAT:
+	case IT_CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
 	    break;
-	case CONST_INT:
+	case IT_CONST_INT:
 	    constIntInstr((Integer) args[0]);
 	    break;
-	case CONST_STR:
+	case IT_CONST_STR:
 	    constStrInstr((String) args[0]);
 	    break;
-	case FIELD_LOAD:
+	case IT_FIELD_LOAD:
 	    fieldLoadInstr((Field) args[0]);
 	    break;
-	case FIELD_STORE:
+	case IT_FIELD_STORE:
 	    fieldStoreInstr((Field) args[0]);
 	    break;
-	case I2F:
+	case IT_I2F:
 	    i2fInstr();
 	    break;
-	case LITERAL:
+	case IT_INVOKE:
+	    String invokeOwner = (String) args[0];
+	    String invokeName = (String) args[1];
+	    String invokeDesc = (String) args[2];
+
+	    invoke(invokeOwner, invokeName, invokeDesc);
+	    break;
+	case IT_INVOKE_OTHER:
+	    Integer invokeOtherLocalIdx = (Integer) args[0];
+	    String invokeOtherName = (String) args[1];
+	    
+	    invokeOther(invokeOtherLocalIdx, invokeOtherName);
+	    break;
+	case IT_LITERAL:
 	    LiteralType lType = (LiteralType) args[0];
 
 	    literalInstr(lType);
 	    break;
-	case LOC_LOAD:
+	case IT_LOC_LOAD:
 	    locLoadInstr((Integer) args[0]);
 	    break;
-	case LOC_STORE:
+	case IT_LOC_STORE:
 	    locStoreInstr((Integer) args[0]);
 	    break;
-	case NEGATE:
+	case IT_NEGATE:
 	    negateInstr();
 	    break;
-	case POP:
+	case IT_POP:
 	    popInstr();
 	    break;
-	case RETURN:
+	case IT_RETURN:
 	    returnInstr();
 	    break;
-	case RETURNVAL:
+	case IT_RETURNVAL:
 	    returnValInstr();
 	    break;
-	case THIS:
+	case IT_LOAD_THIS:
 	    loadThisInstr();
 	    break;
 	} // switch (instrType)
@@ -356,6 +321,48 @@ public class Method implements HasSymbol {
 
     private void invoke(String owner, String name, String desc) {
 	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
+    }
+    
+    private void invokeOther(Integer localIdx, String name) {
+	// Step 1: Load local variable representing the target object
+	mv.visitVarInsn(ALOAD, localIdx);
+
+	// Step 2: Get the runtime class of target object
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+
+	// Step 3: Push the method name
+	mv.visitLdcInsn(name);
+
+	// Step 4: Load the parameter type array for method name
+	mv.visitInsn(ICONST_1); // Array size: 1 (for a single int argument)
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class"); // Create a new array of Class objects
+	mv.visitInsn(DUP); // Duplicate the array reference
+	mv.visitInsn(ICONST_0); // Index 0
+	mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;"); // Load int.class
+	mv.visitInsn(AASTORE); // Store int.class in the array
+
+	// Step 5: Use reflection to get the 'bar' method
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod", 
+	    "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+
+	// Step 6: Load target of the method invocation again
+	mv.visitVarInsn(ALOAD, localIdx);
+
+	// Step 7: Prepare the arguments for the method call
+	mv.visitInsn(ICONST_1); // Array size: 1
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create a new Object array
+	mv.visitInsn(DUP); // Duplicate the array reference
+	mv.visitInsn(ICONST_0); // Index 0
+	mv.visitLdcInsn(9); // Push the integer value 9
+	mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false); // Box int to Integer
+	mv.visitInsn(AASTORE); // Store the boxed Integer in the array
+
+	// Step 8: Dynamically invoke the method
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", 
+	    "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+
+	// Step 9: Handle the return value (if any)
+	mv.visitInsn(POP); // Discard the return value since 'bar' returns void
     }
 
     private void literalInstr(LiteralType lType) {

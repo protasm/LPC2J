@@ -1,3 +1,3 @@
 void foo(object obj) {
-  obj->bar();
+  obj->bar(9);
 }

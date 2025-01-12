@@ -1,13 +1,14 @@
 package io.github.protasm.lpc2j;
 
 import static io.github.protasm.lpc2j.InstrType.BINARY;
-import static io.github.protasm.lpc2j.InstrType.CALL;
 import static io.github.protasm.lpc2j.InstrType.CONST_FLOAT;
 import static io.github.protasm.lpc2j.InstrType.CONST_INT;
 import static io.github.protasm.lpc2j.InstrType.CONST_STR;
 import static io.github.protasm.lpc2j.InstrType.FIELD_LOAD;
 import static io.github.protasm.lpc2j.InstrType.FIELD_STORE;
 import static io.github.protasm.lpc2j.InstrType.I2F;
+import static io.github.protasm.lpc2j.InstrType.INVOKE;
+import static io.github.protasm.lpc2j.InstrType.LITERAL;
 import static io.github.protasm.lpc2j.InstrType.LOC_LOAD;
 import static io.github.protasm.lpc2j.InstrType.LOC_STORE;
 import static io.github.protasm.lpc2j.InstrType.NEGATE;
@@ -102,7 +103,7 @@ public class LPC2J {
 	String lpcType = typeToken.lexeme();
 	JType jType = JType.jTypeForLPCType(lpcType);
 	String name = nameToken.lexeme();
-	
+
 	cb.newField(jType, name);
 
 	if (parser.match(TOKEN_EQUAL)) {
@@ -130,8 +131,6 @@ public class LPC2J {
 
     private void methodDeclaration(Token typeToken, Token nameToken) {
 	List<Local> params = new ArrayList<>();
-
-	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
 	cb.newMethod(typeToken, nameToken, parameters(params));
 
@@ -170,6 +169,8 @@ public class LPC2J {
     }
 
     private String parameters(List<Local> params) {
+	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+
 	StringBuilder desc = new StringBuilder("(");
 
 	if (!parser.check(TOKEN_RIGHT_PAREN)) {
@@ -215,13 +216,11 @@ public class LPC2J {
 	    Token typeToken = parser.parseType("Expect local type.");
 
 	    local(typeToken);
-	} else { // local
+	} else // local
 	    statement();
-	}
 
-	if (parser.panicMode()) {
+	if (parser.panicMode())
 	    parser.synchronize();
-	}
     }
 
     private void local(Token typeToken) {
@@ -324,42 +323,39 @@ public class LPC2J {
 	cb.currMethod().decScopeDepth();
 
 	// pop all locals belonging to the expiring scope
-	while (!(cb.currMethod().locals().isEmpty()) && cb.currMethod().locals().peek().scopeDepth() > cb.currMethod().workingScopeDepth()) {
+	while (!(cb.currMethod().locals().isEmpty())
+		&& cb.currMethod().locals().peek().scopeDepth() > cb.currMethod().workingScopeDepth())
 	    cb.currMethod().popLocal();
-	}
     }
 
     //
     // Parser Callbacks
     //
 
-    public void variable(String name, boolean canAssign) {
-	int idx = slotForLocal(name);
+    public void literal(LiteralType lType) {
+	cb.currMethod().emitInstr(LITERAL, lType);
+    }
+
+    public void identifier(String identifier, boolean canAssign) {
+	int idx = slotForLocal(identifier);
 
 	if (idx != -1) { // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
 		cb.currMethod().emitInstr(THIS);
 		expression();
 		cb.currMethod().emitInstr(LOC_STORE, idx);
-	    } else if (parser.match(TOKEN_INVOKE)) { // object method invocation
+	    } else if (parser.match(TOKEN_INVOKE)) { // method of another object
 		parser.parseVariable("Expect method name.");
 
 		cb.currMethod().emitInstr(LOC_LOAD, idx);
 
-		parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+		arguments();
 
-		if (!parser.check(TOKEN_RIGHT_PAREN))
-		    do
-			expression();
-		    while (parser.match(TOKEN_COMMA));
-
-		parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
-
-//		cb.mb().emitInstr(CALL, cb.name(), method.name(), method.desc());
+//		    cb.currMethod().emitInstr(INVOKE, cb.className(), method.identifier(), method.descriptor());
 	    } else // retrieval
 		cb.currMethod().emitInstr(LOC_LOAD, idx);
-	} else if (cb.hasField(name)) { // field
-	    Field field = cb.getField(name);
+	} else if (cb.hasField(identifier)) { // field
+	    Field field = cb.getField(identifier);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
 		cb.currMethod().emitInstr(THIS);
@@ -371,26 +367,30 @@ public class LPC2J {
 		cb.currMethod().emitInstr(THIS);
 		cb.currMethod().emitInstr(FIELD_LOAD, field);
 	    }
-	} else if (cb.hasMethod(name)) { // method
-	    Method method = cb.getMethod(name);
+	} else if (cb.hasMethod(identifier)) { // method of same object
+	    Method method = cb.getMethod(identifier);
 
 	    cb.currMethod().emitInstr(THIS);
 
-	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+	    arguments();
 
-	    if (!parser.check(TOKEN_RIGHT_PAREN))
-		do
-		    expression();
-		while (parser.match(TOKEN_COMMA));
-
-	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
-
-	    cb.currMethod().emitInstr(CALL, cb.className(), method.identifier(), method.descriptor());
+	    cb.currMethod().emitInstr(INVOKE, cb.className(), method.identifier(), method.descriptor());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);
 	else // method
-	    parser.error("Unrecognized variable '" + name + "'.");
+	    parser.error("Unrecognized identifier '" + identifier + "'.");
+    }
+
+    private void arguments() {
+	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+
+	if (!parser.check(TOKEN_RIGHT_PAREN))
+	    do
+		expression();
+	    while (parser.match(TOKEN_COMMA));
+
+	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
     }
 
     public void lpcFloat(Float value) {

@@ -18,7 +18,7 @@ public class Symbol {
     public ClassBuilder cb() {
 	return cb;
     }
-    
+
     public String className() {
 	return cb.className();
     }
@@ -26,7 +26,7 @@ public class Symbol {
     public SymbolType sType() {
 	return sType;
     }
-    
+
     public JType jType() {
 	return jType;
     }

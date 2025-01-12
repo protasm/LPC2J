@@ -32,27 +32,27 @@ public class Local implements HasSymbol {
     public String toString() {
 	return "[ " + symbol.identifier() + " (" + scopeDepth + ") ]";
     }
-    
+
     @Override
     public String className() {
 	return symbol.className();
     }
-    
+
     @Override
     public SymbolType sType() {
 	return symbol.sType();
     }
-    
+
     @Override
     public JType jType() {
 	return symbol.jType();
     }
-    
+
     @Override
     public String identifier() {
 	return symbol.identifier();
     }
-    
+
     @Override
     public String descriptor() {
 	return symbol.descriptor();

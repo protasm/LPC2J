@@ -47,13 +47,13 @@ import java.util.Map;
 
 import io.github.protasm.lpc2j.LPC2J;
 import io.github.protasm.lpc2j.parser.parselet.BinaryParselet;
-import io.github.protasm.lpc2j.parser.parselet.CallParselet;
+import io.github.protasm.lpc2j.parser.parselet.InvokeParselet;
 import io.github.protasm.lpc2j.parser.parselet.LiteralParselet;
 import io.github.protasm.lpc2j.parser.parselet.NumberParselet;
 import io.github.protasm.lpc2j.parser.parselet.Parselet;
 import io.github.protasm.lpc2j.parser.parselet.StringParselet;
 import io.github.protasm.lpc2j.parser.parselet.UnaryParselet;
-import io.github.protasm.lpc2j.parser.parselet.VariableParselet;
+import io.github.protasm.lpc2j.parser.parselet.IdentifierParselet;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.TokenType;
 
@@ -259,12 +259,9 @@ public class Parser {
 	    infixParselet.parse(this, compiler, canAssign, false);
 	}
 
-	if (canAssign) {
-	    if (match(TOKEN_EQUAL) || match(TOKEN_PLUS_EQUAL)) {
-
+	if (canAssign)
+	    if (match(TOKEN_EQUAL) || match(TOKEN_PLUS_EQUAL))
 		error("Invalid assignment target.");
-	    }
-	}
     }
 
     public Token parseType(String errorMessage) {
@@ -299,10 +296,10 @@ public class Parser {
 	register(TOKEN_STAR, null, new BinaryParselet(), PREC_FACTOR);
 	register(TOKEN_SLASH, null, new BinaryParselet(), PREC_FACTOR);
 
-	register(TOKEN_INVOKE, null, new CallParselet(), PREC_NONE);
+	register(TOKEN_INVOKE, null, new InvokeParselet(), PREC_NONE);
 
 	register(TOKEN_FALSE, new LiteralParselet(), null, PREC_NONE);
-	register(TOKEN_IDENTIFIER, new VariableParselet(), null, PREC_NONE);
+	register(TOKEN_IDENTIFIER, new IdentifierParselet(), null, PREC_NONE);
 	register(TOKEN_NUM_INT, new NumberParselet(), null, PREC_NONE);
 	register(TOKEN_NUM_FLOAT, new NumberParselet(), null, PREC_NONE);
 	register(TOKEN_STRING, new StringParselet(), null, PREC_NONE);

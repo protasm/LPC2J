@@ -9,6 +9,7 @@ import static io.github.protasm.lpc2j.JType.JLONG;
 import static io.github.protasm.lpc2j.JType.JOBJECT;
 import static io.github.protasm.lpc2j.JType.JSTRING;
 import static io.github.protasm.lpc2j.SymbolType.*;
+import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.ASTORE;
@@ -83,7 +84,7 @@ public class Method implements HasSymbol {
 
 	if (symbol.identifier().equals("<init>")) {
 	    locLoadInstr(0);
-	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "V", false);
+	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 	}
     }
 
@@ -145,12 +146,12 @@ public class Method implements HasSymbol {
 	case BINARY:
 	    binaryOp((BinaryOpType) args[0]);
 	    break;
-	case CALL:
+	case INVOKE:
 	    String owner = (String) args[0];
 	    String name = (String) args[1];
 	    String desc = (String) args[2];
 
-	    call(owner, name, desc);
+	    invoke(owner, name, desc);
 	    break;
 	case CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
@@ -169,6 +170,11 @@ public class Method implements HasSymbol {
 	    break;
 	case I2F:
 	    i2fInstr();
+	    break;
+	case LITERAL:
+	    LiteralType lType = (LiteralType) args[0];
+
+	    literalInstr(lType);
 	    break;
 	case LOC_LOAD:
 	    locLoadInstr((Integer) args[0]);
@@ -189,7 +195,7 @@ public class Method implements HasSymbol {
 	    returnValInstr();
 	    break;
 	case THIS:
-	    loadThis();
+	    loadThisInstr();
 	    break;
 	} // switch (instrType)
     }
@@ -237,7 +243,8 @@ public class Method implements HasSymbol {
 	mv.visitInsn(DUP);
 	mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", false);
-	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append",
+		"(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
 	mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
     }
 
@@ -281,10 +288,6 @@ public class Method implements HasSymbol {
     private void invalidBinaryOp(BinaryOpType op, JType lhsType, JType rhsType) {
 	throw new UnsupportedOperationException(
 		"Invalid binary operation: " + lhsType + " " + op + " " + rhsType + ".");
-    }
-
-    private void call(String owner, String name, String desc) {
-	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
     }
 
     private void constFloatInstr(Float value) {
@@ -351,7 +354,25 @@ public class Method implements HasSymbol {
 	mv.visitInsn(I2F);
     }
 
-    private void loadThis() {
+    private void invoke(String owner, String name, String desc) {
+	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
+    }
+
+    private void literalInstr(LiteralType lType) {
+	switch (lType) {
+	case LT_TRUE:
+	    mv.visitInsn(ICONST_1);
+	    break;
+	case LT_FALSE:
+	    mv.visitInsn(ICONST_0);
+	    break;
+	case LT_NULL:
+	    mv.visitInsn(ACONST_NULL);
+	    break;
+	}
+    }
+
+    private void loadThisInstr() {
 	mv.visitVarInsn(ALOAD, 0);
     }
 
@@ -442,27 +463,27 @@ public class Method implements HasSymbol {
 
 	mv.visitEnd();
     }
-    
+
     @Override
     public String className() {
 	return symbol.className();
     }
-    
+
     @Override
     public SymbolType sType() {
 	return symbol.sType();
     }
-    
+
     @Override
     public JType jType() {
 	return symbol.jType();
     }
-    
+
     @Override
     public String identifier() {
 	return symbol.identifier();
     }
-    
+
     @Override
     public String descriptor() {
 	return symbol.descriptor();

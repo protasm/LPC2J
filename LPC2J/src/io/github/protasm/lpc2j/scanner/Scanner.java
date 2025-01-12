@@ -71,7 +71,6 @@ public class Scanner {
 	    private static final long serialVersionUID = 1L;
 
 	    {
-
 		put("int", TOKEN_TYPE);
 		put("float", TOKEN_TYPE);
 		put("mapping", TOKEN_TYPE);
@@ -109,7 +108,6 @@ public class Scanner {
 		put('}', TOKEN_RIGHT_BRACE);
 		put('[', TOKEN_LEFT_BRACKET);
 		put(']', TOKEN_RIGHT_BRACKET);
-//		put('.', TOKEN_DOT);
 		put(',', TOKEN_COMMA);
 		put(';', TOKEN_SEMICOLON);
 	    }

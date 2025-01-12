@@ -40,7 +40,7 @@ public class ClassBuilder {
     public void newField(JType jType, String identifier) {
 	Symbol symbol = new Symbol(this, SymbolType.SYM_FIELD, jType, identifier, jType.descriptor());
 	Field field = new Field(symbol);
-	
+
 	cw.visitField(0, identifier, jType.descriptor(), null, null).visitEnd();
 	fields.put(identifier, field);
     }

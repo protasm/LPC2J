@@ -130,9 +130,7 @@ public class Method implements HasSymbol {
 	    invoke(invokeName, invokeDesc);
 	    break;
 	case IT_INVOKE_OTHER:
-	    String invokeOtherName = (String) args[0];
-
-	    invokeOther(invokeOtherName);
+	    invokeOther();
 	    break;
 	case IT_LITERAL:
 	    LiteralType lType = (LiteralType) args[0];
@@ -321,8 +319,8 @@ public class Method implements HasSymbol {
 	mv.visitMethodInsn(INVOKEVIRTUAL, symbol.className(), name, descriptor, false);
     }
 
-    private void invokeOther(String name) {
-	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", name, "(I)I", false);
+    private void invokeOther() {
+	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", "dispatch", "(I)I", false);
     }
 
     private void literalInstr(LiteralType lType) {

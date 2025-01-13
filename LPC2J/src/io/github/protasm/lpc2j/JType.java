@@ -5,7 +5,7 @@ import java.util.Map;
 
 public enum JType {
     JBOOLEAN("Z"), JCHAR("C"), JFLOAT("F"), JDOUBLE("D"), JBYTE("B"), JSHORT("S"), JINT("I"), JLONG("J"),
-    JSTRING("Ljava/lang/String;"), JOBJECT("Ljava/lang/Object;"), JVOID("V");
+    JSTRING("Ljava/lang/String;"), JOBJECT("Lio/github/protasm/lpc2j/LPCObject;"), JVOID("V");
 
     private final String descriptor;
     private static final Map<String, JType> jTypeForLPCType = new HashMap<>();

@@ -335,10 +335,12 @@ public class LPC2J {
 		String methodName = nameToken.lexeme();
 
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
+		
+		cb.currMethod().emitInstr(IT_CONST_STR, methodName);
 
 		arguments();
 
-		cb.currMethod().emitInstr(IT_INVOKE_OTHER, methodName);
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER);
 	    } else // retrieval
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 	} else if (cb.hasField(identifier)) { // field

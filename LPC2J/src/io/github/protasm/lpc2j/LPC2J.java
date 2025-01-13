@@ -16,7 +16,6 @@ import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_PAREN;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SEMICOLON;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TYPE;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +52,8 @@ public class LPC2J {
     }
 
     public byte[] compile(SourceFile sourceFile) throws IOException {
-	cb = new ClassBuilder(sourceFile.className());
+	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.className();
+	cb = new ClassBuilder(fullClassName);
 
 	Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
 	parser = new Parser(this, scanner.scan());
@@ -332,13 +332,13 @@ public class LPC2J {
 		cb.currMethod().emitInstr(IT_LOC_STORE, idx);
 	    } else if (parser.match(TOKEN_INVOKE)) { // method of another object
 		Token nameToken = parser.parseVariable("Expect method name.");
+		String methodName = nameToken.lexeme();
 
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 
 		arguments();
 
-		cb.currMethod().emitInstr(IT_INVOKE_OTHER, nameToken.lexeme(), "(Ljava/lang/Object;I)I");
-		
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER, methodName);
 	    } else // retrieval
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 	} else if (cb.hasField(identifier)) { // field
@@ -361,7 +361,7 @@ public class LPC2J {
 
 	    arguments();
 
-	    cb.currMethod().emitInstr(IT_INVOKE, cb.className(), method.identifier(), method.descriptor());
+	    cb.currMethod().emitInstr(IT_INVOKE, method.identifier(), method.descriptor());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);

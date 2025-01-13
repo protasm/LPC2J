@@ -14,22 +14,19 @@ import static org.objectweb.asm.Opcodes.*;
 import java.util.ListIterator;
 import java.util.Stack;
 
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class Method implements HasSymbol {
     private Symbol symbol;
     private MethodVisitor mv;
-    private Handle bootstrapMethod;
     private Stack<Local> locals;
     private Stack<JType> operandTypes;
     private int workingScopeDepth;
 
-    public Method(Symbol symbol, MethodVisitor mv, Handle bootstrapMethod) {
+    public Method(Symbol symbol, MethodVisitor mv) {
 	this.symbol = symbol;
 	this.mv = mv;
-	this.bootstrapMethod = bootstrapMethod;
 
 	locals = new Stack<>();
 	operandTypes = new Stack<>();
@@ -127,17 +124,15 @@ public class Method implements HasSymbol {
 	    i2fInstr();
 	    break;
 	case IT_INVOKE:
-	    String invokeOwner = (String) args[0];
-	    String invokeName = (String) args[1];
-	    String invokeDesc = (String) args[2];
+	    String invokeName = (String) args[0];
+	    String invokeDesc = (String) args[1];
 
-	    invoke(invokeOwner, invokeName, invokeDesc);
+	    invoke(invokeName, invokeDesc);
 	    break;
 	case IT_INVOKE_OTHER:
 	    String invokeOtherName = (String) args[0];
-	    String invokeOtherDesc = (String) args[1];
 
-	    invokeOther(invokeOtherName, invokeOtherDesc);
+	    invokeOther(invokeOtherName);
 	    break;
 	case IT_LITERAL:
 	    LiteralType lType = (LiteralType) args[0];
@@ -322,12 +317,12 @@ public class Method implements HasSymbol {
 	mv.visitInsn(I2F);
     }
 
-    private void invoke(String owner, String name, String desc) {
-	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
+    private void invoke(String name, String descriptor) {
+	mv.visitMethodInsn(INVOKEVIRTUAL, symbol.className(), name, descriptor, false);
     }
 
-    private void invokeOther(String name, String descriptor) {
-	mv.visitInvokeDynamicInsn(name, descriptor, bootstrapMethod);
+    private void invokeOther(String name) {
+	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", name, "(I)I", false);
     }
 
     private void literalInstr(LiteralType lType) {

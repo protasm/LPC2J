@@ -1,12 +1,9 @@
 package io.github.protasm.lpc2j;
 
-import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
-
 import java.util.HashMap;
 import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -15,7 +12,6 @@ import io.github.protasm.lpc2j.scanner.Token;
 public class ClassBuilder {
     private String className;
     private ClassWriter cw;
-    private Handle bootstrapMethod;
     private Method currMethod;
 
     private Map<String, Field> fields = new HashMap<>();
@@ -26,12 +22,7 @@ public class ClassBuilder {
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
-	// Define the bootstrap method handle
-	bootstrapMethod = new Handle(H_INVOKESTATIC, "io/github/protasm/lpc2j/LPCBootstrap", "bootstrap",
-		"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-		false);
-
-	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null, "java/lang/Object", null);
+	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null, "io/github/protasm/lpc2j/LPCObject", null);
     }
 
     public String className() {
@@ -57,7 +48,7 @@ public class ClassBuilder {
     public void newMethod(JType jType, String identifier, String descriptor) {
 	Symbol symbol = new Symbol(this, SymbolType.SYM_METHOD, jType, identifier, descriptor);
 	MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, identifier, descriptor, null, null);
-	currMethod = new Method(symbol, mv, bootstrapMethod);
+	currMethod = new Method(symbol, mv);
 
 	methods.put(identifier, currMethod);
     }

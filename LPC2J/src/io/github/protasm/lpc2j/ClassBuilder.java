@@ -22,7 +22,8 @@ public class ClassBuilder {
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
-	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null, "io/github/protasm/lpc2j/LPCObject", null);
+	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null,
+		"io/github/protasm/lpc2j/LPCObject", null);
     }
 
     public String className() {

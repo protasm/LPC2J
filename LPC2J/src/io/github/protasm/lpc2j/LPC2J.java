@@ -53,6 +53,7 @@ public class LPC2J {
 
     public byte[] compile(SourceFile sourceFile) throws IOException {
 	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.className();
+
 	cb = new ClassBuilder(fullClassName);
 
 	Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
@@ -335,7 +336,7 @@ public class LPC2J {
 		String methodName = nameToken.lexeme();
 
 		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
-		
+
 		cb.currMethod().emitInstr(IT_CONST_STR, methodName);
 
 		arguments();
@@ -371,17 +372,38 @@ public class LPC2J {
 	    parser.error("Unrecognized identifier '" + identifier + "'.");
     }
 
-    private void arguments() {
-	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+    private void arguments(boolean asArray, int arity) {
+	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	if (!parser.check(TOKEN_RIGHT_PAREN))
-	    do
-		expression();
-	    while (parser.match(TOKEN_COMMA));
+	    if (asArray) {
+		cb.currMethod().emitInstr(IT_NEW_ARRAY, arity, "java/lang/Object");
+	    }
 
-	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
-    }
+	    int currIdx = 0; // Track the argument index
 
+	    if (!parser.check(TOKEN_RIGHT_PAREN)) {
+	        do {
+	            // Emit bytecode for the current argument expression
+	            expression();
+
+	            if (asArray) {
+	                // Store the current argument in the array
+	                methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
+	                methodVisitor.visitLdcInsn(currIdx); // Push the current index
+	                methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
+	            }
+
+	            currIdx++;
+	        } while (parser.match(TOKEN_COMMA));
+	    }
+
+	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+
+	    // Ensure the number of arguments matches the expected array size
+	    if (currIdx != arity)
+	        throw new IllegalStateException("Argument count mismatch: expected " + arity + ", got " + currIdx);
+	}
+    
     public void lpcFloat(Float value) {
 	cb.currMethod().emitInstr(IT_CONST_FLOAT, value);
     }

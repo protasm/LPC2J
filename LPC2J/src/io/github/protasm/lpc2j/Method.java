@@ -43,7 +43,7 @@ public class Method implements HasSymbol {
 
 	if (symbol.identifier().equals("<init>")) {
 	    locLoadInstr(0);
-	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+	    mv.visitMethodInsn(INVOKESPECIAL, "io/github/protasm/lpc2j/LPCObject", "<init>", "()V", false);
 	}
     }
 
@@ -145,6 +145,13 @@ public class Method implements HasSymbol {
 	    break;
 	case IT_NEGATE:
 	    negateInstr();
+	    break;
+	case IT_NEW_ARRAY:
+	    Integer newArraySize = (Integer) args[0];
+	    String newArrayType = (String) args[1];
+
+	    constIntInstr(newArraySize);
+	    newArray(newArrayType);
 	    break;
 	case IT_POP:
 	    popInstr();
@@ -269,18 +276,8 @@ public class Method implements HasSymbol {
 
 	if (value == -1)
 	    mv.visitInsn(ICONST_M1);
-	else if (value == 0)
-	    mv.visitInsn(ICONST_0);
-	else if (value == 1)
-	    mv.visitInsn(ICONST_1);
-	else if (value == 2)
-	    mv.visitInsn(ICONST_2);
-	else if (value == 3)
-	    mv.visitInsn(ICONST_3);
-	else if (value == 4)
-	    mv.visitInsn(ICONST_4);
-	else if (value == 5)
-	    mv.visitInsn(ICONST_5);
+	else if (0 <= value && value <= 5)
+	    mv.visitInsn(ICONST_0 + value);
 	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
 	    mv.visitIntInsn(BIPUSH, value);
 	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
@@ -320,7 +317,8 @@ public class Method implements HasSymbol {
     }
 
     private void invokeOther() {
-	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", "dispatch", "(I)I", false);
+	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", "dispatch",
+		"(Ljava/lang/String;[Ljava/lang/Object;)I", false);
     }
 
     private void literalInstr(LiteralType lType) {
@@ -399,6 +397,10 @@ public class Method implements HasSymbol {
 	} else {
 	    throw new IllegalArgumentException("Unsupported type for negation: " + type);
 	}
+    }
+
+    private void newArray(String type) {
+        mv.visitTypeInsn(Opcodes.ANEWARRAY, type);
     }
 
     private void popInstr() {

@@ -59,7 +59,7 @@ public class ClassBuilder {
 	JType jType = JType.jTypeForLPCType(lpcType);
 	String name = nameToken.lexeme();
 
-	this.newMethod(jType, name, paramsDesc + jType.descriptor());
+	newMethod(jType, name, paramsDesc + jType.descriptor());
     }
 
     public void constructor() {

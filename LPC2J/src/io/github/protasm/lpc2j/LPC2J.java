@@ -339,7 +339,7 @@ public class LPC2J {
 
 		cb.currMethod().emitInstr(IT_CONST_STR, methodName);
 
-		arguments();
+		arguments(true);
 
 		cb.currMethod().emitInstr(IT_INVOKE_OTHER);
 	    } else // retrieval
@@ -362,7 +362,7 @@ public class LPC2J {
 
 	    cb.currMethod().emitInstr(IT_LOAD_THIS);
 
-	    arguments();
+	    arguments(false);
 
 	    cb.currMethod().emitInstr(IT_INVOKE, method.identifier(), method.descriptor());
 	}
@@ -372,12 +372,11 @@ public class LPC2J {
 	    parser.error("Unrecognized identifier '" + identifier + "'.");
     }
 
-    private void arguments(boolean asArray, int arity) {
+    private void arguments(boolean asArray) {
 	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	    if (asArray) {
-		cb.currMethod().emitInstr(IT_NEW_ARRAY, arity, "java/lang/Object");
-	    }
+	    if (asArray)
+		cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
 
 	    int currIdx = 0; // Track the argument index
 
@@ -398,10 +397,6 @@ public class LPC2J {
 	    }
 
 	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
-
-	    // Ensure the number of arguments matches the expected array size
-	    if (currIdx != arity)
-	        throw new IllegalStateException("Argument count mismatch: expected " + arity + ", got " + currIdx);
 	}
     
     public void lpcFloat(Float value) {

@@ -1,10 +1,10 @@
 package io.github.protasm.lpc2j.scanner;
 
-public class Token {
-    private TokenType type;
-    private String lexeme;
-    private Object literal;
-    private int line;
+public class Token<T> {
+    private final TokenType type;
+    private final String lexeme;
+    private final T literal;
+    private final int line;
 
     public Token() {
 	this(null, null, null, -1);
@@ -18,7 +18,7 @@ public class Token {
 	this(null, lexeme, null, -1);
     }
 
-    public Token(TokenType type, String lexeme, Object literal, int line) {
+    public Token(TokenType type, String lexeme, T literal, int line) {
 	this.type = type;
 	this.lexeme = lexeme;
 	this.literal = literal;
@@ -37,7 +37,7 @@ public class Token {
 	return lexeme.length();
     }
 
-    public Object literal() {
+    public T literal() {
 	return literal;
     }
 
@@ -47,6 +47,9 @@ public class Token {
 
     @Override
     public String toString() {
-	return type + "," + lexeme + "," + literal + " (" + line + ")";
+	if (literal == null)
+		return type + " " + lexeme + ", ";
+	else
+	return type + "<" + literal.getClass().getSimpleName() + "> " + lexeme + ", ";
     }
 }

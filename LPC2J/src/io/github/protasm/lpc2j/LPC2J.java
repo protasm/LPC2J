@@ -373,32 +373,32 @@ public class LPC2J {
     }
 
     private void arguments(boolean asArray) {
-	    parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
+	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	    if (asArray)
-		cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
+	if (asArray)
+	    cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
 
-	    int currIdx = 0; // Track the argument index
+	int currIdx = 0; // Track the argument index
 
-	    if (!parser.check(TOKEN_RIGHT_PAREN)) {
-	        do {
-	            // Emit bytecode for the current argument expression
-	            expression();
+	if (!parser.check(TOKEN_RIGHT_PAREN)) {
+	    do {
+		// Emit bytecode for the current argument expression
+		expression();
 
-	            if (asArray) {
-	                // Store the current argument in the array
-	                methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
-	                methodVisitor.visitLdcInsn(currIdx); // Push the current index
-	                methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
-	            }
+		if (asArray) {
+		    // Store the current argument in the array
+		    methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
+		    methodVisitor.visitLdcInsn(currIdx); // Push the current index
+		    methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
+		}
 
-	            currIdx++;
-	        } while (parser.match(TOKEN_COMMA));
-	    }
-
-	    parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+		currIdx++;
+	    } while (parser.match(TOKEN_COMMA));
 	}
-    
+
+	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+    }
+
     public void lpcFloat(Float value) {
 	cb.currMethod().emitInstr(IT_CONST_FLOAT, value);
     }

@@ -400,7 +400,7 @@ public class Method implements HasSymbol {
     }
 
     private void newArray(String type) {
-        mv.visitTypeInsn(Opcodes.ANEWARRAY, type);
+	mv.visitTypeInsn(Opcodes.ANEWARRAY, type);
     }
 
     private void popInstr() {

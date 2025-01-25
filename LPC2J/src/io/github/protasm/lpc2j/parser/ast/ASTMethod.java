@@ -2,34 +2,34 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import org.objectweb.asm.MethodVisitor;
 
-import ast.stmt.ASTStmtBlock;
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTMethod extends ASTNode {
-    private final LTType returnType;
+    private final LPCType lpcReturnType;
     private final String name;
-    private final ASTParameters parameters;
+    private final ASTParamList parameters;
     private final ASTStmtBlock body;
 
-    public ASTMethod(Token startToken, Token nameToken, ASTParameters parameters, ASTStmtBlock body) {
-	super(startToken);
+    public ASTMethod(int line, Token<LPCType> typeToken, Token<String> nameToken, ASTParamList parameters, ASTStmtBlock body) {
+	super(line);
 
-	this.returnType = startToken.type().toLTType();
+	this.lpcReturnType = typeToken.literal();
 	this.name = nameToken.lexeme();
 	this.parameters = parameters;
 	this.body = body;
     }
 
-    public LTType returnType() {
-	return returnType;
+    public LPCType lpcReturnType() {
+	return lpcReturnType;
     }
 
     public String name() {
 	return name;
     }
 
-    public ASTParameters parameters() {
+    public ASTParamList parameters() {
 	return parameters;
     }
 
@@ -45,17 +45,23 @@ public class ASTMethod extends ASTNode {
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
+	
+	sb.append("\t");
 
-	sb.append(String.format("ASTMethod(returnType=%s, name=%s)\n", returnType, name));
+	sb.append(String.format("%s(returnType=%s, name=%s)\n", className, lpcReturnType, name));
+	
+	sb.append("\t\t");
 
 	sb.append("Parameters:\n");
 
 	sb.append(parameters);
+	
+	sb.append("\n\t\t");
 
 	sb.append("Body:\n");
 
 	sb.append(body);
 
-	return sb.toString().trim();
+	return sb.toString();
     }
 }

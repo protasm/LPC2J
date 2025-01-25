@@ -18,7 +18,7 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IF;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_INHERIT;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INVOKE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACE;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACKET;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
@@ -116,7 +116,7 @@ public class Scanner {
 	    }
 	};
     }
-    
+
     public Scanner(String source) {
 	this(source, ".", ".");
     }
@@ -158,7 +158,7 @@ public class Scanner {
 
 	    if (token != null)
 		tokens.add(token);
-	} while (token == null || token.type() != T_EOF);
+	} while (token == null || token.tType() != T_EOF);
 
 	return tokens;
     }
@@ -206,7 +206,7 @@ public class Scanner {
 	    else if (ss.match('='))
 		return token(T_MINUS_EQUAL);
 	    else if (ss.match('>'))
-		return token(T_INVOKE);
+		return token(T_RIGHT_ARROW);
 	    else
 		return token(T_MINUS);
 	case '+':

@@ -1,13 +1,12 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import ast.expr.ASTExprInvocation;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvocation;
 
 public class ASTStmtInvocation extends ASTStatement {
     private final ASTExprInvocation invocation;
 
-    public ASTStmtInvocation(Token startToken, ASTExprInvocation invocation) {
-	super(startToken);
+    public ASTStmtInvocation(int line, ASTExprInvocation invocation) {
+	super(line);
 
 	this.invocation = invocation;
     }
@@ -18,6 +17,6 @@ public class ASTStmtInvocation extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("ASTStmtInvocation(invocation=%s)", invocation);
+	return String.format("%s(invocation=%s)", className, invocation);
     }
 }

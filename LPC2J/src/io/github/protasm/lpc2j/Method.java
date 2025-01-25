@@ -6,7 +6,7 @@ import static io.github.protasm.lpc2j.JType.JDOUBLE;
 import static io.github.protasm.lpc2j.JType.JFLOAT;
 import static io.github.protasm.lpc2j.JType.JINT;
 import static io.github.protasm.lpc2j.JType.JLONG;
-import static io.github.protasm.lpc2j.JType.JOBJECT;
+import static io.github.protasm.lpc2j.JType.JLPCOBJECT;
 import static io.github.protasm.lpc2j.JType.JSTRING;
 import static io.github.protasm.lpc2j.SymbolType.*;
 import static org.objectweb.asm.Opcodes.*;
@@ -32,7 +32,7 @@ public class Method implements HasSymbol {
 	operandTypes = new Stack<>();
 
 	// Locals slot 0 reserved for "this" (non-static methods only)
-	Symbol localSymbol = new Symbol(symbol.cb(), SYM_LOCAL, JOBJECT, "this", JOBJECT.descriptor());
+	Symbol localSymbol = new Symbol(symbol.cb(), SYM_LOCAL, JLPCOBJECT, "this", JLPCOBJECT.descriptor());
 	Local local = new Local(localSymbol);
 
 	addLocal(local, true);
@@ -350,7 +350,7 @@ public class Method implements HasSymbol {
 	case JFLOAT:
 	    mv.visitVarInsn(FLOAD, idx);
 	    break;
-	case JOBJECT:
+	case JLPCOBJECT:
 	case JSTRING:
 	    mv.visitVarInsn(ALOAD, idx);
 	    break;
@@ -372,7 +372,7 @@ public class Method implements HasSymbol {
 	case JFLOAT:
 	    mv.visitVarInsn(FSTORE, idx);
 	    break;
-	case JOBJECT:
+	case JLPCOBJECT:
 	case JSTRING:
 	    mv.visitVarInsn(ASTORE, idx);
 	    break;

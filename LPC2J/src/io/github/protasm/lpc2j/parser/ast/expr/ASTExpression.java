@@ -1,16 +1,12 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import ast.ASTNode;
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
+import io.github.protasm.lpc2j.LPCType;
 
 public abstract class ASTExpression extends ASTNode {
-    public ASTExpression(Token startToken) {
-	super(startToken);
+    public ASTExpression(int line) {
+	super(line);
     }
 
-    public abstract LTType type();
-
-    @Override
-    public abstract String toString();
+    public abstract LPCType lpcType();
 }

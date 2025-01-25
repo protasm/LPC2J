@@ -3,14 +3,13 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import ast.expr.ASTExpression;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtReturn extends ASTStatement {
     private final ASTExpression expression; // return value, if any
 
-    public ASTStmtReturn(Token startToken, ASTExpression expression) {
-	super(startToken);
+    public ASTStmtReturn(int line, ASTExpression expression) {
+	super(line);
 
 	this.expression = expression;
     }
@@ -29,21 +28,21 @@ public class ASTStmtReturn extends ASTStatement {
 
 	expression.toBytecode(mv);
 
-	switch (expression.type()) {
-	case LT_INT:
+	switch (expression.lpcType()) {
+	case LPCINT:
 	    mv.visitInsn(Opcodes.IRETURN);
 	    break;
-	case LT_STRING:
-	case LT_OBJECT:
+	case LPCSTRING:
+	case LPCOBJECT:
 	    mv.visitInsn(Opcodes.ARETURN);
 	    break;
 	default:
-	    throw new UnsupportedOperationException("Unsupported return value type: " + expression.type());
+	    throw new UnsupportedOperationException("Unsupported return value type: " + expression.lpcType());
 	}
     }
 
     @Override
     public String toString() {
-	return String.format("ASTStmtReturn(expression=%s)", expression);
+	return String.format("%s(expression=%s)", className, expression);
     }
 }

@@ -3,16 +3,16 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprIntegerLiteral extends ASTExpression {
     private final Integer value;
 
-    public ASTExprIntegerLiteral(Token startToken) {
-	super(startToken);
+    public ASTExprIntegerLiteral(int line, Token<Integer> token) {
+	super(line);
 
-	this.value = (Integer) startToken.literal();
+	this.value = token.literal();
     }
 
     public Integer value() {
@@ -20,8 +20,8 @@ public class ASTExprIntegerLiteral extends ASTExpression {
     }
 
     @Override
-    public LTType type() {
-	return LTType.LT_INT;
+    public LPCType lpcType() {
+	return LPCType.LPCINT;
     }
 
     @Override
@@ -38,6 +38,6 @@ public class ASTExprIntegerLiteral extends ASTExpression {
 
     @Override
     public String toString() {
-	return String.format("ASTExprIntegerLiteral(value=%s)", value);
+	return String.format("%s(value=%s)", className, value);
     }
 }

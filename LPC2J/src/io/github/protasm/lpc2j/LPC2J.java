@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j;
 
 import static io.github.protasm.lpc2j.InstrType.*;
-import static io.github.protasm.lpc2j.JType.JOBJECT;
+import static io.github.protasm.lpc2j.JType.JLPCOBJECT;
 import static io.github.protasm.lpc2j.SymbolType.SYM_LOCAL;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_COMMA;

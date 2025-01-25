@@ -10,7 +10,7 @@ public class UnaryParselet implements Parselet {
 
     @Override
     public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
-	TokenType operatorType = parser.previous().type();
+	TokenType operatorType = parser.previous().tType();
 
 	parser.parsePrecedence(PREC_UNARY, false);
 

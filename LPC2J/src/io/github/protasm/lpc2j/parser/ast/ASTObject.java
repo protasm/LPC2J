@@ -4,21 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ASTObject {
-    private final String parent;
+    private final String parentName;
     private final String name;
     private final List<ASTField> fields;
     private final List<ASTMethod> methods;
 
-    public ASTObject(String parent, String name) {
-	this.parent = parent;
+    public ASTObject(String parentName, String name) {
+	this.parentName = parentName;
 	this.name = name;
 
 	this.fields = new ArrayList<>();
 	this.methods = new ArrayList<>();
     }
 
-    public String parent() {
-	return parent;
+    public String parentName() {
+	return parentName;
     }
 
     public String name() {
@@ -37,23 +37,21 @@ public class ASTObject {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append("ASTObject(name=").append(name);
+	sb.append(getClass().getSimpleName());
+	sb.append("(name=").append(name);
 
-	if (parent != null) {
-	    sb.append(", parent=").append(parent);
-	}
+	if (parentName != null)
+	    sb.append(", parent=").append(parentName);
 
 	sb.append(")\n\nFields:\n");
 
-	for (ASTField field : fields) {
+	for (ASTField field : fields)
 	    sb.append("  ").append(field).append("\n");
-	}
 
 	sb.append("\nMethods:\n");
 
-	for (ASTMethod method : methods) {
+	for (ASTMethod method : methods)
 	    sb.append(method).append("\n\n");
-	}
 
 	return sb.toString().trim();
     }

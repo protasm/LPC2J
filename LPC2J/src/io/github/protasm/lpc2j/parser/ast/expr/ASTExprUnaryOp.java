@@ -1,7 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
 
 public class ASTExprUnaryOp extends ASTExpression {
     public enum Operator {
@@ -11,8 +10,8 @@ public class ASTExprUnaryOp extends ASTExpression {
     private final ASTExpression operand;
     private final Operator operator;
 
-    public ASTExprUnaryOp(Token startToken, ASTExpression operand, Operator operator) {
-	super(startToken);
+    public ASTExprUnaryOp(int line, ASTExpression operand, Operator operator) {
+	super(line);
 
 	this.operand = operand;
 	this.operator = operator;
@@ -27,16 +26,16 @@ public class ASTExprUnaryOp extends ASTExpression {
     }
 
     @Override
-    public LTType type() {
+    public LPCType lpcType() {
 	switch (operator) {
 	case NEGATE:
-	    if (operand.type() == LTType.LT_INT)
-		return LTType.LT_INT;
+	    if (operand.lpcType() == LPCType.LPCINT)
+		return LPCType.LPCINT;
 	    else
 		throw new IllegalStateException("Unary '-' operator requires an integer operand.");
 	case NOT:
-	    if (operand.type() == LTType.LT_STATUS)
-		return LTType.LT_STATUS;
+	    if (operand.lpcType() == LPCType.LPCSTATUS)
+		return LPCType.LPCSTATUS;
 	    else
 		throw new IllegalStateException("Logical '!' operator requires a boolean operand.");
 	default:
@@ -46,6 +45,6 @@ public class ASTExprUnaryOp extends ASTExpression {
 
     @Override
     public String toString() {
-	return String.format("ASTExprUnaryOp(operator=%s, operand=%s)", operator, operand);
+	return String.format("%s(operator=%s, operand=%s)", className, operator, operand);
     }
 }

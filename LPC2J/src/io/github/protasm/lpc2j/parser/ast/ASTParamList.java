@@ -3,13 +3,11 @@ package io.github.protasm.lpc2j.parser.ast;
 import java.util.ArrayList;
 import java.util.List;
 
-import scanner.Token;
-
-public class ASTParameters extends ASTNode {
+public class ASTParamList extends ASTNode {
     private final List<ASTParameter> parameters;
 
-    public ASTParameters(Token startToken) {
-	super(startToken);
+    public ASTParamList(int line) {
+	super(line);
 
 	this.parameters = new ArrayList<>();
     }
@@ -21,9 +19,8 @@ public class ASTParameters extends ASTNode {
     public String descriptor() {
 	StringBuilder sb = new StringBuilder();
 
-	for (ASTParameter param : parameters) {
-	    sb.append(param.type().descriptor());
-	}
+	for (ASTParameter parameter : parameters)
+	    sb.append(parameter.descriptor());
 
 	return "(" + sb.toString().trim() + ")";
     }
@@ -32,10 +29,9 @@ public class ASTParameters extends ASTNode {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	for (ASTParameter param : parameters) {
-	    sb.append("  ").append(param).append("\n");
-	}
+	for (ASTParameter param : parameters)
+	    sb.append(param).append("\n");
 
-	return sb.toString().trim();
+	return sb.toString();
     }
 }

@@ -2,14 +2,14 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 
 import java.util.List;
 
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
 
 public class ASTExprCall extends ASTExpression {
     private final String methodName;
-    private final List<ASTExpression> arguments;
+    private final List<ASTExpression> arguments; //TODO: replace with new class ASTArgList
 
-    public ASTExprCall(Token startToken, String methodName, List<ASTExpression> arguments) {
-	super(startToken);
+    public ASTExprCall(int line, String methodName, List<ASTExpression> arguments) {
+	super(line);
 
 	this.methodName = methodName;
 	this.arguments = arguments;
@@ -24,19 +24,23 @@ public class ASTExprCall extends ASTExpression {
     }
 
     @Override
+    public LPCType lpcType() {
+	// TODO Auto-generated method stub
+	return null; //temp
+    }
+
+    @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("ASTExprCall(methodName=%s", methodName));
+	sb.append(String.format("%s(methodName=%s", className, methodName));
 	sb.append(", arguments=[");
 
-	for (ASTExpression arg : arguments) {
+	for (ASTExpression arg : arguments)
 	    sb.append(arg).append(", ");
-	}
 
-	if (!arguments.isEmpty()) {
+	if (!arguments.isEmpty())
 	    sb.setLength(sb.length() - 2); // Remove trailing comma and space
-	}
 
 	sb.append("])");
 

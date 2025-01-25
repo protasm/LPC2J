@@ -1,13 +1,12 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import ast.expr.ASTExpression;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtExpressionStatement extends ASTStatement {
     private final ASTExpression expression;
 
-    public ASTStmtExpressionStatement(Token startToken, ASTExpression expression) {
-	super(startToken);
+    public ASTStmtExpressionStatement(int line, ASTExpression expression) {
+	super(line);
 
 	this.expression = expression;
     }
@@ -16,9 +15,14 @@ public class ASTStmtExpressionStatement extends ASTStatement {
 	return expression;
     }
 
-    // String representation for debugging
     @Override
     public String toString() {
-	return String.format("ASTStmtExpressionStatement(expression=%s)", expression);
+	StringBuilder sb = new StringBuilder();
+	
+	sb.append("\t\t\t\t");
+	
+	sb.append(String.format("%s(expr=%s)", className, expression));
+	
+	return sb.toString();
     }
 }

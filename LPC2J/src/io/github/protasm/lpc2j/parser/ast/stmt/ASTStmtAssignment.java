@@ -1,14 +1,13 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import ast.expr.ASTExpression;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtAssignment extends ASTStatement {
     private final String variable;
     private final ASTExpression value;
 
-    public ASTStmtAssignment(Token startToken, String variable, ASTExpression value) {
-	super(startToken);
+    public ASTStmtAssignment(int line, String variable, ASTExpression value) {
+	super(line);
 
 	this.variable = variable;
 	this.value = value;
@@ -24,6 +23,6 @@ public class ASTStmtAssignment extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("ASTStmtAssignment(variable=%s, value=%s)", variable, value);
+	return String.format("%s(variable=%s, value=%s)", className, variable, value);
     }
 }

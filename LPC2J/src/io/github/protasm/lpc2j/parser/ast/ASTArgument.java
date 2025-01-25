@@ -1,13 +1,12 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import ast.expr.ASTExpression;
-import scanner.Token;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTArgument extends ASTNode {
     private final ASTExpression expression;
 
-    public ASTArgument(Token startToken, ASTExpression expression) {
-	super(startToken);
+    public ASTArgument(int line, ASTExpression expression) {
+	super(line);
 
 	this.expression = expression;
     }
@@ -18,6 +17,6 @@ public class ASTArgument extends ASTNode {
 
     @Override
     public String toString() {
-	return String.format("ASTArgument(expression=%s)", expression);
+	return String.format("%s(expression=%s)", className, expression);
     }
 }

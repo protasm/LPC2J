@@ -1,7 +1,8 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
+
+import static io.github.protasm.lpc2j.LPCType.*;
 
 public class ASTExprBinaryOp extends ASTExpression {
     public enum Operator {
@@ -12,8 +13,8 @@ public class ASTExprBinaryOp extends ASTExpression {
     private final ASTExpression right;
     private final Operator operator;
 
-    public ASTExprBinaryOp(Token startToken, ASTExpression left, ASTExpression right, Operator operator) {
-	super(startToken);
+    public ASTExprBinaryOp(int line, ASTExpression left, ASTExpression right, Operator operator) {
+	super(line);
 
 	this.left = left;
 	this.right = right;
@@ -33,21 +34,24 @@ public class ASTExprBinaryOp extends ASTExpression {
     }
 
     @Override
-    public LTType type() {
+    public LPCType lpcType() {
 	switch (operator) {
 	case ADD:
-	    if (left.type() == LTType.LT_INT && left.type() == LTType.LT_INT) {
-		return LTType.LT_INT;
-	    } else if (left.type() == LTType.LT_STRING && left.type() == LTType.LT_STRING) {
-		return LTType.LT_STRING;
-	    }
+	    if (matchTypes(LPCINT, LPCINT))
+		return LPCINT;
+	    else if (matchTypes(LPCSTRING, LPCSTRING))
+		return LPCSTRING;
 	default:
 	    throw new UnsupportedOperationException("Invalid operand types for operator " + operator);
 	}
     }
 
+    private boolean matchTypes(LPCType lType, LPCType rType) {
+	return left.lpcType() == lType && right.lpcType() == rType;
+    }
+
     @Override
     public String toString() {
-	return String.format("ASTExprBinaryOp(operator=%s, left=%s, right=%s)", operator, left, right);
+	return String.format("%s(operator=%s, left=%s, right=%s)", className, operator, left, right);
     }
 }

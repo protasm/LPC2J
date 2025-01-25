@@ -4,13 +4,11 @@ import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
 
-import scanner.Token;
-
 public class ASTStmtBlock extends ASTStatement {
     private final List<ASTStatement> statements;
 
-    public ASTStmtBlock(Token startToken, List<ASTStatement> statements) {
-	super(startToken);
+    public ASTStmtBlock(int line, List<ASTStatement> statements) {
+	super(line);
 
 	this.statements = statements;
     }
@@ -28,12 +26,14 @@ public class ASTStmtBlock extends ASTStatement {
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
+	
+	sb.append("\t\t\t");
 
-	sb.append("ASTStmtBlock\n");
+	sb.append(String.format("%s\n", className));
 
 	for (ASTStatement stmt : statements)
 	    sb.append(stmt).append("\n");
 
-	return sb.toString().trim();
+	return sb.toString();
     }
 }

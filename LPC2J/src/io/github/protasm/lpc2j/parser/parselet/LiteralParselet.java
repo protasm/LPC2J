@@ -7,7 +7,7 @@ import io.github.protasm.lpc2j.parser.Parser;
 public class LiteralParselet implements Parselet {
     @Override
     public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
-	switch (parser.previous().type()) {
+	switch (parser.previous().tType()) {
 	case TOKEN_TRUE:
 	    compiler.literal(LT_TRUE);
 

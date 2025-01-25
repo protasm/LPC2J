@@ -1,13 +1,13 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
 
 public class ASTExprInvocation extends ASTExpression {
     private final String objectName;
     private final ASTExprCall call;
 
-    public ASTExprInvocation(Token startToken, String objectName, ASTExprCall call) {
-	super(startToken);
+    public ASTExprInvocation(int line, String objectName, ASTExprCall call) {
+	super(line);
 
 	this.objectName = objectName;
 	this.call = call;
@@ -22,7 +22,14 @@ public class ASTExprInvocation extends ASTExpression {
     }
 
     @Override
-    public String toString() {
-	return String.format("ASTExprInvocation(objectName=%s, call=%s)", objectName, call);
+    public LPCType lpcType() {
+	// TODO Auto-generated method stub
+	return null; //TODO
     }
+
+    @Override
+    public String toString() {
+	return String.format("%s(objectName=%s, call=%s)", className, objectName, call);
+    }
+
 }

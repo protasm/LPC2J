@@ -1,20 +1,14 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import common.LTType;
-import scanner.Token;
+import io.github.protasm.lpc2j.LPCType;
 
 public class ASTExprNull extends ASTExpression {
-    public ASTExprNull(Token startToken) {
-	super(startToken);
+    public ASTExprNull(int line) {
+	super(line);
     }
 
     @Override
-    public LTType type() {
-	return LTType.LT_NULL;
-    }
-
-    @Override
-    public String toString() {
-	return "ASTExprNull";
+    public LPCType lpcType() {
+	return LPCType.LPCNULL;
     }
 }

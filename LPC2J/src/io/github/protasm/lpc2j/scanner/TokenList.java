@@ -8,7 +8,7 @@ import java.util.List;
 import io.github.protasm.lpc2j.parser.ParseException;
 
 public class TokenList {
-    private List<Token<? extends Object>> tokens;
+    private List<Token<?>> tokens;
     private int currIdx = 0;
 
     public TokenList() {
@@ -27,17 +27,19 @@ public class TokenList {
 	return tokens.get(idx);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> Token<T> get(int idx, Class<T> type) {
 	Token<?> token = tokens.get(idx);
 
 	if (type.isInstance(token.literal()))
-	    return (Token<T>) token; // Safe cast if type matches
+	    return (Token<T>) token; // Safe cast if token's literal type matches
 
 	throw new IllegalArgumentException("Type mismatch for token at index " + idx);
     }
 
-    public Token<?> current() {
-	return tokens.get(currIdx);
+    @SuppressWarnings("unchecked")
+    public <T> Token<T> current() {
+	return (Token<T>) tokens.get(currIdx);
     }
 
     public Token<?> previous() {
@@ -47,36 +49,22 @@ public class TokenList {
     public void advance() {
 	currIdx++;
     }
-
-    public Token<?> consume(TokenType type, String msg) {
-	if (match(type))
-	    return previous();
-
-	throw new ParseException(msg, current());
-    }
-
-    public <T> Token<T> consume(TokenType type, Class<T> clazz, String msg) {
-	if (match(type))
-	    if (clazz.isInstance(previous().type()))
-		return (Token<T>) previous(); // Safe cast if type matches
+    
+    @SuppressWarnings("unchecked")
+    public <T> Token<T> consume(TokenType tType, String msg) {
+	if (match(tType))
+//	    if (tType.clazz().isInstance(previous().tType()))
+		return (Token<T>) previous(); // Safe cast if previous's literal type matches
 
 	throw new ParseException(msg, current());
     }
 
-    public Token<?> consume(TokenType[] types, String msg) {
-	for (TokenType type : types)
-	    if (match(type))
-		return previous();
-
-	throw new ParseException(msg, current());
+    public boolean check(TokenType tType) {
+	return current().tType() == tType;
     }
 
-    public boolean check(TokenType type) {
-	return current().type() == type;
-    }
-
-    public boolean match(TokenType type) {
-	if (check(type)) {
+    public boolean match(TokenType tType) {
+	if (check(tType)) {
 	    advance();
 
 	    return true;
@@ -86,6 +74,6 @@ public class TokenList {
     }
 
     public boolean isAtEnd() {
-	return currIdx >= tokens.size() || current().type() == T_EOF;
+	return currIdx >= tokens.size() || current().tType() == T_EOF;
     }
 }

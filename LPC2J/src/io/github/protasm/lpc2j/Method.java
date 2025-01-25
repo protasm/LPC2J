@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j;
 
 import static io.github.protasm.lpc2j.BinaryOpType.BOP_ADD;
-import static io.github.protasm.lpc2j.InstrType.POP;
+import static io.github.protasm.lpc2j.InstrType.IT_POP;
 import static io.github.protasm.lpc2j.JType.JDOUBLE;
 import static io.github.protasm.lpc2j.JType.JFLOAT;
 import static io.github.protasm.lpc2j.JType.JINT;
@@ -9,48 +9,7 @@ import static io.github.protasm.lpc2j.JType.JLONG;
 import static io.github.protasm.lpc2j.JType.JOBJECT;
 import static io.github.protasm.lpc2j.JType.JSTRING;
 import static io.github.protasm.lpc2j.SymbolType.*;
-import static org.objectweb.asm.Opcodes.ACONST_NULL;
-import static org.objectweb.asm.Opcodes.ALOAD;
-import static org.objectweb.asm.Opcodes.ARETURN;
-import static org.objectweb.asm.Opcodes.ASTORE;
-import static org.objectweb.asm.Opcodes.BIPUSH;
-import static org.objectweb.asm.Opcodes.DNEG;
-import static org.objectweb.asm.Opcodes.DUP;
-import static org.objectweb.asm.Opcodes.FADD;
-import static org.objectweb.asm.Opcodes.FCONST_0;
-import static org.objectweb.asm.Opcodes.FCONST_1;
-import static org.objectweb.asm.Opcodes.FCONST_2;
-import static org.objectweb.asm.Opcodes.FDIV;
-import static org.objectweb.asm.Opcodes.FLOAD;
-import static org.objectweb.asm.Opcodes.FMUL;
-import static org.objectweb.asm.Opcodes.FNEG;
-import static org.objectweb.asm.Opcodes.FRETURN;
-import static org.objectweb.asm.Opcodes.FSTORE;
-import static org.objectweb.asm.Opcodes.FSUB;
-import static org.objectweb.asm.Opcodes.GETFIELD;
-import static org.objectweb.asm.Opcodes.I2F;
-import static org.objectweb.asm.Opcodes.IADD;
-import static org.objectweb.asm.Opcodes.ICONST_0;
-import static org.objectweb.asm.Opcodes.ICONST_1;
-import static org.objectweb.asm.Opcodes.ICONST_2;
-import static org.objectweb.asm.Opcodes.ICONST_3;
-import static org.objectweb.asm.Opcodes.ICONST_4;
-import static org.objectweb.asm.Opcodes.ICONST_5;
-import static org.objectweb.asm.Opcodes.ICONST_M1;
-import static org.objectweb.asm.Opcodes.IDIV;
-import static org.objectweb.asm.Opcodes.ILOAD;
-import static org.objectweb.asm.Opcodes.IMUL;
-import static org.objectweb.asm.Opcodes.INEG;
-import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
-import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
-import static org.objectweb.asm.Opcodes.IRETURN;
-import static org.objectweb.asm.Opcodes.ISTORE;
-import static org.objectweb.asm.Opcodes.ISUB;
-import static org.objectweb.asm.Opcodes.LNEG;
-import static org.objectweb.asm.Opcodes.NEW;
-import static org.objectweb.asm.Opcodes.PUTFIELD;
-import static org.objectweb.asm.Opcodes.RETURN;
-import static org.objectweb.asm.Opcodes.SIPUSH;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.util.ListIterator;
 import java.util.Stack;
@@ -84,7 +43,7 @@ public class Method implements HasSymbol {
 
 	if (symbol.identifier().equals("<init>")) {
 	    locLoadInstr(0);
-	    mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+	    mv.visitMethodInsn(INVOKESPECIAL, "io/github/protasm/lpc2j/LPCObject", "<init>", "()V", false);
 	}
     }
 
@@ -134,7 +93,7 @@ public class Method implements HasSymbol {
     public void popLocal() {
 	locals().pop();
 
-	emitInstr(POP);
+	emitInstr(IT_POP);
     }
 
     public void markTopLocalInitialized() {
@@ -143,58 +102,67 @@ public class Method implements HasSymbol {
 
     public void emitInstr(InstrType instrType, Object... args) {
 	switch (instrType) {
-	case BINARY:
+	case IT_BINARY:
 	    binaryOp((BinaryOpType) args[0]);
 	    break;
-	case INVOKE:
-	    String owner = (String) args[0];
-	    String name = (String) args[1];
-	    String desc = (String) args[2];
-
-	    invoke(owner, name, desc);
-	    break;
-	case CONST_FLOAT:
+	case IT_CONST_FLOAT:
 	    constFloatInstr((Float) args[0]);
 	    break;
-	case CONST_INT:
+	case IT_CONST_INT:
 	    constIntInstr((Integer) args[0]);
 	    break;
-	case CONST_STR:
+	case IT_CONST_STR:
 	    constStrInstr((String) args[0]);
 	    break;
-	case FIELD_LOAD:
+	case IT_FIELD_LOAD:
 	    fieldLoadInstr((Field) args[0]);
 	    break;
-	case FIELD_STORE:
+	case IT_FIELD_STORE:
 	    fieldStoreInstr((Field) args[0]);
 	    break;
-	case I2F:
+	case IT_I2F:
 	    i2fInstr();
 	    break;
-	case LITERAL:
+	case IT_INVOKE:
+	    String invokeName = (String) args[0];
+	    String invokeDesc = (String) args[1];
+
+	    invoke(invokeName, invokeDesc);
+	    break;
+	case IT_INVOKE_OTHER:
+	    invokeOther();
+	    break;
+	case IT_LITERAL:
 	    LiteralType lType = (LiteralType) args[0];
 
 	    literalInstr(lType);
 	    break;
-	case LOC_LOAD:
+	case IT_LOC_LOAD:
 	    locLoadInstr((Integer) args[0]);
 	    break;
-	case LOC_STORE:
+	case IT_LOC_STORE:
 	    locStoreInstr((Integer) args[0]);
 	    break;
-	case NEGATE:
+	case IT_NEGATE:
 	    negateInstr();
 	    break;
-	case POP:
+	case IT_NEW_ARRAY:
+	    Integer newArraySize = (Integer) args[0];
+	    String newArrayType = (String) args[1];
+
+	    constIntInstr(newArraySize);
+	    newArray(newArrayType);
+	    break;
+	case IT_POP:
 	    popInstr();
 	    break;
-	case RETURN:
+	case IT_RETURN:
 	    returnInstr();
 	    break;
-	case RETURNVAL:
+	case IT_RETURNVAL:
 	    returnValInstr();
 	    break;
-	case THIS:
+	case IT_LOAD_THIS:
 	    loadThisInstr();
 	    break;
 	} // switch (instrType)
@@ -308,18 +276,8 @@ public class Method implements HasSymbol {
 
 	if (value == -1)
 	    mv.visitInsn(ICONST_M1);
-	else if (value == 0)
-	    mv.visitInsn(ICONST_0);
-	else if (value == 1)
-	    mv.visitInsn(ICONST_1);
-	else if (value == 2)
-	    mv.visitInsn(ICONST_2);
-	else if (value == 3)
-	    mv.visitInsn(ICONST_3);
-	else if (value == 4)
-	    mv.visitInsn(ICONST_4);
-	else if (value == 5)
-	    mv.visitInsn(ICONST_5);
+	else if (0 <= value && value <= 5)
+	    mv.visitInsn(ICONST_0 + value);
 	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
 	    mv.visitIntInsn(BIPUSH, value);
 	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
@@ -354,8 +312,13 @@ public class Method implements HasSymbol {
 	mv.visitInsn(I2F);
     }
 
-    private void invoke(String owner, String name, String desc) {
-	mv.visitMethodInsn(INVOKEVIRTUAL, owner, name, desc, false);
+    private void invoke(String name, String descriptor) {
+	mv.visitMethodInsn(INVOKEVIRTUAL, symbol.className(), name, descriptor, false);
+    }
+
+    private void invokeOther() {
+	mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/protasm/lpc2j/LPCObject", "dispatch",
+		"(Ljava/lang/String;[Ljava/lang/Object;)I", false);
     }
 
     private void literalInstr(LiteralType lType) {
@@ -434,6 +397,10 @@ public class Method implements HasSymbol {
 	} else {
 	    throw new IllegalArgumentException("Unsupported type for negation: " + type);
 	}
+    }
+
+    private void newArray(String type) {
+	mv.visitTypeInsn(Opcodes.ANEWARRAY, type);
     }
 
     private void popInstr() {

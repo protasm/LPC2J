@@ -15,7 +15,7 @@ public class UnaryParselet implements Parselet {
 	parser.parsePrecedence(PREC_UNARY, false);
 
 	switch (operatorType) {
-	case TOKEN_BANG:
+	case T_BANG:
 
 	    break;
 	case TOKEN_MINUS:

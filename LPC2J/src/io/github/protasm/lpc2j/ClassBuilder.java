@@ -17,12 +17,13 @@ public class ClassBuilder {
     private Map<String, Field> fields = new HashMap<>();
     private Map<String, Method> methods = new HashMap<>();
 
-    public ClassBuilder(String name) {
-	this.className = "brainjar/" + name;
+    public ClassBuilder(String className) {
+	this.className = className;
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
-	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER, this.className, null, "io/github/protasm/lpc2j/LPCObject", null);
+	cw.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null,
+		"io/github/protasm/lpc2j/LPCObject", null);
     }
 
     public String className() {
@@ -47,7 +48,7 @@ public class ClassBuilder {
 
     public void newMethod(JType jType, String identifier, String descriptor) {
 	Symbol symbol = new Symbol(this, SymbolType.SYM_METHOD, jType, identifier, descriptor);
-	MethodVisitor mv = cw.visitMethod(0, identifier, descriptor, null, null);
+	MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, identifier, descriptor, null, null);
 	currMethod = new Method(symbol, mv);
 
 	methods.put(identifier, currMethod);
@@ -58,7 +59,7 @@ public class ClassBuilder {
 	JType jType = JType.jTypeForLPCType(lpcType);
 	String name = nameToken.lexeme();
 
-	this.newMethod(jType, name, paramsDesc + jType.descriptor());
+	newMethod(jType, name, paramsDesc + jType.descriptor());
     }
 
     public void constructor() {

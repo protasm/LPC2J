@@ -15,9 +15,8 @@ public class ScannableSource {
 
     public void advance() {
 
-	if (peek() == EOL) {
+	if (peek() == EOL)
 	    line++;
-	}
 
 	head++;
     }
@@ -31,9 +30,8 @@ public class ScannableSource {
     }
 
     public boolean advanceTo(char c) {
-	while (peek() != c && !atEnd()) {
+	while (peek() != c && !atEnd())
 	    advance();
-	}
 
 	return !atEnd();
     }
@@ -63,9 +61,8 @@ public class ScannableSource {
     }
 
     public boolean match(char expected) {
-	if (peek() != expected) {
+	if (peek() != expected)
 	    return false;
-	}
 
 	advance();
 
@@ -76,39 +73,35 @@ public class ScannableSource {
 	int scout = head;
 	char c;
 
-	do {
+	do
 	    c = source.charAt(scout++);
-	} while (Character.isWhitespace(c));
+	while (Character.isWhitespace(c));
 
 	return c;
     }
 
     public char peek() {
-	if (atEnd()) {
+	if (atEnd())
 	    return NULL_CHAR;
-	}
 
 	return source.charAt(head);
     }
 
     public char peekNext() {
-	if (head + 1 >= source.length()) {
+	if (head + 1 >= source.length())
 	    return NULL_CHAR;
-	}
 
 	return source.charAt(head + 1);
     }
 
     public char peekPrev() {
-	if (atStart() || atEnd()) {
+	if (atStart() || atEnd())
 	    return NULL_CHAR;
-	}
 
 	return source.charAt(head - 1);
     }
 
     public String read() {
-
 	return source.substring(tail, head);
     }
 

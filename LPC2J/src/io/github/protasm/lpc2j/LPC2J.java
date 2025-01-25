@@ -1,20 +1,6 @@
 package io.github.protasm.lpc2j;
 
-import static io.github.protasm.lpc2j.InstrType.BINARY;
-import static io.github.protasm.lpc2j.InstrType.CONST_FLOAT;
-import static io.github.protasm.lpc2j.InstrType.CONST_INT;
-import static io.github.protasm.lpc2j.InstrType.CONST_STR;
-import static io.github.protasm.lpc2j.InstrType.FIELD_LOAD;
-import static io.github.protasm.lpc2j.InstrType.FIELD_STORE;
-import static io.github.protasm.lpc2j.InstrType.I2F;
-import static io.github.protasm.lpc2j.InstrType.INVOKE;
-import static io.github.protasm.lpc2j.InstrType.LITERAL;
-import static io.github.protasm.lpc2j.InstrType.LOC_LOAD;
-import static io.github.protasm.lpc2j.InstrType.LOC_STORE;
-import static io.github.protasm.lpc2j.InstrType.NEGATE;
-import static io.github.protasm.lpc2j.InstrType.RETURN;
-import static io.github.protasm.lpc2j.InstrType.RETURNVAL;
-import static io.github.protasm.lpc2j.InstrType.THIS;
+import static io.github.protasm.lpc2j.InstrType.*;
 import static io.github.protasm.lpc2j.JType.JOBJECT;
 import static io.github.protasm.lpc2j.SymbolType.SYM_LOCAL;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.PREC_ASSIGNMENT;
@@ -30,7 +16,6 @@ import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_RIGHT_PAREN;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_SEMICOLON;
 import static io.github.protasm.lpc2j.scanner.TokenType.TOKEN_TYPE;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +52,9 @@ public class LPC2J {
     }
 
     public byte[] compile(SourceFile sourceFile) throws IOException {
-	cb = new ClassBuilder(sourceFile.className());
+	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.className();
+
+	cb = new ClassBuilder(fullClassName);
 
 	Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
 	parser = new Parser(this, scanner.scan());
@@ -156,14 +143,14 @@ public class LPC2J {
 	    parser.advance(); // to first token
 	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
 
-	    cb.currMethod().emitInstr(THIS);
+	    cb.currMethod().emitInstr(IT_LOAD_THIS);
 
 	    expression();
 
-	    cb.currMethod().emitInstr(FIELD_STORE, field);
+	    cb.currMethod().emitInstr(IT_FIELD_STORE, field);
 	}
 
-	cb.currMethod().emitInstr(RETURN);
+	cb.currMethod().emitInstr(IT_RETURN);
 
 	cb.currMethod().finish();
     }
@@ -240,7 +227,7 @@ public class LPC2J {
 	    if (parser.match(TOKEN_EQUAL)) {
 		expression(); // leaves expression value on stack
 
-		cb.currMethod().emitInstr(LOC_STORE, idx);
+		cb.currMethod().emitInstr(IT_LOC_STORE, idx);
 	    }
 	} while (parser.match(TOKEN_COMMA));
 
@@ -289,14 +276,14 @@ public class LPC2J {
 	    if (cb.currMethod().jType() != JType.JVOID)
 		parser.error("Missing return value.");
 	    else
-		cb.currMethod().emitInstr(RETURN);
+		cb.currMethod().emitInstr(IT_RETURN);
 	} else { // handle return value
 	    if (cb.currMethod().jType() == JType.JVOID)
 		parser.error("Return value encountered in void method.");
 	    else {
 		expression();
 
-		cb.currMethod().emitInstr(RETURNVAL);
+		cb.currMethod().emitInstr(IT_RETURNVAL);
 
 		parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
 	    }
@@ -333,7 +320,7 @@ public class LPC2J {
     //
 
     public void literal(LiteralType lType) {
-	cb.currMethod().emitInstr(LITERAL, lType);
+	cb.currMethod().emitInstr(IT_LITERAL, lType);
     }
 
     public void identifier(String identifier, boolean canAssign) {
@@ -341,40 +328,43 @@ public class LPC2J {
 
 	if (idx != -1) { // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.currMethod().emitInstr(THIS);
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
 		expression();
-		cb.currMethod().emitInstr(LOC_STORE, idx);
+		cb.currMethod().emitInstr(IT_LOC_STORE, idx);
 	    } else if (parser.match(TOKEN_INVOKE)) { // method of another object
-		parser.parseVariable("Expect method name.");
+		Token nameToken = parser.parseVariable("Expect method name.");
+		String methodName = nameToken.lexeme();
 
-		cb.currMethod().emitInstr(LOC_LOAD, idx);
+		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 
-		arguments();
+		cb.currMethod().emitInstr(IT_CONST_STR, methodName);
 
-//		    cb.currMethod().emitInstr(INVOKE, cb.className(), method.identifier(), method.descriptor());
+		arguments(true);
+
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER);
 	    } else // retrieval
-		cb.currMethod().emitInstr(LOC_LOAD, idx);
+		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 	} else if (cb.hasField(identifier)) { // field
 	    Field field = cb.getField(identifier);
 
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.currMethod().emitInstr(THIS);
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
 
 		expression();
 
-		cb.currMethod().emitInstr(FIELD_STORE, field);
+		cb.currMethod().emitInstr(IT_FIELD_STORE, field);
 	    } else { // retrieval
-		cb.currMethod().emitInstr(THIS);
-		cb.currMethod().emitInstr(FIELD_LOAD, field);
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
+		cb.currMethod().emitInstr(IT_FIELD_LOAD, field);
 	    }
 	} else if (cb.hasMethod(identifier)) { // method of same object
 	    Method method = cb.getMethod(identifier);
 
-	    cb.currMethod().emitInstr(THIS);
+	    cb.currMethod().emitInstr(IT_LOAD_THIS);
 
-	    arguments();
+	    arguments(false);
 
-	    cb.currMethod().emitInstr(INVOKE, cb.className(), method.identifier(), method.descriptor());
+	    cb.currMethod().emitInstr(IT_INVOKE, method.identifier(), method.descriptor());
 	}
 	// else if (resolveSuperMethod(name)) //superClass method
 	// namedSuperMethod(name);
@@ -382,58 +372,54 @@ public class LPC2J {
 	    parser.error("Unrecognized identifier '" + identifier + "'.");
     }
 
-    private void arguments() {
+    private void arguments(boolean asArray) {
 	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	if (!parser.check(TOKEN_RIGHT_PAREN))
-	    do
+	if (asArray)
+	    cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
+
+	int currIdx = 0; // Track the argument index
+
+	if (!parser.check(TOKEN_RIGHT_PAREN)) {
+	    do {
+		// Emit bytecode for the current argument expression
 		expression();
-	    while (parser.match(TOKEN_COMMA));
+
+		if (asArray) {
+		    // Store the current argument in the array
+		    methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
+		    methodVisitor.visitLdcInsn(currIdx); // Push the current index
+		    methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
+		}
+
+		currIdx++;
+	    } while (parser.match(TOKEN_COMMA));
+	}
 
 	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
     }
 
     public void lpcFloat(Float value) {
-	cb.currMethod().emitInstr(CONST_FLOAT, value);
+	cb.currMethod().emitInstr(IT_CONST_FLOAT, value);
     }
 
     public void lpcInteger(Integer value) {
-	cb.currMethod().emitInstr(CONST_INT, value);
+	cb.currMethod().emitInstr(IT_CONST_INT, value);
     }
 
     public void lpcString(String value) {
-	cb.currMethod().emitInstr(CONST_STR, value);
+	cb.currMethod().emitInstr(IT_CONST_STR, value);
     }
 
     public void negate() {
-	cb.currMethod().emitInstr(NEGATE);
+	cb.currMethod().emitInstr(IT_NEGATE);
     }
 
     public void binaryOp(BinaryOpType op) {
-	cb.currMethod().emitInstr(BINARY, op);
+	cb.currMethod().emitInstr(IT_BINARY, op);
     }
 
     public void i2f() {
-	cb.currMethod().emitInstr(I2F);
-    }
-
-    public static void main(String[] args) throws IOException {
-	if (args.length != 1) {
-	    System.out.println("Usage: LPC2J <path>");
-
-	    return;
-	}
-
-	LPC2J compiler = new LPC2J();
-	SourceFile sourceFile = new SourceFile(args[0]);
-
-	byte[] bytes = compiler.compile(sourceFile);
-
-	try (FileOutputStream fos = new FileOutputStream(sourceFile.outputPath())) {
-	    fos.write(bytes);
-	    System.out.println("Byte array written to: " + sourceFile.outputPath());
-	} catch (IOException e) {
-	    e.printStackTrace();
-	}
+	cb.currMethod().emitInstr(IT_I2F);
     }
 }

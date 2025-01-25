@@ -1,0 +1,10 @@
+int x = 99;
+string s = "Hello!";
+
+void foo() {
+  x = x + 101;
+}
+
+int bar(int y) {
+  return x + y * 2;
+}

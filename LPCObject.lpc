@@ -1,3 +1,0 @@
-void foo(object obj) {
-  obj->bar();
-}

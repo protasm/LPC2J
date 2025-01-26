@@ -28,9 +28,20 @@ public class ASTField extends ASTNode {
     public ASTExpression initializer() {
 	return initializer;
     }
+    
+    public String descriptor() {
+	return lpcType.jType().descriptor();
+    }
 
     @Override
     public String toString() {
-	return String.format("%s(type=%s, name=%s, initializer=%s", className, lpcType, name, initializer);
+	StringBuilder sb = new StringBuilder();
+	
+	if (initializer != null)
+	    sb.append(String.format("%s(type=%s, name=%s, initializer=%s)\n", className(), lpcType, name, initializer));
+	else
+	    sb.append(String.format("%s(type=%s, name=%s)\n", className(), lpcType, name));
+	
+	return sb.toString();
     }
 }

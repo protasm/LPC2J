@@ -2,16 +2,6 @@ int x = 99;
 string s = "Hello!";
 object obj;
 
-int foo(int x, int y) {
+int foo() {
   return x;
 }
-
-/*
-void foo() {
-  x = x + 101;
-}
-/*
-int bar(int y) {
-  return x + y * 2;
-}
-*/

@@ -36,6 +36,10 @@ public class ASTMethod extends ASTNode {
     public ASTStmtBlock body() {
 	return body;
     }
+    
+    public String descriptor() {
+	return parameters.descriptor() + lpcReturnType.jType().descriptor();
+    }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
@@ -45,23 +49,13 @@ public class ASTMethod extends ASTNode {
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
-	
-	sb.append("\t");
 
-	sb.append(String.format("%s(returnType=%s, name=%s)\n", className, lpcReturnType, name));
-	
-	sb.append("\t\t");
-
-	sb.append("Parameters:\n");
+	sb.append(String.format("%s(returnType=%s, name=%s)\n", className(), lpcReturnType, name));
 
 	sb.append(parameters);
-	
-	sb.append("\n\t\t");
-
-	sb.append("Body:\n");
 
 	sb.append(body);
 
-	return sb.toString();
+	return sb.toString().indent(ASTNode.indentLvl);
     }
 }

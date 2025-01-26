@@ -30,9 +30,7 @@ public class ASTParameter extends ASTNode {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 	
-	sb.append("\t\t\t");
-	
-	sb.append(String.format("%s(type=%s, name=%s)", className, type, name));
+	sb.append(String.format("%s(type=%s, name=%s)\n", className(), type, name));
 	
 	return sb.toString();
     }

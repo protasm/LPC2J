@@ -4,7 +4,7 @@ import io.github.protasm.lpc2j.LPC2J;
 import static io.github.protasm.lpc2j.LiteralType.*;
 import io.github.protasm.lpc2j.parser.Parser;
 
-public class LiteralParselet implements Parselet {
+public class LiteralParselet implements PrefixParselet {
     @Override
     public void parse(Parser parser, LPC2J compiler, boolean canAssign, boolean inBinaryOp) {
 	switch (parser.previous().tType()) {

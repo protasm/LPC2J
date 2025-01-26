@@ -6,8 +6,8 @@ package io.github.protasm.lpc2j;
 import static io.github.protasm.lpc2j.JType.*;
 
 public enum LPCType {
-    LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(null), LPCNULL(JNULL), LPCOBJECT(JLPCOBJECT), LPCSTATUS(JBOOLEAN),
-    LPCSTRING(JSTRING), LPCVOID(JVOID);
+    LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(null), LPCNULL(JNULL), LPCOBJECT(JLPCOBJECT),
+    LPCSTATUS(JBOOLEAN), LPCSTRING(JSTRING), LPCVOID(JVOID);
 
     private final JType jType;
 

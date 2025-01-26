@@ -30,7 +30,7 @@ public class ASTParamList extends ASTNode {
 	StringBuilder sb = new StringBuilder();
 
 	for (ASTParameter param : parameters)
-	    sb.append(param).append("\n");
+	    sb.append(param);
 
 	return sb.toString();
     }

@@ -20,16 +20,22 @@ public class ASTExprVariable extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return LPCType.LPCNULL; // temp
+	return LPCType.LPCNULL; // TODO
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
-
+	//TODO
     }
 
     @Override
-    public String toString() {
-	return String.format("%s(name=%s)", className, name);
+    public String dump(int level) {
+	StringBuilder sb = new StringBuilder();
+	
+	sb.append(" ".repeat(level * 2));
+	
+	sb.append(String.format("%s(name=%s)", className(), name));
+	
+	return sb.toString();
     }
 }

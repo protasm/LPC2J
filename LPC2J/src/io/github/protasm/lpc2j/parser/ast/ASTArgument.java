@@ -16,7 +16,13 @@ public class ASTArgument extends ASTNode {
     }
 
     @Override
-    public String toString() {
-	return String.format("%s(expression=%s)", className, expression);
+    public String dump(int level) {
+	StringBuilder sb = new StringBuilder();
+	
+	sb.append(" ".repeat(level * 2));
+	
+	sb.append(String.format("%s(expression=%s)\n", className(), expression.dump(0)));
+	
+	return sb.toString();
     }
 }

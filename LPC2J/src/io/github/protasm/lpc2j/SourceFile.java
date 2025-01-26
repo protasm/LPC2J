@@ -1,6 +1,3 @@
-/**
- *
- */
 package io.github.protasm.lpc2j;
 
 import java.io.IOException;
@@ -8,9 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/**
- *
- */
 public class SourceFile {
     private String sourcePath;
     private Path path;

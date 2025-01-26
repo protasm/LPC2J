@@ -117,11 +117,7 @@ public class Scanner {
 	};
     }
 
-    public Scanner(String source) {
-	this(source, ".", ".");
-    }
-
-    public Scanner(String source, String sysInclPath, String quoteInclPath) {
+    private void preprocess(String source, String sysInclPath, String quoteInclPath) {
 	try (Preprocessor pp = new Preprocessor()) {
 	    pp.addInput(new StringLexerSource(source, true));
 	    pp.getSystemIncludePath().add(".");
@@ -148,8 +144,14 @@ public class Scanner {
 	    e.printStackTrace();
 	}
     }
+    
+    public TokenList scan(String source) {
+	return scan(source, ".", ".");
+    }
 
-    public TokenList scan() {
+    public TokenList scan(String source, String sysInclPath, String quoteInclPath) {
+	preprocess(source, sysInclPath, quoteInclPath);
+	
 	TokenList tokens = new TokenList();
 	Token<?> token;
 
@@ -384,8 +386,8 @@ public class Scanner {
 	}
 
 	// Create a Scanner and scan the tokens
-	Scanner scanner = new Scanner(source);
-	TokenList tokens = scanner.scan();
+	Scanner scanner = new Scanner();
+	TokenList tokens = scanner.scan(source);
 
 	// Print tokens grouped by lines
 	int currentLine = -1;
@@ -399,6 +401,7 @@ public class Scanner {
 		// Print the buffered line if moving to a new line
 		if (lineBuffer.length() > 0) {
 		    System.out.println(lineBuffer.toString());
+		    
 		    lineBuffer.setLength(0); // Clear the buffer
 		}
 

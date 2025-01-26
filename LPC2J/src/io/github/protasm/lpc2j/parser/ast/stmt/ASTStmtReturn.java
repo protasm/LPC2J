@@ -3,6 +3,7 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtReturn extends ASTStatement {
@@ -43,6 +44,13 @@ public class ASTStmtReturn extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("%s(expression=%s)", className, expression);
+	StringBuilder sb = new StringBuilder();
+	
+	if (expression != null)
+	    sb.append(String.format("%s(expr=%s)\n", className(), expression));
+	else
+	    sb.append(String.format("%s()\n", className()));
+	
+	return sb.toString();
     }
 }

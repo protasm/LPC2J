@@ -27,34 +27,31 @@ import io.github.protasm.lpc2j.scanner.*;
 public class Parser {
     public static final class Precedence {
 	public static final int PREC_NONE = 0;
-	public static final int PREC_ASSIGNMENT = 1;
-	public static final int PREC_OR = 2;
-	public static final int PREC_AND = 3;
-	public static final int PREC_EQUALITY = 4;
-	public static final int PREC_COMPARISON = 5;
-	public static final int PREC_TERM = 6;
-	public static final int PREC_FACTOR = 7;
-	public static final int PREC_UNARY = 8;
-	public static final int PREC_INDEX = 9;
-	public static final int PREC_CALL = 10;
-	public static final int PREC_PRIMARY = 11;
+	public static final int PREC_ASSIGNMENT = 1; // =
+	public static final int PREC_OR = 2; // or
+	public static final int PREC_AND = 3; // and
+	public static final int PREC_EQUALITY = 4; // == !=
+	public static final int PREC_COMPARISON = 5; // < > <= >=
+	public static final int PREC_TERM = 6; // + -
+	public static final int PREC_FACTOR = 7; // * /
+	public static final int PREC_UNARY = 8; // ! -
+	public static final int PREC_CALL = 9; // ()
+	public static final int PREC_PRIMARY = 10;
 
+	// Precedence()
 	private Precedence() {
 	}
     }
 
-    private final String objectName;
-    private final TokenList tokens;
+    private String objectName;
+    private TokenList tokens;
     private Map<TokenType, ParseRule> tokenTypeToRule;
     private boolean hadError;
     private boolean panicMode;
-    
+
     private ASTObject currObj;
 
-    public Parser(String name, TokenList tokens) {
-	this.objectName = name;
-	this.tokens = tokens;
-
+    public Parser() {
 	tokenTypeToRule = new HashMap<>();
 
 	registerTokenTypesToRules();
@@ -66,14 +63,17 @@ public class Parser {
     public TokenList tokens() {
 	return tokens;
     }
-    
-    private int currLine() {
+
+    public int currLine() {
 	return tokens.current().line();
     }
 
-    public ASTObject parse() {
+    public ASTObject parse(String name, TokenList tokens) {
+	this.objectName = name;
+	this.tokens = tokens;
+
 	String parentName = inherit();
-	currObj = new ASTObject(parentName, objectName);
+	currObj = new ASTObject(0, parentName, objectName);
 
 	while (!tokens.isAtEnd())
 	    property();
@@ -84,7 +84,7 @@ public class Parser {
     private String inherit() {
 	if (tokens.match(T_INHERIT)) {
 	    Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expected string after 'inherit'.");
-	    
+
 	    tokens.consume(T_SEMICOLON, "Expected ';' after inherited object path.");
 
 	    return parentToken.literal();
@@ -178,6 +178,8 @@ public class Parser {
     }
 
     private ASTStmtExpressionStatement expressionStatement() {
+	int line = currLine();
+
 	// An expression statement is an expression in a context where a
 	// statement is expected. Usually used to call a function or evaluate
 	// an assignment for its side effect. The expression is evaluated
@@ -186,53 +188,41 @@ public class Parser {
 
 	tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
 
-	// Any necessary result-popping is handled by the instruction emitters (is this comment still valid?)
-	
-	return new ASTStmtExpressionStatement(currLine(), expr);
+	// Any necessary result-popping is handled by the instruction emitters (is this
+	// comment still valid?)
+
+	return new ASTStmtExpressionStatement(line, expr);
     }
 
-    @SuppressWarnings("unchecked")
     private ASTExpression expression() {
-	int line = currLine();
-	
-	// For simplicity, just return an expression node. In a complete parser, this would
-	// involve recursive calls for handling operators, parentheses, and other expressions.
-	if (tokens.match(T_IDENTIFIER))
-	    return new ASTExprVariable(line, (Token<String>) tokens.previous());
-	else if (tokens.match(T_INT_LITERAL))
-	    return new ASTExprIntegerLiteral(line, (Token<Integer>) tokens.previous());
-	else if (tokens.match(T_STRING_LITERAL))
-	    return new ASTExprStringLiteral(line, (Token<String>) tokens.previous());
-
-	throw new ParseException("Unexpected token for primary expression.", tokens.current());
+	return parsePrecedence(PREC_ASSIGNMENT);
     }
 
-    public void parsePrecedence(int precedence, boolean inBinaryOp) {
+    public ASTExpression parsePrecedence(int precedence) {
 	tokens.advance();
 
-	Parselet prefixParselet = getRule(tokens.previous().tType()).prefix();
+	PrefixParselet prefixParselet = getRule(tokens.previous().tType()).prefix();
 
-	if (prefixParselet == null) {
-	    error("Expect expression.");
-
-	    return;
-	}
+	if (prefixParselet == null)
+	    throw new ParseException("Expect expression.", tokens.current());
 
 	boolean canAssign = (precedence <= PREC_ASSIGNMENT);
 
-	prefixParselet.parse(this, canAssign, inBinaryOp);
+	ASTExpression expr = prefixParselet.parse(this, canAssign);
 
 	while (precedence <= getRule(tokens.current().tType()).precedence()) {
 	    tokens.advance();
 
-	    Parselet infixParselet = getRule(tokens.previous().tType()).infix();
+	    InfixParselet infixParselet = getRule(tokens.previous().tType()).infix();
 
-	    infixParselet.parse(this, canAssign, false);
+	    expr = infixParselet.parse(this, expr, canAssign);
 	}
 
 	if (canAssign)
 	    if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
-		error("Invalid assignment target.");
+		throw new ParseException("Invalid assignment target.", tokens.current());
+
+	return expr;
     }
 
 //    public void transformCurrent(TokenType type) {
@@ -251,9 +241,8 @@ public class Parser {
 	panicMode = false;
 
 	while (tokens.current().tType() != T_EOF) {
-	    if (tokens.previous().tType() == T_SEMICOLON) {
+	    if (tokens.previous().tType() == T_SEMICOLON)
 		return;
-	    }
 
 	    switch (tokens.current().tType()) {
 	    case T_TYPE:
@@ -298,9 +287,8 @@ public class Parser {
     }
 
     private void errorAt(Token<?> token, String message) {
-	if (panicMode) {
+	if (panicMode)
 	    return;
-	}
 
 	panicMode = true;
 
@@ -309,7 +297,7 @@ public class Parser {
 	if (token.tType() == T_EOF)
 	    System.err.print(" at end");
 	else if (token.tType() == T_ERROR) {
-
+//TODO
 	} else
 	    System.err.print(" at '" + token.lexeme() + "'");
 
@@ -318,72 +306,73 @@ public class Parser {
 	hadError = true;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> Token<T> parseType(String errorMessage) {
-	tokens.consume(T_TYPE, errorMessage);
-
-	return (Token<T>) tokens.previous();
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> Token<T> parseVariable(String errorMessage) {
-	tokens.consume(T_IDENTIFIER, errorMessage);
-
-//		if (compiler.mb() != null && compiler.mb().workingScopeDepth() > 0) {
-//			compiler.declareLocalVar(token);
-//		}
-
-	return (Token<T>) tokens.previous();
-    }
-
-    private void register(TokenType type, Parselet prefix, Parselet infix, int precedence) {
-	tokenTypeToRule.put(type, new ParseRule(prefix, infix, precedence));
-    }
+//    @SuppressWarnings("unchecked")
+//    public <T> Token<T> parseType(String errorMessage) {
+//	tokens.consume(T_TYPE, errorMessage);
+//
+//	return (Token<T>) tokens.previous();
+//    }
+//
+//    @SuppressWarnings("unchecked")
+//    public <T> Token<T> parseVariable(String errorMessage) {
+//	tokens.consume(T_IDENTIFIER, errorMessage);
+//
+    ////		if (compiler.mb() != null && compiler.mb().workingScopeDepth() > 0) {
+////			compiler.declareLocalVar(token);
+////		}
+//
+//	return (Token<T>) tokens.previous();
+//    }
 
     public ParseRule getRule(TokenType type) {
 	return tokenTypeToRule.get(type);
     }
 
+    private void register(TokenType type, PrefixParselet prefix, InfixParselet infix, int precedence) {
+	tokenTypeToRule.put(type, new ParseRule(prefix, infix, precedence));
+    }
+
     private void registerTokenTypesToRules() {
-	//       Token Type,     Prefix Parselet,     Infix Parselet,   precedence
-	register(T_MINUS,    new UnaryParselet(), new BinaryParselet(), PREC_TERM);
+	// Token Type, Prefix Parselet, Infix Parselet, Precedence
+	register(T_MINUS, new PrefixUnaryOp(), new InfixBinaryOp(), PREC_TERM);
 
-	register(T_PLUS,  null, new BinaryParselet(), PREC_TERM);
-	register(T_STAR,  null, new BinaryParselet(), PREC_FACTOR);
-	register(T_SLASH, null, new BinaryParselet(), PREC_FACTOR);
+	register(T_PLUS, null, new InfixBinaryOp(), PREC_TERM);
+	register(T_STAR, null, new InfixBinaryOp(), PREC_FACTOR);
+	register(T_SLASH, null, new InfixBinaryOp(), PREC_FACTOR);
 
-	register(T_RIGHT_ARROW, null, new InvokeParselet(), PREC_NONE);
+	register(T_RIGHT_ARROW, null, new InfixInvoke(), PREC_NONE);
 
-	register(T_FALSE,          new LiteralParselet(),    null, PREC_NONE);
-	register(T_IDENTIFIER,     new IdentifierParselet(), null, PREC_NONE);
-	register(T_INT_LITERAL,    new NumberParselet(),     null, PREC_NONE);
-	register(T_FLOAT_LITERAL,  new NumberParselet(),     null, PREC_NONE);
-	register(T_STRING_LITERAL, new StringParselet(),     null, PREC_NONE);
-	register(T_TRUE,           new LiteralParselet(),    null, PREC_NONE);
+	register(T_FALSE, new LiteralParselet(), null, PREC_NONE);
+	register(T_IDENTIFIER, new PrefixIdentifier(), null, PREC_NONE);
+	register(T_INT_LITERAL, new PrefixNumber(), null, PREC_NONE);
+	register(T_FLOAT_LITERAL, new PrefixNumber(), null, PREC_NONE);
+	register(T_STRING_LITERAL, new PrefixString(), null, PREC_NONE);
+	register(T_TRUE, new LiteralParselet(), null, PREC_NONE);
 
-	register(T_COLON,         null, null, PREC_NONE);
-	register(T_COMMA,         null, null, PREC_NONE);
-	register(T_ELSE,          null, null, PREC_NONE);
-	register(T_EOF,           null, null, PREC_NONE);
-	register(T_EQUAL,         null, null, PREC_NONE);
-	register(T_ERROR,         null, null, PREC_NONE);
-	register(T_FOR,           null, null, PREC_NONE);
-	register(T_IF,            null, null, PREC_NONE);
-	register(T_INHERIT,       null, null, PREC_NONE);
-	register(T_LEFT_BRACE,    null, null, PREC_NONE);
-	register(T_MINUS_EQUAL,   null, null, PREC_NONE);
-	register(T_MINUS_MINUS,   null, null, PREC_NONE);
-	register(T_PLUS_EQUAL,    null, null, PREC_NONE);
-	register(T_PLUS_PLUS,     null, null, PREC_NONE);
-	register(T_RETURN,        null, null, PREC_NONE);
-	register(T_RIGHT_BRACE,   null, null, PREC_NONE);
+	register(T_COLON, null, null, PREC_NONE);
+	register(T_COMMA, null, null, PREC_NONE);
+	register(T_ELSE, null, null, PREC_NONE);
+	register(T_EOF, null, null, PREC_NONE);
+	register(T_EQUAL, null, null, PREC_NONE);
+	register(T_ERROR, null, null, PREC_NONE);
+	register(T_FOR, null, null, PREC_NONE);
+	register(T_IF, null, null, PREC_NONE);
+	register(T_INHERIT, null, null, PREC_NONE);
+	register(T_LEFT_BRACE, null, null, PREC_NONE);
+	register(T_LEFT_PAREN, null, null, PREC_NONE);
+	register(T_MINUS_EQUAL, null, null, PREC_NONE);
+	register(T_MINUS_MINUS, null, null, PREC_NONE);
+	register(T_PLUS_EQUAL, null, null, PREC_NONE);
+	register(T_PLUS_PLUS, null, null, PREC_NONE);
+	register(T_RETURN, null, null, PREC_NONE);
+	register(T_RIGHT_BRACE, null, null, PREC_NONE);
 	register(T_RIGHT_BRACKET, null, null, PREC_NONE);
-	register(T_RIGHT_PAREN,   null, null, PREC_NONE);
-	register(T_SEMICOLON,     null, null, PREC_NONE);
-	register(T_SLASH_EQUAL,   null, null, PREC_NONE);
-	register(T_STAR_EQUAL,    null, null, PREC_NONE);
-	register(T_TYPE,          null, null, PREC_NONE);
-	register(T_WHILE,         null, null, PREC_NONE);
+	register(T_RIGHT_PAREN, null, null, PREC_NONE);
+	register(T_SEMICOLON, null, null, PREC_NONE);
+	register(T_SLASH_EQUAL, null, null, PREC_NONE);
+	register(T_STAR_EQUAL, null, null, PREC_NONE);
+	register(T_TYPE, null, null, PREC_NONE);
+	register(T_WHILE, null, null, PREC_NONE);
     }
 
     public static void main(String[] args) {
@@ -400,11 +389,11 @@ public class Parser {
 	try {
 	    source = Files.readString(filePath);
 
-	    Scanner scanner = new Scanner(source);
-	    TokenList tokens = scanner.scan();
+	    Scanner scanner = new Scanner();
+	    TokenList tokens = scanner.scan(source);
 
-	    Parser parser = new Parser(fileName, tokens);
-	    ASTObject ast = parser.parse();
+	    Parser parser = new Parser();
+	    ASTObject ast = parser.parse(fileName, tokens);
 
 	    System.out.println(ast);
 	} catch (Exception e) {

@@ -3,33 +3,32 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtReturn extends ASTStatement {
-    private final ASTExpression expression; // return value, if any
+    private final ASTExpression expr; // return value, if any
 
-    public ASTStmtReturn(int line, ASTExpression expression) {
+    public ASTStmtReturn(int line, ASTExpression expr) {
 	super(line);
 
-	this.expression = expression;
+	this.expr = expr;
     }
 
     public ASTExpression expression() {
-	return expression;
+	return expr;
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
-	if (expression == null) {
+	if (expr == null) {
 	    mv.visitInsn(Opcodes.RETURN);
 
 	    return;
 	}
 
-	expression.toBytecode(mv);
+	expr.toBytecode(mv);
 
-	switch (expression.lpcType()) {
+	switch (expr.lpcType()) {
 	case LPCINT:
 	    mv.visitInsn(Opcodes.IRETURN);
 	    break;
@@ -38,7 +37,7 @@ public class ASTStmtReturn extends ASTStatement {
 	    mv.visitInsn(Opcodes.ARETURN);
 	    break;
 	default:
-	    throw new UnsupportedOperationException("Unsupported return value type: " + expression.lpcType());
+	    throw new UnsupportedOperationException("Unsupported return value type: " + expr.lpcType());
 	}
     }
 
@@ -46,8 +45,8 @@ public class ASTStmtReturn extends ASTStatement {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 	
-	if (expression != null)
-	    sb.append(String.format("%s(expr=%s)\n", className(), expression));
+	if (expr != null)
+	    sb.append(String.format("%s(expr=%s)\n", className(), expr));
 	else
 	    sb.append(String.format("%s()\n", className()));
 	

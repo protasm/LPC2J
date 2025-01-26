@@ -167,14 +167,16 @@ public class Parser {
     }
 
     private ASTStmtReturn returnStatement() {
+	int line = currLine();
+
 	if (tokens.match(T_SEMICOLON))
-	    return new ASTStmtReturn(currLine(), null);
+	    return new ASTStmtReturn(line, null);
 
 	ASTExpression expr = expression();
 
 	tokens.consume(T_SEMICOLON, "Expected ';' after return statement.");
 
-	return new ASTStmtReturn(currLine(), expr);
+	return new ASTStmtReturn(line, expr);
     }
 
     private ASTStmtExpressionStatement expressionStatement() {
@@ -201,7 +203,7 @@ public class Parser {
     public ASTExpression parsePrecedence(int precedence) {
 	tokens.advance();
 
-	PrefixParselet prefixParselet = getRule(tokens.previous().tType()).prefix();
+	PrefixParselet prefixParselet = getRule(tokens.previous()).prefix();
 
 	if (prefixParselet == null)
 	    throw new ParseException("Expect expression.", tokens.current());
@@ -210,10 +212,13 @@ public class Parser {
 
 	ASTExpression expr = prefixParselet.parse(this, canAssign);
 
-	while (precedence <= getRule(tokens.current().tType()).precedence()) {
+	while (precedence <= getRule(tokens.current()).precedence()) {
 	    tokens.advance();
 
-	    InfixParselet infixParselet = getRule(tokens.previous().tType()).infix();
+	    InfixParselet infixParselet = getRule(tokens.previous()).infix();
+
+	    if (infixParselet == null)
+		throw new ParseException("Expect expression.", tokens.current());
 
 	    expr = infixParselet.parse(this, expr, canAssign);
 	}
@@ -324,8 +329,8 @@ public class Parser {
 //	return (Token<T>) tokens.previous();
 //    }
 
-    public ParseRule getRule(TokenType type) {
-	return tokenTypeToRule.get(type);
+    public ParseRule getRule(Token<?> token) {
+	return tokenTypeToRule.get(token.tType());
     }
 
     private void register(TokenType type, PrefixParselet prefix, InfixParselet infix, int precedence) {

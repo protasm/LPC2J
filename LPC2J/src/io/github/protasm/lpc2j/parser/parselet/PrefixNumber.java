@@ -15,12 +15,12 @@ public class PrefixNumber implements PrefixParselet {
 //	JType lhsType = compiler.cb().currMethod().operandTypes().peek();
 
 	TokenType tType = parser.tokens().previous().tType();
-	
+
 	switch (tType) {
 	case T_INT_LITERAL:
 	    return new ASTExprIntegerLiteral(parser.currLine(), (Token<Integer>) parser.tokens().previous());
 //	case TOKEN_NUM_FLOAT:
-////	    if (inBinaryOp && lhsType == JType.JINT) {
+	////	    if (inBinaryOp && lhsType == JType.JINT) {
 ////		compiler.i2f();
 ////	    }
 ////

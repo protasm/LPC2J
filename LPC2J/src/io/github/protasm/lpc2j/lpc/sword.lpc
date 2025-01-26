@@ -1,6 +1,4 @@
 int x = 99;
-string s = "Hello!";
-object obj;
 
 int foo() {
   return x;

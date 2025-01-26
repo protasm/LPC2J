@@ -21,7 +21,7 @@ public class PrefixUnaryOp implements PrefixParselet {
 	case T_MINUS:
 	    return new ASTExprOpUnary(line, expr, UOP_NEGATE);
 	default:
-	    return null; //TODO throw exception
+	    return null; // TODO throw exception
 	}
     }
 }

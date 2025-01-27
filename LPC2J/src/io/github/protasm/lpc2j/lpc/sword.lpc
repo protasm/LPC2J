@@ -1,5 +1,0 @@
-int x = 101;
-
-int foo() {
-  return x;
-}

@@ -3,6 +3,5 @@ class Master {
     sword sword = new sword();
 
     System.out.println(sword.foo());
-    System.out.println(sword.bar(10));
   }
 }

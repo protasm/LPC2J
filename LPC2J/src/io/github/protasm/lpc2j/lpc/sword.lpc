@@ -1,4 +1,4 @@
-int x = 99;
+int x = 101;
 
 int foo() {
   return x;

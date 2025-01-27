@@ -67,6 +67,10 @@ public class Parser {
     public int currLine() {
 	return tokens.current().line();
     }
+    
+    public ASTObject currObj() {
+	return currObj;
+    }
 
     public ASTObject parse(String name, TokenList tokens) {
 	this.objectName = name;
@@ -114,7 +118,7 @@ public class Parser {
 
 	ASTField field = new ASTField(line, typeToken, nameToken, initializer);
 
-	currObj.fields().add(field);
+	currObj.fields().put(field.name(), field);
     }
 
     private void method(Token<LPCType> typeToken, Token<String> nameToken) {

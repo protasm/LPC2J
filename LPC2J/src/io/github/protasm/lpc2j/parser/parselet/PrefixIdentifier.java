@@ -1,26 +1,22 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static io.github.protasm.lpc2j.InstrType.IT_CONST_STR;
-import static io.github.protasm.lpc2j.InstrType.IT_FIELD_LOAD;
-import static io.github.protasm.lpc2j.InstrType.IT_FIELD_STORE;
-import static io.github.protasm.lpc2j.InstrType.IT_INVOKE;
-import static io.github.protasm.lpc2j.InstrType.IT_INVOKE_OTHER;
-import static io.github.protasm.lpc2j.InstrType.IT_LOAD_THIS;
-import static io.github.protasm.lpc2j.InstrType.IT_LOC_LOAD;
-import static io.github.protasm.lpc2j.InstrType.IT_LOC_STORE;
-
-import io.github.protasm.lpc2j.Field;
-import io.github.protasm.lpc2j.Method;
 import io.github.protasm.lpc2j.parser.Parser;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprVariable;
+import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.scanner.Token;
 
 public class PrefixIdentifier implements PrefixParselet {
     @Override
     public ASTExpression parse(Parser parser, boolean canAssign) {
 	int line = parser.currLine();
 	String identifier = parser.tokens().previous().lexeme();
+	
+	ASTField field = parser.currObj().fields().get(identifier);
+	
+	if (field != null)
+	    return new ASTExprFieldAccess(line, parser.currObj().name(), field);
+	
+	return null;
 //	int idx = slotForLocal(identifier);
 //
 //	if (idx != -1) { // initialized local
@@ -43,20 +39,20 @@ public class PrefixIdentifier implements PrefixParselet {
 //		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
 //	}
 	
-	if (parser.hasField(identifier)) { // field
-	    Field field = cb.getField(identifier);
-
-	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-		cb.currMethod().emitInstr(IT_LOAD_THIS);
-
-		expression();
-
-		cb.currMethod().emitInstr(IT_FIELD_STORE, field);
-	    } else { // retrieval
-		cb.currMethod().emitInstr(IT_LOAD_THIS);
-		cb.currMethod().emitInstr(IT_FIELD_LOAD, field);
-	    }
-	}
+//	if (parser.hasField(identifier)) { // field
+//	    Field field = cb.getField(identifier);
+//
+//	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+//		cb.currMethod().emitInstr(IT_LOAD_THIS);
+//
+//		expression();
+//
+//		cb.currMethod().emitInstr(IT_FIELD_STORE, field);
+//	    } else { // retrieval
+//		cb.currMethod().emitInstr(IT_LOAD_THIS);
+//		cb.currMethod().emitInstr(IT_FIELD_LOAD, field);
+//	    }
+//	}
 
 //	if (cb.hasMethod(identifier)) { // method of same object
 //	    Method method = cb.getMethod(identifier);

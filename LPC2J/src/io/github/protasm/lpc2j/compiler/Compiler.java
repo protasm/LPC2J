@@ -44,7 +44,7 @@ public class Compiler {
     }
 
     private void fields() {
-	for (ASTField field : astObject.fields()) {
+	for (ASTField field : astObject.fields().values()) {
 	    FieldVisitor fv = classWriter.visitField(Opcodes.ACC_PRIVATE, field.name(), field.descriptor(), null, null);
 
 	    if (fv != null)
@@ -62,7 +62,7 @@ public class Compiler {
 	mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
 
 	// Initialize fields
-	for (ASTField field : astObject.fields())
+	for (ASTField field : astObject.fields().values())
 	    if (field.initializer() != null) {
 		mv.visitVarInsn(Opcodes.ALOAD, 0); // Load 'this'
 		

@@ -8,18 +8,12 @@ import io.github.protasm.lpc2j.parser.ast.ASTField;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprFieldAccess extends ASTExpression {
-    private String parentName;
     private ASTField field;
 
-    public ASTExprFieldAccess(int line, String parentName, ASTField field) {
+    public ASTExprFieldAccess(int line, ASTField field) {
 	super(line);
 
-	this.parentName = parentName;
 	this.field = field;
-    }
-
-    public String parentName() {
-	return parentName;
     }
 
     public ASTField field() {
@@ -34,7 +28,7 @@ public class ASTExprFieldAccess extends ASTExpression {
     @Override
     public void toBytecode(MethodVisitor mv) {
 	mv.visitVarInsn(ALOAD, 0);
-	mv.visitFieldInsn(GETFIELD, parentName, field.name(), field.descriptor());
+	mv.visitFieldInsn(GETFIELD, field.ownerName(), field.name(), field.descriptor());
     }
 
     @Override

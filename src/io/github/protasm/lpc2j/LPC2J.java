@@ -52,7 +52,7 @@ public class LPC2J {
     }
 
     public byte[] compile(SourceFile sourceFile) throws IOException {
-	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.className();
+	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.dotName();
 
 	cb = new ClassBuilder(fullClassName);
 

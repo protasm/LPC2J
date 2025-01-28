@@ -49,9 +49,6 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_WHILE;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +59,7 @@ import org.anarres.cpp.Preprocessor;
 import org.anarres.cpp.StringLexerSource;
 
 import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.SourceFile;
 
 public class Scanner {
     private static final char EOL = '\n';
@@ -366,28 +364,17 @@ public class Scanner {
 	return new Token<>(T_TYPE, lexeme, type, ss.line());
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 	if (args.length != 1) {
 	    System.err.println("Usage: java Scanner <file>");
 
 	    System.exit(1);
 	}
 
-	String fileName = args[0];
-	Path filePath = Paths.get(fileName);
-	String source;
-
-	try {
-	    source = Files.readString(filePath);
-	} catch (IOException e) {
-	    System.err.println("Error: Unable to locate or read file '" + fileName + "'");
-	    System.exit(1);
-	    return; // Unreachable, but included for clarity
-	}
-
-	// Create a Scanner and scan the tokens
+	SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
+System.out.println(sf);
 	Scanner scanner = new Scanner();
-	TokenList tokens = scanner.scan(source);
+	TokenList tokens = scanner.scan(sf.source());
 
 	// Print tokens grouped by lines
 	int currentLine = -1;

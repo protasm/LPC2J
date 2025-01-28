@@ -9,12 +9,14 @@ import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 public class ASTExprVariable extends ASTExpression {
     private final ASTNode value;
+
 //
     public ASTExprVariable(int line, ASTNode value) {
 	super(line);
 
 	this.value = value;
     }
+
 //
 //    public ASTNode value() {
 //	return value;
@@ -24,9 +26,10 @@ public class ASTExprVariable extends ASTExpression {
     public LPCType lpcType() {
 	if (value instanceof ASTField)
 	    return ((ASTField) value).lpcType();
-	
+
 	return null;
     }
+
 //
 //    @Override
 //    public void toBytecode(MethodVisitor mv) {

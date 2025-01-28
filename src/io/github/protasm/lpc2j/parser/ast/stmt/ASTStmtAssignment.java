@@ -23,6 +23,10 @@ public class ASTStmtAssignment extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("%s(variable=%s, value=%s)", className, variable, value);
+	StringBuilder sb = new StringBuilder();
+
+	sb.append(String.format("%s(variable=%s, value=%s)", className(), variable, value));
+
+	return sb.toString();
     }
 }

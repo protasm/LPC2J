@@ -17,9 +17,9 @@ public class PrefixIdentifier implements PrefixParselet {
 
 	if (field != null) {
 	    if (canAssign && parser.tokens().match(T_EQUAL))
-		return new ASTExprFieldStore(line, field.objectName(), field, parser.expression());
+		return new ASTExprFieldStore(line, field, parser.expression());
 	    else
-		return new ASTExprFieldAccess(line, field.objectName(), field);
+		return new ASTExprFieldAccess(line, field);
 	}
 
 	return null;

@@ -3,25 +3,23 @@ package io.github.protasm.lpc2j.parser.ast;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTArgument extends ASTNode {
-    private final ASTExpression expression;
+    private final ASTExpression expr;
 
-    public ASTArgument(int line, ASTExpression expression) {
+    public ASTArgument(int line, ASTExpression expr) {
 	super(line);
 
-	this.expression = expression;
+	this.expr = expr;
     }
 
-    public ASTExpression expression() {
-	return expression;
+    public ASTExpression expr() {
+	return expr;
     }
 
     @Override
-    public String dump(int level) {
+    public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(" ".repeat(level * 2));
-
-	sb.append(String.format("%s(expression=%s)\n", className(), expression.dump(0)));
+	sb.append(String.format("%s(expr=%s)\n", className(), expr));
 
 	return sb.toString();
     }

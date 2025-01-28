@@ -13,8 +13,8 @@ public class ASTMethod extends ASTNode {
     private final ASTParamList parameters;
     private final ASTStmtBlock body;
 
-    public ASTMethod(int line, String objectName, Token<LPCType> typeToken, Token<String> nameToken, ASTParamList parameters,
-	    ASTStmtBlock body) {
+    public ASTMethod(int line, String objectName, Token<LPCType> typeToken, Token<String> nameToken,
+	    ASTParamList parameters, ASTStmtBlock body) {
 	super(line);
 
 	this.objectName = objectName;

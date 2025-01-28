@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.compiler;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -12,6 +13,7 @@ import org.objectweb.asm.Opcodes;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.SourceFile;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.TokenList;
@@ -36,11 +38,11 @@ public class Compiler {
     private void classHeader() {
 	String className = astObject.name();
 
-	classWriter.visit(Opcodes.V23, Opcodes.ACC_SUPER, className, null, superClassName(), null);
+	classWriter.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null, superClassName(), null);
     }
 
     private String superClassName() {
-	return astObject.parentName() != null ? astObject.parentName() : "java/lang/Object";
+	return astObject.parentName() != null ? astObject.parentName() : "io/github/protasm/lpc2j/LPCObject";
     }
 
     private void fields() {
@@ -59,7 +61,7 @@ public class Compiler {
 
 	// Call super constructor
 	mv.visitVarInsn(Opcodes.ALOAD, 0);
-	mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+	mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "io/github/protasm/lpc2j/LPCObject", "<init>", "()V", false);
 
 	// Initialize fields
 	for (ASTField field : astObject.fields().values())
@@ -91,42 +93,25 @@ public class Compiler {
 	}
     }
 
-    private void writeToFile(String directory, String prefix, byte[] bytecode) {
-	try {
-	    Path outputPath = Paths.get(directory, prefix + ".class");
-
-	    Files.write(outputPath, bytecode);
-
-	    System.out.println(prefix + ".class created in " + directory + ".");
-	} catch (Exception e) {
-	    e.printStackTrace();
-	}
-    }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 	if (args.length != 1) {
 	    System.err.println("Usage: java Compiler <source-file>");
 	    System.exit(1);
 	}
 
-	Path filePath = Paths.get(args[0]);
-	String directory = filePath.getParent().toString();
-	String fileName = filePath.getFileName().toString();
-	String prefix = fileName.substring(0, fileName.indexOf('.'));
+	SourceFile sf = new SourceFile("/Users/jonathan/brainjar/", args[0]);
 
 	try {
-	    String source = Files.readString(filePath);
-
 	    Scanner scanner = new Scanner();
-	    TokenList tokens = scanner.scan(source);
+	    TokenList tokens = scanner.scan(sf.source());
 
 	    Parser parser = new Parser();
-	    ASTObject ast = parser.parse(prefix, tokens);
+	    ASTObject ast = parser.parse(sf.slashName(), tokens);
 
 	    Compiler compiler = new Compiler();
 	    byte[] bytes = compiler.compile(ast);
 
-	    compiler.writeToFile(directory, prefix, bytes);
+	    sf.write(bytes);
 
 	    System.out.println("Compilation successful.");
 	} catch (Exception e) {

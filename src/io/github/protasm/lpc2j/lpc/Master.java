@@ -1,7 +1,11 @@
-class Master {
-  public static void main(String... args) {
-    sword sword = new sword();
+package io.github.protasm.lpc2j.lpc;
 
-    System.out.println(sword.foo());
-  }
+import obj.weapon.sword;
+
+class Master {
+    public static void main(String... args) {
+	sword sword = new sword();
+
+	System.out.println(sword.foo());
+    }
 }

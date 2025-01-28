@@ -3,9 +3,7 @@ package io.github.protasm.lpc2j.parser;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +14,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpressionStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.SourceFile;
 import io.github.protasm.lpc2j.parser.parselet.*;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.TokenList;
@@ -40,7 +39,6 @@ public class Parser {
 	}
     }
 
-    private String objectName;
     private TokenList tokens;
 //    private boolean hadError;
 //    private boolean panicMode;
@@ -65,11 +63,10 @@ public class Parser {
     }
 
     public ASTObject parse(String name, TokenList tokens) {
-	this.objectName = name;
 	this.tokens = tokens;
 
 	String parentName = inherit();
-	currObj = new ASTObject(0, parentName, objectName);
+	currObj = new ASTObject(0, parentName, name);
 
 	while (!tokens.isAtEnd())
 	    property();
@@ -290,7 +287,7 @@ public class Parser {
 //	if (token.tType() == T_EOF)
 //	    System.err.print(" at end");
 //	else if (token.tType() == T_ERROR) {
-////TODO
+    ////TODO
 //	} else
 //	    System.err.print(" at '" + token.lexeme() + "'");
 //
@@ -317,30 +314,20 @@ public class Parser {
 //	return (Token<T>) tokens.previous();
 //    }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 	if (args.length != 1) {
 	    System.err.println("Usage: java Parser <source-file>");
 
 	    System.exit(1);
 	}
 
-	String fileName = args[0];
-	Path filePath = Paths.get(fileName);
-	String source;
+	SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
+	Scanner scanner = new Scanner();
+	TokenList tokens = scanner.scan(sf.source());
 
-	try {
-	    source = Files.readString(filePath);
+	Parser parser = new Parser();
+	ASTObject ast = parser.parse(sf.slashName(), tokens); // TODO
 
-	    Scanner scanner = new Scanner();
-	    TokenList tokens = scanner.scan(source);
-
-	    Parser parser = new Parser();
-	    ASTObject ast = parser.parse(fileName, tokens);
-
-	    System.out.println(ast);
-	} catch (Exception e) {
-	    e.printStackTrace();
-	    System.exit(1);
-	}
+	System.out.println(ast);
     }
 }

@@ -17,6 +17,10 @@ public class ASTStmtInvocation extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("%s(invocation=%s)", className, invocation);
+	StringBuilder sb = new StringBuilder();
+
+	sb.append(String.format("%s(invocation=%s)", className(), invocation));
+
+	return sb.toString();
     }
 }

@@ -17,6 +17,10 @@ public class ASTStmtCall extends ASTStatement {
 
     @Override
     public String toString() {
-	return String.format("%s(call=%s)", className, call);
+	StringBuilder sb = new StringBuilder();
+
+	sb.append(String.format("%s(call=%s)", className(), call));
+
+	return sb.toString();
     }
 }

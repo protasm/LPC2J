@@ -53,8 +53,8 @@ public class Token<T> {
     @Override
     public String toString() {
 	if (literal == null)
-	    return tType + " " + lexeme + ", ";
+	    return tType + "(" + lexeme + "), ";
 	else
-	    return tType + "<" + literal.getClass().getSimpleName() + "> " + lexeme + ", ";
+	    return tType + "<" + literal.getClass().getSimpleName() + ">(" + lexeme + "), ";
     }
 }

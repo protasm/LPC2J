@@ -30,9 +30,9 @@ public class ASTExprInvocation extends ASTExpression {
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
-	
+
 	sb.append(String.format("%s(objectName=%s, call=%s)", className(), objectName, call));
-	
+
 	return sb.toString();
     }
 

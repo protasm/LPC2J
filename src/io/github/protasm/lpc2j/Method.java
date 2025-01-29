@@ -17,27 +17,18 @@ import java.util.Stack;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import io.github.protasm.lpc2j.parser.Local;
+
 public class Method implements HasSymbol {
     private Symbol symbol;
     private MethodVisitor mv;
-    private Stack<Local> locals;
     private Stack<JType> operandTypes;
-    private int workingScopeDepth;
 
     public Method(Symbol symbol, MethodVisitor mv) {
 	this.symbol = symbol;
 	this.mv = mv;
 
-	locals = new Stack<>();
 	operandTypes = new Stack<>();
-
-	// Locals slot 0 reserved for "this" (non-static methods only)
-	Symbol localSymbol = new Symbol(symbol.cb(), SYM_LOCAL, JLPCOBJECT, "this", JLPCOBJECT.descriptor());
-	Local local = new Local(localSymbol);
-
-	addLocal(local, true);
-
-	workingScopeDepth = 1;
 
 	mv.visitCode();
 
@@ -47,57 +38,8 @@ public class Method implements HasSymbol {
 	}
     }
 
-    public Stack<Local> locals() {
-	return locals;
-    }
-
     public Stack<JType> operandTypes() {
 	return operandTypes;
-    }
-
-    public int workingScopeDepth() {
-	return workingScopeDepth;
-    }
-
-    public void incScopeDepth() {
-	workingScopeDepth += 1;
-    }
-
-    public void decScopeDepth() {
-	workingScopeDepth -= 1;
-    }
-
-    public boolean hasLocal(String name) {
-	ListIterator<Local> localsItr = locals.listIterator(locals.size());
-
-	while (localsItr.hasPrevious()) {
-	    Local local = localsItr.previous();
-
-	    if (local.identifier().equals(name))
-		return true;
-	}
-
-	return false;
-    }
-
-    public int addLocal(Local local, boolean markInitialized) {
-	locals.push(local);
-
-	if (markInitialized) {
-	    markTopLocalInitialized();
-	}
-
-	return locals.size() - 1;
-    }
-
-    public void popLocal() {
-	locals().pop();
-
-	emitInstr(IT_POP);
-    }
-
-    public void markTopLocalInitialized() {
-	locals.peek().setScopeDepth(workingScopeDepth);
     }
 
     public void emitInstr(InstrType instrType, Object... args) {

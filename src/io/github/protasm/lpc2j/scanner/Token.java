@@ -52,6 +52,8 @@ public class Token<T> {
 
     @Override
     public String toString() {
+	if (tType == TokenType.T_EOF)
+	    return tType.toString();
 	if (literal == null)
 	    return tType + "(" + lexeme + "), ";
 	else

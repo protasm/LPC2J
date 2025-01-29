@@ -1,14 +1,10 @@
 package io.github.protasm.lpc2j.compiler;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
@@ -18,9 +14,17 @@ import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.TokenList;
 
+import static org.objectweb.asm.Opcodes.*;
+
 public class Compiler {
+    private final String defaultParentName;
+
     private ClassWriter classWriter;
     private ASTObject astObject;
+
+    public Compiler(String defaultParentName) {
+	this.defaultParentName = defaultParentName;
+    }
 
     public byte[] compile(ASTObject astObject) {
 	this.astObject = astObject;
@@ -36,18 +40,18 @@ public class Compiler {
     }
 
     private void classHeader() {
-	String className = astObject.name();
-
-	classWriter.visit(Opcodes.V23, Opcodes.ACC_SUPER | Opcodes.ACC_PUBLIC, className, null, superClassName(), null);
+	classWriter.visit(V23, ACC_SUPER | ACC_PUBLIC, astObject.name(), null, parentName(), null);
     }
 
-    private String superClassName() {
-	return astObject.parentName() != null ? astObject.parentName() : "io/github/protasm/lpc2j/LPCObject";
+    private String parentName() {
+	String parentName = astObject.parentName();
+
+	return parentName != null ? parentName : defaultParentName;
     }
 
     private void fields() {
 	for (ASTField field : astObject.fields().values()) {
-	    FieldVisitor fv = classWriter.visitField(Opcodes.ACC_PRIVATE, field.name(), field.descriptor(), null, null);
+	    FieldVisitor fv = classWriter.visitField(ACC_PRIVATE, field.name(), field.descriptor(), null, null);
 
 	    if (fv != null)
 		fv.visitEnd();
@@ -55,25 +59,25 @@ public class Compiler {
     }
 
     private void constructor() {
-	MethodVisitor mv = classWriter.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+	MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
 
 	mv.visitCode();
 
 	// Call super constructor
-	mv.visitVarInsn(Opcodes.ALOAD, 0);
-	mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "io/github/protasm/lpc2j/LPCObject", "<init>", "()V", false);
+	mv.visitVarInsn(ALOAD, 0);
+	mv.visitMethodInsn(INVOKESPECIAL, "io/github/protasm/lpc2j/LPCObject", "<init>", "()V", false);
 
 	// Initialize fields
 	for (ASTField field : astObject.fields().values())
 	    if (field.initializer() != null) {
-		mv.visitVarInsn(Opcodes.ALOAD, 0); // Load 'this'
+		mv.visitVarInsn(ALOAD, 0); // Load 'this'
 
 		field.initializer().toBytecode(mv); // Generate bytecode for the initializer
 
-		mv.visitFieldInsn(Opcodes.PUTFIELD, astObject.name(), field.name(), field.descriptor());
+		mv.visitFieldInsn(PUTFIELD, astObject.name(), field.name(), field.descriptor());
 	    }
 
-	mv.visitInsn(Opcodes.RETURN);
+	mv.visitInsn(RETURN);
 
 	mv.visitMaxs(0, 0); // Automatically calculated by ASM
 	mv.visitEnd();
@@ -81,8 +85,7 @@ public class Compiler {
 
     private void methods() {
 	for (ASTMethod method : astObject.methods()) {
-	    MethodVisitor mv = classWriter.visitMethod(Opcodes.ACC_PUBLIC, method.name(), method.descriptor(), null,
-		    null);
+	    MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC, method.name(), method.descriptor(), null, null);
 
 	    mv.visitCode();
 
@@ -96,27 +99,21 @@ public class Compiler {
     public static void main(String[] args) throws IOException {
 	if (args.length != 1) {
 	    System.err.println("Usage: java Compiler <source-file>");
+
 	    System.exit(1);
 	}
 
 	SourceFile sf = new SourceFile("/Users/jonathan/brainjar/", args[0]);
+	Scanner scanner = new Scanner();
+	TokenList tokens = scanner.scan(sf.source());
+	Parser parser = new Parser();
+	ASTObject ast = parser.parse(sf.slashName(), tokens);
+	Compiler compiler = new Compiler("io/github/protasm/lpc2j/LPCObject");
 
-	try {
-	    Scanner scanner = new Scanner();
-	    TokenList tokens = scanner.scan(sf.source());
+	byte[] bytes = compiler.compile(ast);
 
-	    Parser parser = new Parser();
-	    ASTObject ast = parser.parse(sf.slashName(), tokens);
+	sf.write(bytes);
 
-	    Compiler compiler = new Compiler();
-	    byte[] bytes = compiler.compile(ast);
-
-	    sf.write(bytes);
-
-	    System.out.println("Compilation successful.");
-	} catch (Exception e) {
-	    e.printStackTrace();
-	    System.exit(1);
-	}
+	System.out.println("Compilation successful.");
     }
 }

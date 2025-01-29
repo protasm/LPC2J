@@ -11,7 +11,7 @@ import io.github.protasm.lpc2j.parser.ast.*;
 import io.github.protasm.lpc2j.parser.ast.expr.*;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
-import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpressionStatement;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.SourceFile;
@@ -40,33 +40,29 @@ public class Parser {
     }
 
     private TokenList tokens;
-//    private boolean hadError;
-//    private boolean panicMode;
-
     private ASTObject currObj;
-
-    public Parser() {
-//	hadError = false;
-//	panicMode = false;
-    }
+    private Locals locals;
 
     public TokenList tokens() {
 	return tokens;
-    }
-
-    public int currLine() {
-	return tokens.current().line();
     }
 
     public ASTObject currObj() {
 	return currObj;
     }
 
-    public ASTObject parse(String name, TokenList tokens) {
+    public Locals locals() {
+	return locals;
+    }
+
+    public int currLine() {
+	return tokens.current().line();
+    }
+
+    public ASTObject parse(String objName, TokenList tokens) {
 	this.tokens = tokens;
 
-	String parentName = inherit();
-	currObj = new ASTObject(0, parentName, name);
+	currObj = new ASTObject(0, inherit(), objName);
 
 	while (!tokens.isAtEnd())
 	    property();
@@ -112,11 +108,14 @@ public class Parser {
 
     private void method(Token<LPCType> typeToken, Token<String> nameToken) {
 	int line = currLine();
+
+	locals = new Locals();
+
 	ASTParamList parameters = parameters();
 
 	tokens.consume(T_LEFT_BRACE, "Expected '{' after method declaration.");
 
-	ASTStmtBlock body = block(currLine());
+	ASTStmtBlock body = block();
 	ASTMethod method = new ASTMethod(line, currObj.name(), typeToken, nameToken, parameters, body);
 
 	currObj.methods().add(method);
@@ -133,7 +132,11 @@ public class Parser {
 	    Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected parameter type.");
 	    Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected parameter name.");
 
-	    parameters.add(new ASTParameter(line, typeToken, nameToken));
+	    ASTParameter param = new ASTParameter(line, typeToken, nameToken);
+	    Local local = new Local(typeToken.literal(), nameToken.lexeme());
+
+	    parameters.add(param);
+	    locals.add(local, true);
 	} while (tokens.match(T_COMMA));
 
 	tokens.consume(T_RIGHT_PAREN, "Expected ')' after parameter list.");
@@ -141,20 +144,59 @@ public class Parser {
 	return parameters;
     }
 
-    private ASTStmtBlock block(int line) {
+    private ASTStmtBlock block() {
+	int line = currLine();
+
+	locals.beginScope();
+
 	List<ASTStatement> statements = new ArrayList<>();
 
 	while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-	    statements.add(statement());
+	    if (tokens.match(T_TYPE)) { // local declaration
+		Local local = localDeclaration();
+
+		locals.add(local, true); // sets slot # and depth
+
+		if (tokens.match(T_EQUAL)) { //local assignment 
+		    ASTExpression initializer = expression();
+
+		    ASTExprLocalStore expr = new ASTExprLocalStore(line, local, initializer);
+		    ASTStmtExpression exprStmt = new ASTStmtExpression(line, expr);
+
+		    statements.add(exprStmt);
+		}
+
+		tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+	    } else
+		statements.add(statement());
 
 	tokens.consume(T_RIGHT_BRACE, "Expected '}' after method body.");
 
+	locals.endScope();
+
 	return new ASTStmtBlock(line, statements);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Local localDeclaration() {
+	Token<LPCType> typeToken = (Token<LPCType>) tokens.previous();
+	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected local variable name.");
+
+	String name = nameToken.lexeme();
+
+	if (locals.hasCollision(name))
+	    throw new ParseException("Already a local named '" + name + "' in current scope.");
+
+	LPCType lpcType = typeToken.literal();
+	
+	return new Local(lpcType, name);
     }
 
     public ASTStatement statement() {
 	if (tokens.match(T_RETURN))
 	    return returnStatement();
+	else if (tokens.match(T_LEFT_BRACE))
+	    return block();
 	else
 	    return expressionStatement();
     }
@@ -172,13 +214,13 @@ public class Parser {
 	return new ASTStmtReturn(line, expr);
     }
 
-    private ASTStmtExpressionStatement expressionStatement() {
+    private ASTStmtExpression expressionStatement() {
 	int line = currLine();
 	ASTExpression expr = expression();
 
 	tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
 
-	return new ASTStmtExpressionStatement(line, expr);
+	return new ASTStmtExpression(line, expr);
     }
 
     public ASTExpression expression() {
@@ -215,105 +257,6 @@ public class Parser {
 	return expr;
     }
 
-//    public void transformCurrent(TokenType type) {
-//	current = new Token(type, null, null, current.line());
-//    }
-//
-//    public boolean hadError() {
-//	return hadError;
-//    }
-//
-//    public boolean panicMode() {
-//	return panicMode;
-//    }
-//
-//    public void synchronize() {
-//	panicMode = false;
-//
-//	while (tokens.current().tType() != T_EOF) {
-//	    if (tokens.previous().tType() == T_SEMICOLON)
-//		return;
-//
-//	    switch (tokens.current().tType()) {
-//	    case T_TYPE:
-//	    case T_FOR:
-//	    case T_IF:
-//	    case T_WHILE:
-//	    case T_RETURN:
-//		return;
-//
-//	    default:
-//		break;
-//	    }
-//
-//	    tokens.advance();
-//	}
-//    }
-
-//    public void advance() {
-//	if (!tokensItr.hasNext()) {
-//	    return;
-//	}
-//
-//	previous = current;
-//
-//	for (;;) {
-//	    current = tokensItr.next();
-//
-//	    if (current.type() != T_ERROR) {
-//		break;
-//	    }
-//
-//	    errorAtCurrent(current.lexeme());
-//	}
-//    }
-//    
-//    public void errorAtCurrent(String message) {
-//	errorAt(tokens.current(), message);
-//    }
-//
-//    public void error(String message) {
-//	errorAt(tokens.previous(), message);
-//    }
-//
-//    private void errorAt(Token<?> token, String message) {
-//	if (panicMode)
-//	    return;
-//
-//	panicMode = true;
-//
-//	System.err.print("[line " + token.line() + "] Error");
-//
-//	if (token.tType() == T_EOF)
-//	    System.err.print(" at end");
-//	else if (token.tType() == T_ERROR) {
-    ////TODO
-//	} else
-//	    System.err.print(" at '" + token.lexeme() + "'");
-//
-//	System.err.print(": " + message + "\n");
-//
-//	hadError = true;
-//    }
-
-//    @SuppressWarnings("unchecked")
-//    public <T> Token<T> parseType(String errorMessage) {
-//	tokens.consume(T_TYPE, errorMessage);
-//
-//	return (Token<T>) tokens.previous();
-//    }
-//
-//    @SuppressWarnings("unchecked")
-//    public <T> Token<T> parseVariable(String errorMessage) {
-//	tokens.consume(T_IDENTIFIER, errorMessage);
-//
-    ////		if (compiler.mb() != null && compiler.mb().workingScopeDepth() > 0) {
-////			compiler.declareLocalVar(token);
-////		}
-//
-//	return (Token<T>) tokens.previous();
-//    }
-
     public static void main(String[] args) throws IOException {
 	if (args.length != 1) {
 	    System.err.println("Usage: java Parser <source-file>");
@@ -324,9 +267,9 @@ public class Parser {
 	SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
 	Scanner scanner = new Scanner();
 	TokenList tokens = scanner.scan(sf.source());
-
 	Parser parser = new Parser();
-	ASTObject ast = parser.parse(sf.slashName(), tokens); // TODO
+
+	ASTObject ast = parser.parse(sf.slashName(), tokens);
 
 	System.out.println(ast);
     }

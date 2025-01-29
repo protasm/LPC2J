@@ -1,9 +1,12 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
+import io.github.protasm.lpc2j.parser.Local;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
@@ -12,8 +15,17 @@ public class PrefixIdentifier implements PrefixParselet {
     @Override
     public ASTExpression parse(Parser parser, boolean canAssign) {
 	int line = parser.currLine();
-	String identifier = parser.tokens().previous().lexeme();
-	ASTField field = parser.currObj().fields().get(identifier);
+	String name = parser.tokens().previous().lexeme();
+
+	Local local = parser.locals().get(name); // local?
+
+	if (local != null)
+	    if (canAssign && parser.tokens().match(T_EQUAL))
+		return new ASTExprLocalStore(line, local, parser.expression());
+	    else
+		return new ASTExprLocalAccess(line, local);
+
+	ASTField field = parser.currObj().fields().get(name); // field?
 
 	if (field != null) {
 	    if (canAssign && parser.tokens().match(T_EQUAL))
@@ -23,8 +35,6 @@ public class PrefixIdentifier implements PrefixParselet {
 	}
 
 	return null;
-//	int idx = slotForLocal(identifier);
-//
 //	if (idx != -1) { // initialized local
 //	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
 //		cb.currMethod().emitInstr(IT_LOAD_THIS);

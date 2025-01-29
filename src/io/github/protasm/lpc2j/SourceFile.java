@@ -47,18 +47,18 @@ public class SourceFile {
 
     public void write(byte[] bytes) throws IOException {
 	String str = trimFileSuffix(relPath) + ".class";
-	
+
 	Path writePath = Paths.get(basePath, str);
 
 	Files.write(writePath, bytes);
 
 	System.out.println("File written to: " + writePath);
     }
-    
+
     private String toSlashNotation(String str) {
-	//trim file suffix, if any
+	// trim file suffix, if any
 	str = trimFileSuffix(str);
-	
+
 	// trim leading slash, if any
 	return trimLeadingSlash(str);
     }
@@ -87,17 +87,17 @@ public class SourceFile {
     private String replaceSlashesWithDots(String str) {
 	return str.replace("/", ".").replace("\\", ".");
     }
-    
+
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
-	
+
 	sb.append(String.format("basePath=%s\n", basePath));
 	sb.append(String.format("relPath=%s\n", relPath));
 	sb.append(String.format("fullPath=%s\n", fullPath));
 	sb.append(String.format("slashName=%s\n", slashName));
 	sb.append(String.format("dotName=%s\n", dotName));
-	
+
 	return sb.toString();
     }
 }

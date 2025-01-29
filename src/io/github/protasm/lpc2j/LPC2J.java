@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.github.protasm.lpc2j.parser.Local;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Token;
@@ -186,71 +187,6 @@ public class LPC2J {
 	return desc.append(")").toString();
     }
 
-    public void expression() {
-	parser.parsePrecedence(PREC_ASSIGNMENT, false);
-    }
-
-    private void block() {
-	while (!parser.check(TOKEN_RIGHT_BRACE) && !parser.check(TOKEN_EOF))
-	    declaration();
-
-	parser.consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
-    }
-
-    private void declaration() {
-	if (parser.check(TOKEN_TYPE)) { // local
-	    // parser.match(TOKEN_STAR); //temp
-	    Token typeToken = parser.parseType("Expect local type.");
-
-	    local(typeToken);
-	} else // local
-	    statement();
-
-	if (parser.panicMode())
-	    parser.synchronize();
-    }
-
-    private void local(Token typeToken) {
-	do {
-	    Token nameToken = parser.parseVariable("Expect local name.");
-	    String name = nameToken.lexeme();
-
-	    if (cb.currMethod().hasLocal(name))
-		parser.error("Already a local named '" + name + "' in this scope.");
-
-	    JType jType = JType.jTypeForLPCType(typeToken.lexeme());
-	    Symbol symbol = new Symbol(cb, SYM_LOCAL, jType, name, jType.descriptor());
-	    Local local = new Local(symbol);
-
-	    int idx = cb.currMethod().addLocal(local, true);
-
-	    if (parser.match(TOKEN_EQUAL)) {
-		expression(); // leaves expression value on stack
-
-		cb.currMethod().emitInstr(IT_LOC_STORE, idx);
-	    }
-	} while (parser.match(TOKEN_COMMA));
-
-	parser.consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration(s).");
-    }
-
-    private int slotForLocal(String name) {
-	// traverse locals backward, looking for a match
-	for (int i = cb.currMethod().locals().size() - 1; i >= 0; i--) {
-	    Local local = cb.currMethod().locals().get(i);
-
-	    if (name.equals(local.identifier())) { // found match
-		if (local.scopeDepth() == -1) // "sentinel" value
-		    parser.error("Can't read local variable in its own initializer.");
-
-		return i; // runtime stack position of matching local
-	    }
-	} // for
-
-	// No match; not a local.
-	return -1;
-    }
-
     private void statement() {
 //	    if (parser.match(TOKEN_FOR))
 //	      forStatement();
@@ -302,19 +238,6 @@ public class LPC2J {
 	// Any necessary result-popping is handled by the instruction emitters.
     }
 
-    private void beginScope() {
-	cb.currMethod().incScopeDepth();
-    }
-
-    private void endScope() {
-	cb.currMethod().decScopeDepth();
-
-	// pop all locals belonging to the expiring scope
-	while (!(cb.currMethod().locals().isEmpty())
-		&& cb.currMethod().locals().peek().scopeDepth() > cb.currMethod().workingScopeDepth())
-	    cb.currMethod().popLocal();
-    }
-
     //
     // Parser Callbacks
     //
@@ -324,7 +247,7 @@ public class LPC2J {
     }
 
     public void identifier(String identifier, boolean canAssign) {
-	int idx = slotForLocal(identifier);
+	int idx = get(identifier);
 
 	if (idx != -1) { // initialized local
 	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
@@ -397,29 +320,5 @@ public class LPC2J {
 	}
 
 	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
-    }
-
-    public void lpcFloat(Float value) {
-	cb.currMethod().emitInstr(IT_CONST_FLOAT, value);
-    }
-
-    public void lpcInteger(Integer value) {
-	cb.currMethod().emitInstr(IT_CONST_INT, value);
-    }
-
-    public void lpcString(String value) {
-	cb.currMethod().emitInstr(IT_CONST_STR, value);
-    }
-
-    public void negate() {
-	cb.currMethod().emitInstr(IT_NEGATE);
-    }
-
-    public void binaryOp(BinaryOpType op) {
-	cb.currMethod().emitInstr(IT_BINARY, op);
-    }
-
-    public void i2f() {
-	cb.currMethod().emitInstr(IT_I2F);
     }
 }

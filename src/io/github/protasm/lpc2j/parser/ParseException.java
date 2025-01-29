@@ -16,6 +16,11 @@ public class ParseException extends RuntimeException {
 	this(message, token.line());
     }
 
+    public ParseException(String message) {
+	this(message, -1); // TODO
+
+    }
+
     public int line() {
 	return line;
     }

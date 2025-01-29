@@ -372,8 +372,9 @@ public class Scanner {
 	}
 
 	SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
-System.out.println(sf);
+	System.out.println(sf);
 	Scanner scanner = new Scanner();
+
 	TokenList tokens = scanner.scan(sf.source());
 
 	// Print tokens grouped by lines

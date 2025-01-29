@@ -4,10 +4,10 @@ import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
-public class ASTStmtExpressionStatement extends ASTStatement {
+public class ASTStmtExpression extends ASTStatement {
     private final ASTExpression expression;
 
-    public ASTStmtExpressionStatement(int line, ASTExpression expression) {
+    public ASTStmtExpression(int line, ASTExpression expression) {
 	super(line);
 
 	this.expression = expression;

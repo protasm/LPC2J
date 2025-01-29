@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser;
 
+import static io.github.protasm.lpc2j.InstrType.IT_NEW_ARRAY;
 import static io.github.protasm.lpc2j.parser.Parser.Precedence.*;
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
@@ -17,102 +18,66 @@ import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.SourceFile;
 import io.github.protasm.lpc2j.parser.parselet.*;
 import io.github.protasm.lpc2j.scanner.Token;
-import io.github.protasm.lpc2j.scanner.TokenList;
+import io.github.protasm.lpc2j.scanner.Tokens;
 import io.github.protasm.lpc2j.scanner.*;
 
 public class Parser {
-    public static final class Precedence {
-	public static final int PREC_NONE = 0;
-	public static final int PREC_ASSIGNMENT = 1; // =
-	public static final int PREC_OR = 2; // or
-	public static final int PREC_AND = 3; // and
-	public static final int PREC_EQUALITY = 4; // == !=
-	public static final int PREC_COMPARISON = 5; // < > <= >=
-	public static final int PREC_TERM = 6; // + -
-	public static final int PREC_FACTOR = 7; // * /
-	public static final int PREC_UNARY = 8; // ! -
-	public static final int PREC_CALL = 9; // ()
-	public static final int PREC_PRIMARY = 10;
+	public static final class Precedence {
+		public static final int PREC_NONE = 0;
+		public static final int PREC_ASSIGNMENT = 1; // =
+		public static final int PREC_OR = 2; // or
+		public static final int PREC_AND = 3; // and
+		public static final int PREC_EQUALITY = 4; // == !=
+		public static final int PREC_COMPARISON = 5; // < > <= >=
+		public static final int PREC_TERM = 6; // + -
+		public static final int PREC_FACTOR = 7; // * /
+		public static final int PREC_UNARY = 8; // ! -
+		public static final int PREC_CALL = 9; // ()
+		public static final int PREC_PRIMARY = 10;
 
-	// Precedence()
-	private Precedence() {
-	}
-    }
-
-    private TokenList tokens;
-    private ASTObject currObj;
-    private Locals locals;
-
-    public TokenList tokens() {
-	return tokens;
-    }
-
-    public ASTObject currObj() {
-	return currObj;
-    }
-
-    public Locals locals() {
-	return locals;
-    }
-
-    public int currLine() {
-	return tokens.current().line();
-    }
-
-    public ASTObject parse(String objName, TokenList tokens) {
-	this.tokens = tokens;
-
-	currObj = new ASTObject(0, inherit(), objName);
-
-	while (!tokens.isAtEnd())
-	    property();
-
-	return currObj;
-    }
-
-    private String inherit() {
-	if (tokens.match(T_INHERIT)) {
-	    Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expected string after 'inherit'.");
-
-	    tokens.consume(T_SEMICOLON, "Expected ';' after inherited object path.");
-
-	    return parentToken.literal();
+		// Precedence()
+		private Precedence() {
+		}
 	}
 
-	return null;
-    }
+	private Tokens tokens;
+	private ASTObject currObj;
+	private Locals locals;
 
-    private void property() {
-	Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected property type.");
-	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected property name.");
+	public Tokens tokens() {
+		return tokens;
+	}
 
-	if (tokens.match(T_LEFT_PAREN))
-	    method(typeToken, nameToken);
-	else
-	    field(typeToken, nameToken);
-    }
+	public ASTObject currObj() {
+		return currObj;
+	}
 
-    private void field(Token<LPCType> typeToken, Token<String> nameToken) {
-	int line = currLine();
-	ASTExpression initializer = null;
+	public Locals locals() {
+		return locals;
+	}
 
-	if (tokens.match(T_EQUAL))
-	    initializer = expression();
+	public int currLine() {
+		return tokens.current().line();
+	}
 
-	tokens.consume(T_SEMICOLON, "Expected ';' after field declaration.");
+	public ASTObject parse(String objName, Tokens tokens) {
+		this.tokens = tokens;
 
-	ASTField field = new ASTField(line, currObj.name(), typeToken, nameToken, initializer);
+		currObj = new ASTObject(0, inherit(), objName);
 
-	currObj.fields().put(field.name(), field);
-    }
+		while (!tokens.isAtEnd())
+			property();
 
-    private void method(Token<LPCType> typeToken, Token<String> nameToken) {
-	int line = currLine();
+		return currObj;
+	}
 
-	locals = new Locals();
+	private String inherit() {
+		if (tokens.match(T_INHERIT)) {
+			Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expected string after 'inherit'.");
 
-	ASTParamList parameters = parameters();
+			tokens.consume(T_SEMICOLON, "Expected ';' after inherited object path.");
 
+<<<<<<< HEAD
 	tokens.consume(T_LEFT_BRACE, "Expected '{' after method declaration.");
 
 	ASTStmtBlock body = block();
@@ -164,8 +129,12 @@ public class Parser {
 		    ASTStmtExpression exprStmt = new ASTStmtExpression(line, expr);
 
 		    statements.add(exprStmt);
+=======
+			return parentToken.literal();
+>>>>>>> branch 'master' of ssh://git@github-protasm/protasm/LPC2J.git
 		}
 
+<<<<<<< HEAD
 		tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
 	    } else
 		statements.add(statement());
@@ -179,7 +148,7 @@ public class Parser {
 
     @SuppressWarnings("unchecked")
     private Local localDeclaration() {
-	Token<LPCType> typeToken = (Token<LPCType>) tokens.previous();
+	Token<LPCType> typeToken = tokens.previous();
 	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected local variable name.");
 
 	String name = nameToken.lexeme();
@@ -254,29 +223,216 @@ public class Parser {
 		throw new ParseException("Expect expression.", tokens.current());
 
 	    expr = iParselet.parse(this, expr, canAssign);
+=======
+		return null;
+>>>>>>> branch 'master' of ssh://git@github-protasm/protasm/LPC2J.git
 	}
 
-	if (canAssign)
-	    if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
-		throw new ParseException("Invalid assignment target.", tokens.current());
+	private void property() {
+		Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected property type.");
+		Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected property name.");
 
-	return expr;
-    }
-
-    public static void main(String[] args) throws IOException {
-	if (args.length != 1) {
-	    System.err.println("Usage: java Parser <source-file>");
-
-	    System.exit(1);
+		if (tokens.match(T_LEFT_PAREN))
+			method(typeToken, nameToken);
+		else
+			field(typeToken, nameToken);
 	}
 
-	SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
-	Scanner scanner = new Scanner();
-	TokenList tokens = scanner.scan(sf.source());
-	Parser parser = new Parser();
+	private void field(Token<LPCType> typeToken, Token<String> nameToken) {
+		int line = currLine();
+		ASTExpression initializer = null;
 
-	ASTObject ast = parser.parse(sf.slashName(), tokens);
+		if (tokens.match(T_EQUAL))
+			initializer = expression();
 
-	System.out.println(ast);
-    }
+		tokens.consume(T_SEMICOLON, "Expected ';' after field declaration.");
+
+		ASTField field = new ASTField(line, currObj.name(), typeToken, nameToken, initializer);
+
+		currObj.fields().put(field.name(), field);
+	}
+
+	private void method(Token<LPCType> typeToken, Token<String> nameToken) {
+		int line = currLine();
+
+		locals = new Locals();
+
+		ASTParameters parameters = parameters();
+
+		tokens.consume(T_LEFT_BRACE, "Expected '{' after method declaration.");
+
+		ASTStmtBlock body = block();
+		ASTMethod method = new ASTMethod(line, currObj.name(), typeToken, nameToken, parameters, body);
+
+		currObj.methods().put(method.name(), method);
+	}
+
+	private ASTParameters parameters() {
+		int line = currLine();
+		ASTParameters params = new ASTParameters(line);
+
+		if (tokens.match(T_RIGHT_PAREN)) // No parameters
+			return params;
+
+		do {
+			Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected parameter type.");
+			Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected parameter name.");
+
+			ASTParameter param = new ASTParameter(line, typeToken, nameToken);
+			Local local = new Local(typeToken.literal(), nameToken.lexeme());
+
+			params.add(param);
+
+			locals.add(local, true);
+		} while (tokens.match(T_COMMA));
+
+		tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
+
+		return params;
+	}
+
+	public ASTArguments arguments() {
+		ASTArguments args = new ASTArguments(currLine());
+
+		tokens.consume(T_LEFT_PAREN, "Expect '(' after method name.");
+
+		if (tokens.match(T_RIGHT_PAREN)) // No arguments
+			return args;
+
+		do {
+			ASTExpression expr = expression();
+			ASTArgument arg = new ASTArgument(currLine(), expr);
+
+			args.add(arg);
+		} while (tokens.match(T_COMMA));
+
+		tokens.consume(T_RIGHT_PAREN, "Expect ')' after method arguments.");
+
+		return args;
+	}
+
+	private ASTStmtBlock block() {
+		int line = currLine();
+
+		locals.beginScope();
+
+		List<ASTStatement> statements = new ArrayList<>();
+
+		while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
+			if (tokens.match(T_TYPE)) { // local declaration
+				Local local = local();
+
+				locals.add(local, true); // sets slot # and depth
+
+				if (tokens.match(T_EQUAL)) { // local assignment
+					ASTExprLocalStore expr = new ASTExprLocalStore(line, local, expression());
+					ASTStmtExpression exprStmt = new ASTStmtExpression(line, expr);
+
+					statements.add(exprStmt);
+				}
+
+				tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+			} else
+				statements.add(statement());
+
+		tokens.consume(T_RIGHT_BRACE, "Expected '}' after method body.");
+
+		locals.endScope();
+
+		return new ASTStmtBlock(line, statements);
+	}
+
+	private Local local() {
+		Token<LPCType> typeToken = tokens.previous();
+		Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected local variable name.");
+
+		String name = nameToken.lexeme();
+
+		if (locals.hasCollision(name))
+			throw new ParseException("Already a local variable named '" + name + "' in current scope.");
+
+		return new Local(typeToken.literal(), name);
+	}
+
+	public ASTStatement statement() {
+		if (tokens.match(T_RETURN))
+			return returnStatement();
+		else if (tokens.match(T_LEFT_BRACE))
+			return block();
+		else
+			return expressionStatement();
+	}
+
+	private ASTStmtReturn returnStatement() {
+		int line = currLine();
+
+		if (tokens.match(T_SEMICOLON))
+			return new ASTStmtReturn(line, null);
+
+		ASTExpression expr = expression();
+
+		tokens.consume(T_SEMICOLON, "Expected ';' after return statement.");
+
+		return new ASTStmtReturn(line, expr);
+	}
+
+	private ASTStmtExpression expressionStatement() {
+		int line = currLine();
+		ASTExpression expr = expression();
+
+		tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
+
+		return new ASTStmtExpression(line, expr);
+	}
+
+	public ASTExpression expression() {
+		return parsePrecedence(PREC_ASSIGNMENT);
+	}
+
+	public ASTExpression parsePrecedence(int precedence) {
+		tokens.advance();
+
+		PrefixParselet pp = PrattParser.getRule(tokens.previous()).prefix();
+
+		if (pp == null)
+			throw new ParseException("Expect expression.", tokens.current());
+
+		boolean canAssign = (precedence <= PREC_ASSIGNMENT);
+
+		ASTExpression expr = pp.parse(this, canAssign);
+
+		while (precedence <= PrattParser.getRule(tokens.current()).precedence()) {
+			tokens.advance();
+
+			InfixParselet ip = PrattParser.getRule(tokens.previous()).infix();
+
+			if (ip == null)
+				throw new ParseException("Expect expression.", tokens.current());
+
+			expr = ip.parse(this, expr, canAssign);
+		}
+
+		if (canAssign)
+			if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
+				throw new ParseException("Invalid assignment target.", tokens.current());
+
+		return expr;
+	}
+
+	public static void main(String[] args) throws IOException {
+		if (args.length != 1) {
+			System.err.println("Usage: java Parser <source-file>");
+
+			System.exit(1);
+		}
+
+		SourceFile sf = new SourceFile("/Users/jonathan/brainjar", args[0]);
+		Scanner scanner = new Scanner();
+		Tokens tokens = scanner.scan(sf.source());
+		Parser parser = new Parser();
+
+		ASTObject ast = parser.parse(sf.slashName(), tokens);
+
+		System.out.println(ast);
+	}
 }

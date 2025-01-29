@@ -2,39 +2,50 @@ package io.github.protasm.lpc2j.parser.parselet;
 
 import io.github.protasm.lpc2j.parser.Local;
 import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMethodCall;
 
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
 public class PrefixIdentifier implements PrefixParselet {
-    @Override
-    public ASTExpression parse(Parser parser, boolean canAssign) {
-	int line = parser.currLine();
-	String name = parser.tokens().previous().lexeme();
+	@Override
+	public ASTExpression parse(Parser parser, boolean canAssign) {
+		int line = parser.currLine();
+		String name = parser.tokens().previous().lexeme();
 
-	Local local = parser.locals().get(name); // local?
+		Local local = parser.locals().get(name); // local?
 
-	if (local != null)
-	    if (canAssign && parser.tokens().match(T_EQUAL))
-		return new ASTExprLocalStore(line, local, parser.expression());
-	    else
-		return new ASTExprLocalAccess(line, local);
+		if (local != null)
+			if (canAssign && parser.tokens().match(T_EQUAL))
+				return new ASTExprLocalStore(line, local, parser.expression());
+			else
+				return new ASTExprLocalAccess(line, local);
 
-	ASTField field = parser.currObj().fields().get(name); // field?
+		ASTField field = parser.currObj().fields().get(name); // field?
 
-	if (field != null) {
-	    if (canAssign && parser.tokens().match(T_EQUAL))
-		return new ASTExprFieldStore(line, field, parser.expression());
-	    else
-		return new ASTExprFieldAccess(line, field);
-	}
+		if (field != null) {
+			if (canAssign && parser.tokens().match(T_EQUAL))
+				return new ASTExprFieldStore(line, field, parser.expression());
+			else
+				return new ASTExprFieldAccess(line, field);
+		}
 
-	return null;
+		ASTMethod method = parser.currObj().methods().get(name); // method of same object?
+
+		if (method != null) {
+			ASTArguments args = parser.arguments();
+
+			return new ASTExprMethodCall(line, method, args);
+		}
+
+		return null;
 //	if (idx != -1) { // initialized local
 //	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
 //		cb.currMethod().emitInstr(IT_LOAD_THIS);
@@ -83,5 +94,5 @@ public class PrefixIdentifier implements PrefixParselet {
 //	namedSuperMethod(name);
 //	else
 //	    parser.error("Unrecognized identifier '" + identifier + "'.");
-    }
+	}
 }

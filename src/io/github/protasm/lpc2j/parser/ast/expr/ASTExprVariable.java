@@ -8,27 +8,27 @@ import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 public class ASTExprVariable extends ASTExpression {
-    private final ASTNode value;
+	private final ASTNode value;
 
 //
-    public ASTExprVariable(int line, ASTNode value) {
-	super(line);
+	public ASTExprVariable(int line, ASTNode value) {
+		super(line);
 
-	this.value = value;
-    }
+		this.value = value;
+	}
 
 //
 //    public ASTNode value() {
 //	return value;
 //    }
 //
-    @Override
-    public LPCType lpcType() {
-	if (value instanceof ASTField)
-	    return ((ASTField) value).lpcType();
+	@Override
+	public LPCType lpcType() {
+		if (value instanceof ASTField)
+			return ((ASTField) value).lpcType();
 
-	return null;
-    }
+		return null;
+	}
 
 //
 //    @Override
@@ -37,12 +37,12 @@ public class ASTExprVariable extends ASTExpression {
 //	    mv.visitInsn(Opcodes.GETFIELD);
 //    }
 //
-    @Override
-    public String toString() {
-	StringBuilder sb = new StringBuilder();
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("%s(value=%s)", className(), value));
+		sb.append(String.format("%s(value=%s)", className(), value));
 
-	return sb.toString();
-    }
+		return sb.toString();
+	}
 }

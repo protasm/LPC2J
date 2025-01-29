@@ -157,7 +157,7 @@ public class Parser {
 
 		locals.add(local, true); // sets slot # and depth
 
-		if (tokens.match(T_EQUAL)) { //local assignment 
+		if (tokens.match(T_EQUAL)) { // local assignment
 		    ASTExpression initializer = expression();
 
 		    ASTExprLocalStore expr = new ASTExprLocalStore(line, local, initializer);
@@ -188,17 +188,23 @@ public class Parser {
 	    throw new ParseException("Already a local named '" + name + "' in current scope.");
 
 	LPCType lpcType = typeToken.literal();
-	
+
 	return new Local(lpcType, name);
     }
 
     public ASTStatement statement() {
-	if (tokens.match(T_RETURN))
+	if (tokens.match(T_IF))
+	    return ifStatement();
+	else if (tokens.match(T_RETURN))
 	    return returnStatement();
 	else if (tokens.match(T_LEFT_BRACE))
 	    return block();
 	else
 	    return expressionStatement();
+    }
+
+    private ASTStmtIfThenElse ifStatement() {
+
     }
 
     private ASTStmtReturn returnStatement() {

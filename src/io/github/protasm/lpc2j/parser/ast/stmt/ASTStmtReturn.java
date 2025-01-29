@@ -6,50 +6,50 @@ import org.objectweb.asm.Opcodes;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtReturn extends ASTStatement {
-	private final ASTExpression value; // return value, if any
+    private final ASTExpression value; // return value, if any
 
-	public ASTStmtReturn(int line, ASTExpression value) {
-		super(line);
+    public ASTStmtReturn(int line, ASTExpression value) {
+	super(line);
 
-		this.value = value;
+	this.value = value;
+    }
+
+    public ASTExpression value() {
+	return value;
+    }
+
+    @Override
+    public void toBytecode(MethodVisitor mv) {
+	if (value == null) {
+	    mv.visitInsn(Opcodes.RETURN);
+
+	    return;
 	}
 
-	public ASTExpression value() {
-		return value;
+	value.toBytecode(mv);
+
+	switch (value.lpcType()) {
+	case LPCINT:
+	    mv.visitInsn(Opcodes.IRETURN);
+	    break;
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitInsn(Opcodes.ARETURN);
+	    break;
+	default:
+	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
 	}
+    }
 
-	@Override
-	public void toBytecode(MethodVisitor mv) {
-		if (value == null) {
-			mv.visitInsn(Opcodes.RETURN);
+    @Override
+    public String toString() {
+	StringBuilder sb = new StringBuilder();
 
-			return;
-		}
+	if (value != null)
+	    sb.append(String.format("%s(value=%s)\n", className(), value));
+	else
+	    sb.append(String.format("%s()\n", className()));
 
-		value.toBytecode(mv);
-
-		switch (value.lpcType()) {
-			case LPCINT:
-				mv.visitInsn(Opcodes.IRETURN);
-				break;
-			case LPCSTRING:
-			case LPCOBJECT:
-				mv.visitInsn(Opcodes.ARETURN);
-				break;
-			default:
-				throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
-		}
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-
-		if (value != null)
-			sb.append(String.format("%s(value=%s)\n", className(), value));
-		else
-			sb.append(String.format("%s()\n", className()));
-
-		return sb.toString();
-	}
+	return sb.toString();
+    }
 }

@@ -9,52 +9,52 @@ import io.github.protasm.lpc2j.parser.ast.ASTField;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprLocalStore extends ASTExpression {
-	private Local local;
-	private ASTExpression value;
+    private Local local;
+    private ASTExpression value;
 
-	public ASTExprLocalStore(int line, Local local, ASTExpression value) {
-		super(line);
+    public ASTExprLocalStore(int line, Local local, ASTExpression value) {
+	super(line);
 
-		this.local = local;
-		this.value = value;
+	this.local = local;
+	this.value = value;
+    }
+
+    public Local local() {
+	return local;
+    }
+
+    public ASTExpression value() {
+	return value;
+    }
+
+    @Override
+    public LPCType lpcType() {
+	return local.lpcType();
+    }
+
+    @Override
+    public void toBytecode(MethodVisitor mv) {
+	value.toBytecode(mv);
+
+	switch (local.lpcType()) {
+	case LPCINT:
+	    mv.visitVarInsn(ISTORE, local.slot());
+	    break;
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitVarInsn(ASTORE, local.slot());
+	    break;
+	default:
+	    throw new IllegalStateException("Unsupported type: " + local.lpcType());
 	}
+    }
 
-	public Local local() {
-		return local;
-	}
+    @Override
+    public String toString() {
+	StringBuilder sb = new StringBuilder();
 
-	public ASTExpression value() {
-		return value;
-	}
+	sb.append(String.format("%s(local=%s, value=%s)", className(), local.name(), value));
 
-	@Override
-	public LPCType lpcType() {
-		return local.lpcType();
-	}
-
-	@Override
-	public void toBytecode(MethodVisitor mv) {
-		value.toBytecode(mv);
-
-		switch (local.lpcType()) {
-			case LPCINT:
-				mv.visitVarInsn(ISTORE, local.slot());
-				break;
-			case LPCSTRING:
-			case LPCOBJECT:
-				mv.visitVarInsn(ASTORE, local.slot());
-				break;
-			default:
-				throw new IllegalStateException("Unsupported type: " + local.lpcType());
-		}
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(String.format("%s(local=%s, value=%s)", className(), local.name(), value));
-
-		return sb.toString();
-	}
+	return sb.toString();
+    }
 }

@@ -61,6 +61,10 @@ public class ASTStmtIfThenElse extends ASTStatement {
 
     @Override
     public String toString() {
-	return "ASTStmtIf(condition=" + condition + ", then=" + thenBranch + ", else=" + elseBranch + ")";
+	StringBuilder sb = new StringBuilder();
+	
+	sb.append(String.format("%s(condition=%s, then=%s, else=%s), className(), condition, thenBranch, elseBranch"));
+	
+	return sb.toString();
     }
 }

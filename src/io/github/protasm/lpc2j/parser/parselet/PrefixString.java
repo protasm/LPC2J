@@ -6,9 +6,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class PrefixString implements PrefixParselet {
-	@SuppressWarnings("unchecked")
-	@Override
-	public ASTExpression parse(Parser parser, boolean canAssign) {
-		return new ASTExprStringLiteral(parser.currLine(), (Token<String>) parser.tokens().previous());
-	}
+    @Override
+    public ASTExpression parse(Parser parser, boolean canAssign) {
+	Token<String> previous = parser.tokens().previous();
+	
+	return new ASTExprStringLiteral(parser.currLine(), previous);
+    }
 }

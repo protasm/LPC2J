@@ -6,70 +6,70 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.LPCType;
 
 public class ASTMethod extends ASTNode {
-    private final String ownerName;
-    private final LPCType lpcReturnType;
-    private final String name;
-    private ASTParameters parameters;
-    private ASTStmtBlock body;
+	private final String ownerName;
+	private final LPCType lpcReturnType;
+	private final String name;
+	private ASTParameters parameters;
+	private ASTStmtBlock body;
 
-    public ASTMethod(int line, String ownerName, LPCType lpcType, String name) {
-	super(line);
+	public ASTMethod(int line, String ownerName, LPCType lpcType, String name) {
+		super(line);
 
-	this.ownerName = ownerName;
-	this.lpcReturnType = lpcType;
-	this.name = name;
-	
-	parameters = null;
-	body = null;
-    }
+		this.ownerName = ownerName;
+		this.lpcReturnType = lpcType;
+		this.name = name;
 
-    public String ownerName() {
-	return ownerName;
-    }
+		parameters = null;
+		body = null;
+	}
 
-    public LPCType lpcReturnType() {
-	return lpcReturnType;
-    }
+	public String ownerName() {
+		return ownerName;
+	}
 
-    public String name() {
-	return name;
-    }
+	public LPCType lpcReturnType() {
+		return lpcReturnType;
+	}
 
-    public ASTParameters parameters() {
-	return parameters;
-    }
-    
-    public void setParameters(ASTParameters parameters) {
-	this.parameters = parameters;
-    }
+	public String name() {
+		return name;
+	}
 
-    public ASTStmtBlock body() {
-	return body;
-    }
+	public ASTParameters parameters() {
+		return parameters;
+	}
 
-    public void setBody(ASTStmtBlock body) {
-	this.body = body;
-    }
+	public void setParameters(ASTParameters parameters) {
+		this.parameters = parameters;
+	}
 
-    public String descriptor() {
-	return parameters.descriptor() + lpcReturnType.jType().descriptor();
-    }
+	public ASTStmtBlock body() {
+		return body;
+	}
 
-    @Override
-    public void toBytecode(MethodVisitor mv) {
-	body.toBytecode(mv);
-    }
+	public void setBody(ASTStmtBlock body) {
+		this.body = body;
+	}
 
-    @Override
-    public String toString() {
-	StringBuilder sb = new StringBuilder();
+	public String descriptor() {
+		return parameters.descriptor() + lpcReturnType.jType().descriptor();
+	}
 
-	sb.append(String.format("%s(returnType=%s, name=%s)\n", className(), lpcReturnType, name));
+	@Override
+	public void toBytecode(MethodVisitor mv) {
+		body.toBytecode(mv);
+	}
 
-	sb.append(parameters);
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
 
-	sb.append(body);
+		sb.append(String.format("%s(returnType=%s, name=%s)\n", className(), lpcReturnType, name));
 
-	return sb.toString();
-    }
+		sb.append(parameters);
+
+		sb.append(body);
+
+		return sb.toString();
+	}
 }

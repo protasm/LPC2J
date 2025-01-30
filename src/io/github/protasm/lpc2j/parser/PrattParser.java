@@ -20,7 +20,7 @@ public class PrattParser {
 	tokenTypeToRule.put(T_PLUS, new ParseRule(null, new InfixBinaryOp(), PREC_TERM));
 	tokenTypeToRule.put(T_STAR, new ParseRule(null, new InfixBinaryOp(), PREC_FACTOR));
 	tokenTypeToRule.put(T_SLASH, new ParseRule(null, new InfixBinaryOp(), PREC_FACTOR));
-	tokenTypeToRule.put(T_LESS,  new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
+	tokenTypeToRule.put(T_LESS, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
 
 	tokenTypeToRule.put(T_RIGHT_ARROW, new ParseRule(null, new InfixInvoke(), PREC_NONE));
 
@@ -30,7 +30,7 @@ public class PrattParser {
 	tokenTypeToRule.put(T_FLOAT_LITERAL, new ParseRule(new PrefixNumber(), null, PREC_NONE));
 	tokenTypeToRule.put(T_STRING_LITERAL, new ParseRule(new PrefixString(), null, PREC_NONE));
 	tokenTypeToRule.put(T_TRUE, new ParseRule(new PrefixLiteral(), null, PREC_NONE));
-	
+
     }
 
     private PrattParser() {

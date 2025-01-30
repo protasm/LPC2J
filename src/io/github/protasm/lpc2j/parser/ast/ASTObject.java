@@ -4,23 +4,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ASTObject extends ASTNode {
-    private final String parentName;
+    private String parentName;
     private final String name;
     private final Map<String, ASTField> fields;
     private final Map<String, ASTMethod> methods;
 
-    public ASTObject(int line, String parentName, String name) {
+    public ASTObject(int line, String name) {
 	super(line);
 
-	this.parentName = parentName;
 	this.name = name;
 
-	this.fields = new HashMap<>();
-	this.methods = new HashMap<>();
+	parentName = null;
+	fields = new HashMap<>();
+	methods = new HashMap<>();
     }
 
     public String parentName() {
 	return parentName;
+    }
+
+    public void setParentName(String parentName) {
+	this.parentName = parentName;
     }
 
     public String name() {
@@ -31,8 +35,16 @@ public class ASTObject extends ASTNode {
 	return fields;
     }
 
+    public void addField(ASTField field) {
+	fields.put(field.name(), field);
+    }
+
     public Map<String, ASTMethod> methods() {
 	return methods;
+    }
+
+    public void addMethod(ASTMethod method) {
+	methods.put(method.name(), method);
     }
 
     @Override

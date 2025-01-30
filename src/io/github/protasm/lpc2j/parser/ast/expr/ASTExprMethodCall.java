@@ -48,7 +48,7 @@ public class ASTExprMethodCall extends ASTExpression {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("%s(method=%s, args=%s", className(), method, arguments));
+	sb.append(String.format("%s(method=%s, args=%s)", className(), method, arguments));
 
 	return sb.toString();
     }

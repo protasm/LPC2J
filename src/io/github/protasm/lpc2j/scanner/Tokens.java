@@ -15,6 +15,10 @@ public class Tokens {
 	this.tokens = new ArrayList<>();
     }
 
+    public void reset() {
+	currIdx = 0;
+    }
+
     public int size() {
 	return tokens.size();
     }
@@ -49,6 +53,15 @@ public class Tokens {
 
     public void advance() {
 	currIdx++;
+    }
+
+    public void advanceTo(TokenType tType) {
+	while (!match(tType)) {
+	    advance();
+
+	    if (current().tType() == T_EOF)
+		throw new ParseException("Expected " + tType + ".");
+	}
     }
 
     @SuppressWarnings("unchecked")

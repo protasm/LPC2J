@@ -48,9 +48,9 @@ public class ASTExprOpBinary extends ASTExpression {
 	case BOP_MULT:
 	case BOP_DIV:
 	    return LPCINT;
-        case BOP_LT:
-        case BOP_GT:
-            return LPCSTATUS; // Comparison expressions always evaluate to a boolean
+	case BOP_LT:
+	case BOP_GT:
+	    return LPCSTATUS; // Comparison expressions always evaluate to a boolean
 	default:
 	    throw new UnsupportedOperationException("Invalid operand types for operator " + operator);
 	}

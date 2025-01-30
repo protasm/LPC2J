@@ -63,12 +63,29 @@ public class Parser {
     public ASTObject parse(String objName, Tokens tokens) {
 	this.tokens = tokens;
 
-	currObj = new ASTObject(0, inherit(), objName);
+	currObj = new ASTObject(0, objName);
 
-	while (!tokens.isAtEnd())
-	    property();
+	declarations();
+
+	tokens.reset();
+
+	definitions();
 
 	return currObj;
+    }
+
+    private void declarations() {
+	inherit(); // ignored for now
+
+	while (!tokens.isAtEnd())
+	    property(false);
+    }
+
+    private void definitions() {
+	currObj.setParentName(inherit());
+
+	while (!tokens.isAtEnd())
+	    property(true);
     }
 
     private String inherit() {
@@ -82,43 +99,61 @@ public class Parser {
 	return parentToken.lexeme();
     }
 
-    private void property() {
+    private void property(boolean define) {
 	Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected property type.");
 	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected property name.");
+	LPCType lpcType = typeToken.literal();
+	String name = nameToken.lexeme();
 
 	if (tokens.match(T_LEFT_PAREN))
-	    method(typeToken, nameToken);
+	    method(lpcType, name, define);
 	else
-	    field(typeToken, nameToken);
+	    field(lpcType, name, define);
     }
 
-    private void field(Token<LPCType> typeToken, Token<String> nameToken) {
-	int line = currLine();
-	ASTExpression initializer = null;
+    private void field(LPCType lpcType, String name, boolean define) {
+	if (!define) {
+	    tokens.advanceTo(T_SEMICOLON);
 
-	if (tokens.match(T_EQUAL))
-	    initializer = expression();
+	    ASTField field = new ASTField(currLine(), currObj.name(), lpcType, name);
+
+	    currObj.addField(field);
+
+	    return;
+	}
+
+	if (tokens.match(T_EQUAL)) {
+	    ASTField field = currObj.fields().get(name);
+	    ASTExpression initializer = expression();
+
+	    field.setInitializer(initializer);
+	}
 
 	tokens.consume(T_SEMICOLON, "Expected ';' after field declaration.");
-
-	ASTField field = new ASTField(line, currObj.name(), typeToken, nameToken, initializer);
-
-	currObj.fields().put(field.name(), field);
     }
 
-    private void method(Token<LPCType> typeToken, Token<String> nameToken) {
-	int line = currLine();
+    private void method(LPCType lpcType, String name, boolean define) {
+	if (!define) {
+	    tokens.advanceTo(T_RIGHT_BRACE);
+
+	    ASTMethod method = new ASTMethod(currLine(), currObj.name(), lpcType, name);
+
+	    currObj.addMethod(method);
+
+	    return;
+	}
+
+	ASTMethod method = currObj.methods().get(name);
 
 	locals = new Locals();
 
 	ASTParameters parameters = parameters();
 
+	method.setParameters(parameters);
+
 	tokens.consume(T_LEFT_BRACE, "Expected '{' after method declaration.");
 
-	ASTStmtBlock body = block();
-	ASTMethod method = new ASTMethod(line, currObj.name(), typeToken, nameToken, parameters, body);
-
-	currObj.methods().put(method.name(), method);
+	method.setBody(block());
     }
 
     private ASTParameters parameters() {
@@ -132,12 +167,12 @@ public class Parser {
 	    Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expected parameter type.");
 	    Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expected parameter name.");
 
-	    ASTParameter param = new ASTParameter(line, typeToken, nameToken);
-	    Local local = new Local(typeToken.literal(), nameToken.lexeme());
+		ASTParameter param = new ASTParameter(line, typeToken, nameToken);
+		Local local = new Local(typeToken.literal(), nameToken.lexeme());
 
-	    params.add(param);
+		params.add(param);
 
-	    locals.add(local, true);
+		locals.add(local, true);
 	} while (tokens.match(T_COMMA));
 
 	tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
@@ -218,24 +253,24 @@ public class Parser {
 	else
 	    return expressionStatement();
     }
-    
+
     private ASTStatement ifStatement() {
 	ASTExpression expr = ifCondition();
 	ASTStatement stmtThen = statement();
-	
+
 	if (tokens.match(T_ELSE))
 	    return new ASTStmtIfThenElse(currLine(), expr, stmtThen, statement());
 	else
 	    return new ASTStmtIfThenElse(currLine(), expr, stmtThen, null);
     }
-    
+
     private ASTExpression ifCondition() {
 	tokens.consume(T_LEFT_PAREN, "Expect '(' after if.");
 
 	ASTExpression expr = expression();
-	
+
 	tokens.consume(T_RIGHT_PAREN, "Expect ')' after if condition.");
-	
+
 	return expr;
     }
 

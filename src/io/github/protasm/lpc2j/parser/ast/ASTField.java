@@ -2,22 +2,21 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTField extends ASTNode {
     private final String ownerName;
     private final LPCType lpcType;
     private final String name;
-    private final ASTExpression initializer;
+    private ASTExpression initializer;
 
-    public ASTField(int line, String ownerName, Token<LPCType> typeToken, Token<String> nameToken,
-	    ASTExpression initializer) {
+    public ASTField(int line, String ownerName, LPCType lpcType, String name) {
 	super(line);
 
 	this.ownerName = ownerName;
-	this.lpcType = typeToken.literal();
-	this.name = nameToken.lexeme();
-	this.initializer = initializer;
+	this.lpcType = lpcType;
+	this.name = name;
+
+	initializer = null;
     }
 
     public String ownerName() {
@@ -34,6 +33,10 @@ public class ASTField extends ASTNode {
 
     public ASTExpression initializer() {
 	return initializer;
+    }
+
+    public void setInitializer(ASTExpression expr) {
+	this.initializer = expr;
     }
 
     public String descriptor() {

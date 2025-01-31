@@ -3,24 +3,24 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
 
 public class ASTStmtCall extends ASTStatement {
-	private final ASTExprCall call;
+    private final ASTExprCall call;
 
-	public ASTStmtCall(int line, ASTExprCall call) {
-		super(line);
+    public ASTStmtCall(int line, ASTExprCall call) {
+	super(line);
 
-		this.call = call;
-	}
+	this.call = call;
+    }
 
-	public ASTExprCall call() {
-		return call;
-	}
+    public ASTExprCall call() {
+	return call;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
+    @Override
+    public String toString() {
+	StringBuilder sb = new StringBuilder();
 
-		sb.append(String.format("%s(call=%s)", className(), call));
+	sb.append(String.format("%s", className()));
 
-		return sb.toString();
-	}
+	return sb.toString();
+    }
 }

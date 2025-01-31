@@ -12,3 +12,7 @@
 /ASTExprStringLiteral.class
 /ASTExprVariable.class
 /ASTExpression.class
+/ASTExprLiteralInteger.class
+/ASTExprLiteralString.class
+/ASTExprLiteralTrue.class
+/ASTExprLiteralFalse.class

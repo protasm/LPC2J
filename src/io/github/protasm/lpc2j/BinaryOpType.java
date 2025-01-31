@@ -1,5 +1,19 @@
 package io.github.protasm.lpc2j;
 
+import static org.objectweb.asm.Opcodes.*;
+
 public enum BinaryOpType {
-	BOP_ADD, BOP_SUB, BOP_MULT, BOP_DIV, BOP_GT, BOP_LT,
+    BOP_ADD(IADD), BOP_SUB(ISUB), BOP_MULT(IMUL), BOP_DIV(IDIV), BOP_GT(IF_ICMPGT), BOP_LT(IF_ICMPLT),
+    BOP_EQ(IF_ICMPEQ), BOP_GE(IF_ICMPGE), BOP_LE(IF_ICMPLE);
+
+    private final int opcode;
+
+    BinaryOpType(int opcode) {
+	this.opcode = opcode;
+    }
+
+    public int opcode() {
+	return opcode;
+    }
+
 }

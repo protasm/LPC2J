@@ -7,3 +7,5 @@
 /PrefixParselet.class
 /PrefixString.class
 /PrefixUnaryOp.class
+/LParenParselet.class
+/PrefixLParen.class

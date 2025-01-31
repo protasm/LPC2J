@@ -7,51 +7,51 @@ import org.objectweb.asm.MethodVisitor;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprLocalAccess extends ASTExpression {
-    private final int line;
-    private final Local local;
+	private final int line;
+	private final Local local;
 
-    public ASTExprLocalAccess(int line, Local local) {
-	super(line);
+	public ASTExprLocalAccess(int line, Local local) {
+		super(line);
 
-	this.line = line;
-	this.local = local;
-    }
-
-    public int line() {
-	return line;
-    }
-
-    public Local local() {
-	return local;
-    }
-
-    @Override
-    public LPCType lpcType() {
-	return local.lpcType();
-    }
-
-    @Override
-    public void toBytecode(MethodVisitor mv) {
-	switch (local.lpcType()) {
-	case LPCINT:
-	case LPCSTATUS:
-	    mv.visitVarInsn(ILOAD, local.slot());
-	    break;
-	case LPCSTRING:
-	case LPCOBJECT:
-	    mv.visitVarInsn(ALOAD, local.slot());
-	    break;
-	default:
-	    throw new IllegalStateException("Unsupported type: " + local.lpcType());
+		this.line = line;
+		this.local = local;
 	}
-    }
 
-    @Override
-    public String toString() {
-	StringBuilder sb = new StringBuilder();
+	public int line() {
+		return line;
+	}
 
-	sb.append(String.format("%s\n", className()));
+	public Local local() {
+		return local;
+	}
 
-	return sb.toString();
-    }
+	@Override
+	public LPCType lpcType() {
+		return local.lpcType();
+	}
+
+	@Override
+	public void toBytecode(MethodVisitor mv) {
+		switch (local.lpcType()) {
+			case LPCINT:
+			case LPCSTATUS:
+				mv.visitVarInsn(ILOAD, local.slot());
+				break;
+			case LPCSTRING:
+			case LPCOBJECT:
+				mv.visitVarInsn(ALOAD, local.slot());
+				break;
+			default:
+				throw new IllegalStateException("Unsupported type: " + local.lpcType());
+		}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(String.format("%s\n", className()));
+
+		return sb.toString();
+	}
 }

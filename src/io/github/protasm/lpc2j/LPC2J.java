@@ -27,298 +27,236 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class LPC2J {
-	private String sysIncludePath;
-	private String quoteIncludePath;
+    private String sysIncludePath;
+    private String quoteIncludePath;
 
-	private ClassBuilder cb;
+    private ClassBuilder cb;
 
-	private Parser parser;
-	private List<FieldInitializer> fieldInitializers;
+    private Parser parser;
+    private List<FieldInitializer> fieldInitializers;
 
-	public LPC2J(String sysIncludePath, String quoteIncludePath) {
-		this.sysIncludePath = sysIncludePath;
-		this.quoteIncludePath = quoteIncludePath;
+    public LPC2J(String sysIncludePath, String quoteIncludePath) {
+	this.sysIncludePath = sysIncludePath;
+	this.quoteIncludePath = quoteIncludePath;
+    }
+
+    public LPC2J() {
+	this(".", ".");
+    }
+
+    public ClassBuilder cb() {
+	return cb;
+    }
+
+    public Parser parser() {
+	return parser;
+    }
+
+    public byte[] compile(SourceFile sourceFile) throws IOException {
+	String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.dotName();
+
+	cb = new ClassBuilder(fullClassName);
+
+	Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
+	parser = new Parser(this, scanner.scan());
+	fieldInitializers = new ArrayList<>();
+
+	parser.advance(); // to first token
+
+	while (!parser.match(TOKEN_EOF))
+	    memberDeclaration();
+
+	constructor();
+
+	cb.finish();
+
+	return cb.bytes();
+    }
+
+    private void memberDeclaration() {
+	Token typeToken = parser.parseType("Expect member type.");
+	Token nameToken = parser.parseVariable("Expect member name.");
+
+	if (parser.check(TOKEN_LEFT_PAREN))
+	    methodDeclaration(typeToken, nameToken);
+	else
+	    fieldDeclaration(typeToken, nameToken);
+
+	if (parser.panicMode()) {
+	    parser.synchronize();
+	}
+    }
+
+    private void fieldDeclaration(Token typeToken, Token nameToken) {
+	String lpcType = typeToken.lexeme();
+	JType jType = JType.jTypeForLPCType(lpcType);
+	String name = nameToken.lexeme();
+
+	cb.newField(jType, name);
+
+	if (parser.match(TOKEN_EQUAL)) {
+	    List<Token> initTokens = new ArrayList<>();
+
+	    initTokens.add(new Token(TOKEN_EQUAL));
+	    initTokens.addAll(parser.collectUntil(Arrays.asList(TOKEN_SEMICOLON, TOKEN_COMMA)));
+	    initTokens.add(new Token(TOKEN_EOF));
+
+	    FieldInitializer fi = new FieldInitializer(typeToken, nameToken, initTokens);
+
+	    fieldInitializers.add(fi);
 	}
 
-	public LPC2J() {
-		this(".", ".");
+	if (parser.match(TOKEN_COMMA)) {
+	    nameToken = parser.parseVariable("Expect field name.");
+
+	    fieldDeclaration(typeToken, nameToken);
+
+	    return;
 	}
 
-	public ClassBuilder cb() {
-		return cb;
+	parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
+    }
+
+    private void methodDeclaration(Token typeToken, Token nameToken) {
+	List<Local> params = new ArrayList<>();
+
+	cb.newMethod(typeToken, nameToken, parameters(params));
+
+	for (Local param : params)
+	    cb.currMethod().addLocal(param, true);
+
+	parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
+
+	block(); // Consumes the right brace
+
+	cb.currMethod().finish();
+    }
+
+    private void constructor() {
+	cb.constructor();
+
+	for (FieldInitializer fi : fieldInitializers) {
+	    String name = fi.nameToken().lexeme();
+	    Field field = cb.getField(name);
+
+	    parser = new Parser(this, fi.initTokens());
+
+	    parser.advance(); // to first token
+	    parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
+
+	    cb.currMethod().emitInstr(IT_LOAD_THIS);
+
+	    expression();
+
+	    cb.currMethod().emitInstr(IT_FIELD_STORE, field);
 	}
 
-	public Parser parser() {
-		return parser;
-	}
+	cb.currMethod().emitInstr(IT_RETURN);
 
-	public byte[] compile(SourceFile sourceFile) throws IOException {
-		String fullClassName = "io/github/protasm/brainjar/lpc/" + sourceFile.dotName();
+	cb.currMethod().finish();
+    }
 
-		cb = new ClassBuilder(fullClassName);
-
-		Scanner scanner = new Scanner(sourceFile.source(), sysIncludePath, quoteIncludePath);
-		parser = new Parser(this, scanner.scan());
-		fieldInitializers = new ArrayList<>();
-
-		parser.advance(); // to first token
-
-		while (!parser.match(TOKEN_EOF))
-			memberDeclaration();
-
-		constructor();
-
-		cb.finish();
-
-		return cb.bytes();
-	}
-
-	private void memberDeclaration() {
-		Token typeToken = parser.parseType("Expect member type.");
-		Token nameToken = parser.parseVariable("Expect member name.");
-
-		if (parser.check(TOKEN_LEFT_PAREN))
-			methodDeclaration(typeToken, nameToken);
-		else
-			fieldDeclaration(typeToken, nameToken);
-
-		if (parser.panicMode()) {
-			parser.synchronize();
-		}
-	}
-
-	private void fieldDeclaration(Token typeToken, Token nameToken) {
-		String lpcType = typeToken.lexeme();
-		JType jType = JType.jTypeForLPCType(lpcType);
-		String name = nameToken.lexeme();
-
-		cb.newField(jType, name);
-
-		if (parser.match(TOKEN_EQUAL)) {
-			List<Token> initTokens = new ArrayList<>();
-
-			initTokens.add(new Token(TOKEN_EQUAL));
-			initTokens.addAll(parser.collectUntil(Arrays.asList(TOKEN_SEMICOLON, TOKEN_COMMA)));
-			initTokens.add(new Token(TOKEN_EOF));
-
-			FieldInitializer fi = new FieldInitializer(typeToken, nameToken, initTokens);
-
-			fieldInitializers.add(fi);
-		}
-
-		if (parser.match(TOKEN_COMMA)) {
-			nameToken = parser.parseVariable("Expect field name.");
-
-			fieldDeclaration(typeToken, nameToken);
-
-			return;
-		}
-
-		parser.consume(TOKEN_SEMICOLON, "Expect ';' after field declaration(s).");
-	}
-
-	private void methodDeclaration(Token typeToken, Token nameToken) {
-		List<Local> params = new ArrayList<>();
-
-		cb.newMethod(typeToken, nameToken, parameters(params));
-
-		for (Local param : params)
-			cb.currMethod().addLocal(param, true);
-
-		parser.consume(TOKEN_LEFT_BRACE, "Expect '{' before method body.");
-
-		block(); // Consumes the right brace
-
-		cb.currMethod().finish();
-	}
-
-	private void constructor() {
-		cb.constructor();
-
-		for (FieldInitializer fi : fieldInitializers) {
-			String name = fi.nameToken().lexeme();
-			Field field = cb.getField(name);
-
-			parser = new Parser(this, fi.initTokens());
-
-			parser.advance(); // to first token
-			parser.consume(TOKEN_EQUAL, "Expect '=' to begin field initialization.");
-
-			cb.currMethod().emitInstr(IT_LOAD_THIS);
-
-			expression();
-
-			cb.currMethod().emitInstr(IT_FIELD_STORE, field);
-		}
-
+    // TODO: Handle implicit returns correctly.
+    private void explicitReturnStatement() {
+	if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
+	    if (cb.currMethod().jType() != JType.JVOID)
+		parser.error("Missing return value.");
+	    else
 		cb.currMethod().emitInstr(IT_RETURN);
-
-		cb.currMethod().finish();
-	}
-
-	private String parameters(List<Local> params) {
-		parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
-
-		StringBuilder desc = new StringBuilder("(");
-
-		if (!parser.check(TOKEN_RIGHT_PAREN)) {
-			// First pass: Parse parameters and build the method descriptor
-			do {
-				Token typeToken = parser.parseType("Expect parameter type.");
-				Token nameToken = parser.parseVariable("Expect parameter name.");
-
-				String name = nameToken.lexeme();
-
-				if (params.stream().anyMatch(local -> name.equals(local.identifier())))
-					parser.error("Already a parameter with this name for this method.");
-
-				JType jType = JType.jTypeForLPCType(typeToken.lexeme());
-				Symbol symbol = new Symbol(cb, SYM_LOCAL, jType, name, jType.descriptor());
-				Local local = new Local(symbol);
-
-				params.add(local);
-
-				desc.append(jType.descriptor());
-			} while (parser.match(TOKEN_COMMA));
-		}
-
-		parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method parameters.");
-
-		return desc.append(")").toString();
-	}
-
-	private void statement() {
-//	    if (parser.match(TOKEN_FOR))
-//	      forStatement();
-//	    else if (parser.match(TOKEN_IF))
-//	      ifStatement();
-//	    else if (parser.match(TOKEN_WHILE))
-//	      whileStatement();
-		if (parser.match(TOKEN_RETURN))
-			explicitReturnStatement();
-		else if (parser.match(TOKEN_LEFT_BRACE)) {
-			beginScope();
-
-			block();
-
-			endScope();
-		} else
-			expressionStatement();
-	}
-
-	// TODO: Handle implicit returns correctly.
-	private void explicitReturnStatement() {
-		if (parser.match(TOKEN_SEMICOLON)) { // no return value provided
-			if (cb.currMethod().jType() != JType.JVOID)
-				parser.error("Missing return value.");
-			else
-				cb.currMethod().emitInstr(IT_RETURN);
-		} else { // handle return value
-			if (cb.currMethod().jType() == JType.JVOID)
-				parser.error("Return value encountered in void method.");
-			else {
-				expression();
-
-				cb.currMethod().emitInstr(IT_RETURNVAL);
-
-				parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
-			}
-		} // if-else
-	}
-
-	private void expressionStatement() {
-		// An expression statement is an expression in a context where a
-		// statement is expected. Usually used to call a function or evaluate
-		// an assignment for its side effect. The expression is evaluated
-		// and the result is discarded.
+	} else { // handle return value
+	    if (cb.currMethod().jType() == JType.JVOID)
+		parser.error("Return value encountered in void method.");
+	    else {
 		expression();
 
-		parser.consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+		cb.currMethod().emitInstr(IT_RETURNVAL);
 
-		// Any necessary result-popping is handled by the instruction emitters.
+		parser.consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+	    }
+	} // if-else
+    }
+
+    //
+    // Parser Callbacks
+    //
+
+    public void literal(LiteralType lType) {
+	cb.currMethod().emitInstr(IT_LITERAL, lType);
+    }
+
+    public void identifier(String identifier, boolean canAssign) {
+	int idx = get(identifier);
+
+	if (idx != -1) { // initialized local
+	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
+		expression();
+		cb.currMethod().emitInstr(IT_LOC_STORE, idx);
+	    } else if (parser.match(TOKEN_INVOKE)) { // method of another object
+		Token nameToken = parser.parseVariable("Expect method name.");
+		String methodName = nameToken.lexeme();
+
+		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
+
+		cb.currMethod().emitInstr(IT_CONST_STR, methodName);
+
+		arguments(true);
+
+		cb.currMethod().emitInstr(IT_INVOKE_OTHER);
+	    } else // retrieval
+		cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
+	} else if (cb.hasField(identifier)) { // field
+	    Field field = cb.getField(identifier);
+
+	    if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
+
+		expression();
+
+		cb.currMethod().emitInstr(IT_FIELD_STORE, field);
+	    } else { // retrieval
+		cb.currMethod().emitInstr(IT_LOAD_THIS);
+		cb.currMethod().emitInstr(IT_FIELD_LOAD, field);
+	    }
+	} else if (cb.hasMethod(identifier)) { // method of same object
+	    Method method = cb.getMethod(identifier);
+
+	    cb.currMethod().emitInstr(IT_LOAD_THIS);
+
+	    arguments(false);
+
+	    cb.currMethod().emitInstr(IT_INVOKE, method.identifier(), method.descriptor());
 	}
+	// else if (resolveSuperMethod(name)) //superClass method
+	// namedSuperMethod(name);
+	else // method
+	    parser.error("Unrecognized identifier '" + identifier + "'.");
+    }
 
-	//
-	// Parser Callbacks
-	//
+    private void arguments(boolean asArray) {
+	parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
 
-	public void literal(LiteralType lType) {
-		cb.currMethod().emitInstr(IT_LITERAL, lType);
-	}
+	if (asArray)
+	    cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
 
-	public void identifier(String identifier, boolean canAssign) {
-		int idx = get(identifier);
+	int currIdx = 0; // Track the argument index
 
-		if (idx != -1) { // initialized local
-			if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-				cb.currMethod().emitInstr(IT_LOAD_THIS);
-				expression();
-				cb.currMethod().emitInstr(IT_LOC_STORE, idx);
-			} else if (parser.match(TOKEN_INVOKE)) { // method of another object
-				Token nameToken = parser.parseVariable("Expect method name.");
-				String methodName = nameToken.lexeme();
+	if (!parser.check(TOKEN_RIGHT_PAREN)) {
+	    do {
+		// Emit bytecode for the current argument expression
+		expression();
 
-				cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
-
-				cb.currMethod().emitInstr(IT_CONST_STR, methodName);
-
-				arguments(true);
-
-				cb.currMethod().emitInstr(IT_INVOKE_OTHER);
-			} else // retrieval
-				cb.currMethod().emitInstr(IT_LOC_LOAD, idx);
-		} else if (cb.hasField(identifier)) { // field
-			Field field = cb.getField(identifier);
-
-			if (canAssign && parser.match(TOKEN_EQUAL)) { // assignment
-				cb.currMethod().emitInstr(IT_LOAD_THIS);
-
-				expression();
-
-				cb.currMethod().emitInstr(IT_FIELD_STORE, field);
-			} else { // retrieval
-				cb.currMethod().emitInstr(IT_LOAD_THIS);
-				cb.currMethod().emitInstr(IT_FIELD_LOAD, field);
-			}
-		} else if (cb.hasMethod(identifier)) { // method of same object
-			Method method = cb.getMethod(identifier);
-
-			cb.currMethod().emitInstr(IT_LOAD_THIS);
-
-			arguments(false);
-
-			cb.currMethod().emitInstr(IT_INVOKE, method.identifier(), method.descriptor());
-		}
-		// else if (resolveSuperMethod(name)) //superClass method
-		// namedSuperMethod(name);
-		else // method
-			parser.error("Unrecognized identifier '" + identifier + "'.");
-	}
-
-	private void arguments(boolean asArray) {
-		parser.consume(TOKEN_LEFT_PAREN, "Expect '(' after method name.");
-
-		if (asArray)
-			cb.currMethod().emitInstr(IT_NEW_ARRAY, "java/lang/Object");
-
-		int currIdx = 0; // Track the argument index
-
-		if (!parser.check(TOKEN_RIGHT_PAREN)) {
-			do {
-				// Emit bytecode for the current argument expression
-				expression();
-
-				if (asArray) {
-					// Store the current argument in the array
-					methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
-					methodVisitor.visitLdcInsn(currIdx); // Push the current index
-					methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
-				}
-
-				currIdx++;
-			} while (parser.match(TOKEN_COMMA));
+		if (asArray) {
+		    // Store the current argument in the array
+		    methodVisitor.visitInsn(Opcodes.DUP); // Duplicate the array reference
+		    methodVisitor.visitLdcInsn(currIdx); // Push the current index
+		    methodVisitor.visitInsn(Opcodes.AASTORE); // Store the argument in the array
 		}
 
-		parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+		currIdx++;
+	    } while (parser.match(TOKEN_COMMA));
 	}
+
+	parser.consume(TOKEN_RIGHT_PAREN, "Expect ')' after method arguments.");
+    }
 }

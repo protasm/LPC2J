@@ -16,3 +16,5 @@
 /ASTExprLiteralString.class
 /ASTExprLiteralTrue.class
 /ASTExprLiteralFalse.class
+/ASTExprMethodInvoke.class
+/ASTExprLocalMethodInvoke.class

@@ -31,37 +31,33 @@ public class LPC2J {
             if ("x".equals(command))
               break;
 
-            if (!command.matches("[spcl]")) {
+            if (!command.matches("[clops]")) {
                 System.out.println("Unknown command: " + command);
               
                 continue;
             }
 
-            if (filePath == null) {
-                System.out.println("Error: No file specified.");
-              
-                continue;
-            }
-
-            SourceFile sf = new SourceFile("/Users/jonathan/brainjar", filePath);
-
             switch (command) {
+            	case "o": // List Loaded Objects
+            		System.out.println(loadedClasses.keySet());
+            		
+            		break;
                 case "s": // Scan
-                    Tokens tokens = scan(sf);
+                    Tokens tokens = scan(filePath);
                     
                     if (tokens != null)
                     	System.out.println(tokens);
                 
                     break;
                 case "p": // Parse
-                    ASTObject ast = parse(sf);
+                    ASTObject ast = parse(filePath);
 
                     if (ast != null)
                     	System.out.println(ast);
                 
                     break;
                 case "c": // Compile
-                    compile(sf);
+                    compile(filePath);
                 
                     break;
                 case "l": // Load
@@ -71,7 +67,7 @@ public class LPC2J {
                     if (!Files.exists(classPath)) {
                         System.out.println("Compiled class file not found, compiling...");
                         
-                        compile(sf);
+                        compile(filePath);
                     }
                     
                     try {
@@ -92,9 +88,21 @@ public class LPC2J {
             } // switch (command)
         } // while (true)
     }
+    
+    private static SourceFile sf(String filePath) {
+        if (filePath == null) {
+            System.out.println("Error: No file specified.");
+          
+            return null;
+        }
 
-    private static void compile(SourceFile sf) throws IOException {
-        ASTObject ast = parse(sf);
+        return new SourceFile("/Users/jonathan/brainjar", filePath);
+
+    }
+
+    private static void compile(String filePath) {
+    	SourceFile sf = sf(filePath);
+        ASTObject ast = parse(filePath);
         Compiler compiler = new Compiler("io/github/protasm.lpc2j/runtime/LPCObject");
         
         byte[] bytes = compiler.compile(ast);
@@ -107,14 +115,17 @@ public class LPC2J {
         	System.out.println("Compilation failed.");
     }
 
-    private static ASTObject parse(SourceFile sf) {
-        Tokens tokens = scan(sf);
+    private static ASTObject parse(String filePath) {
+    	SourceFile sf = sf(filePath);
+        Tokens tokens = scan(filePath);
         Parser parser = new Parser();
-      
+
         return parser.parse(sf.slashName(), tokens);
     }
 
-    private static Tokens scan(SourceFile sf) {
-        return new Scanner().scan(sf.source());
+    private static Tokens scan(String filePath) {
+    	SourceFile sf = sf(filePath);
+
+    	return new Scanner().scan(sf.source());
     }
 }

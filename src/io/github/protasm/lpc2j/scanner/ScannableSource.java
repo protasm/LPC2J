@@ -1,134 +1,134 @@
 package io.github.protasm.lpc2j.scanner;
 
 public class ScannableSource {
-	private static final char EOL = '\n';
-	private static final char NULL_CHAR = '\0';
-	private String source;
-	private int head, tail;
-	private int line;
+    private static final char EOL = '\n';
+    private static final char NULL_CHAR = '\0';
 
-	public ScannableSource(String source) {
-		this.source = source;
+    private String source;
 
-		reset();
-	}
+    private int head, tail, line;
 
-	public void advance() {
+    public ScannableSource(String source) {
+	this.source = source;
 
-		if (peek() == EOL)
-			line++;
+	reset();
+    }
 
-		head++;
-	}
+    public void advance() {
+	if (peek() == EOL)
+	    line++;
 
-	public boolean advancePast(char c) {
-		advanceTo(c);
+	head++;
+    }
 
-		advance();
+    public boolean advancePast(char c) {
+	advanceTo(c);
 
-		return atEnd();
-	}
+	advance();
 
-	public boolean advanceTo(char c) {
-		while (peek() != c && !atEnd())
-			advance();
+	return atEnd();
+    }
 
-		return !atEnd();
-	}
+    public boolean advanceTo(char c) {
+	while (peek() != c && !atEnd())
+	    advance();
 
-	public boolean atEnd() {
-		return head >= source.length();
-	}
+	return !atEnd();
+    }
 
-	public boolean atStart() {
-		return head == 0;
-	}
+    public boolean atEnd() {
+	return head >= source.length();
+    }
 
-	public char consumeOneChar() {
-		char c = peek();
+    public boolean atStart() {
+	return head == 0;
+    }
 
-		advance();
+    public char consumeOneChar() {
+	char c = peek();
 
-		return c;
-	}
+	advance();
 
-	public int head() {
-		return head;
-	}
+	return c;
+    }
 
-	public int line() {
-		return line;
-	}
+    public int head() {
+	return head;
+    }
 
-	public boolean match(char expected) {
-		if (peek() != expected)
-			return false;
+    public int line() {
+	return line;
+    }
 
-		advance();
+    public boolean match(char expected) {
+	if (peek() != expected)
+	    return false;
 
-		return true;
-	}
+	advance();
 
-	public char nextCharOnLine() {
-		int scout = head;
-		char c;
+	return true;
+    }
 
-		do
-			c = source.charAt(scout++);
-		while (Character.isWhitespace(c));
+    public char nextCharOnLine() {
+	int scout = head;
+	char c;
 
-		return c;
-	}
+	do
+	    c = source.charAt(scout++);
+	while (Character.isWhitespace(c));
 
-	public char peek() {
-		if (atEnd())
-			return NULL_CHAR;
+	return c;
+    }
 
-		return source.charAt(head);
-	}
+    public char peek() {
+	if (atEnd())
+	    return NULL_CHAR;
 
-	public char peekNext() {
-		if (head + 1 >= source.length())
-			return NULL_CHAR;
+	return source.charAt(head);
+    }
 
-		return source.charAt(head + 1);
-	}
+    public char peekNext() {
+	if (head + 1 >= source.length())
+	    return NULL_CHAR;
 
-	public char peekPrev() {
-		if (atStart() || atEnd())
-			return NULL_CHAR;
+	return source.charAt(head + 1);
+    }
 
-		return source.charAt(head - 1);
-	}
+    public char peekPrev() {
+	if (atStart() || atEnd())
+	    return NULL_CHAR;
 
-	public String read() {
-		return source.substring(tail, head);
-	}
+	return source.charAt(head - 1);
+    }
 
-	public String readTrimmed() {
-		return source.substring(tail + 1, head - 1);
-	}
+    public String read() {
+	return source.substring(tail, head);
+    }
 
-	public void reset() {
-		head = 0;
-		tail = 0;
-		line = 1;
-	}
+    public String readTrimmed() {
+	return source.substring(tail + 1, head - 1);
+    }
 
-	public String source() {
-		return source;
-	}
+    public void reset() {
+	head = 0;
+	tail = 0;
+	line = 1;
+    }
 
-	public void syncTailHead() {
-		tail = head;
-	}
+    public String source() {
+	return source;
+    }
 
-	public int tail() {
-		return tail;
-	}
+    public void syncTailHead() {
+	tail = head;
+    }
 
-	@Override
-	public String toString() {
-		return source;
-	}
+    public int tail() {
+	return tail;
+    }
+
+    @Override
+    public String toString() {
+	return source;
+    }
 }

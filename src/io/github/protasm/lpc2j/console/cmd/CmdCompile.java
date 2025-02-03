@@ -3,8 +3,18 @@ package io.github.protasm.lpc2j.console.cmd;
 import io.github.protasm.lpc2j.console.Console;
 
 public class CmdCompile extends Command {
-    @Override
-    public void execute(Console console, String... args) {
-	// TODO Auto-generated method stub
-    }
+	@Override
+	public boolean execute(Console console, String... args) {
+		System.out.println("Compile");
+
+		if (args.length < 1) {
+			System.out.println("Error: No file specified.");
+
+			return false;
+		}
+
+		console.compile(args[0]);
+
+		return false;
+	}
 }

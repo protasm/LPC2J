@@ -4,84 +4,73 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class FSFile {
-    protected final String basePath;
-    protected final String relPath;
-    protected final Path fullPath;
-    protected final String slashName;
-    protected final String dotName;
+	protected final String basePath;
+	protected final String relPath;
 
-    public FSFile(String basePath, String relPath) {
-	this.basePath = basePath;
-	this.relPath = relPath;
+	public FSFile(String basePath, String relPath) {
+		this.basePath = basePath;
+		this.relPath = relPath;
+	}
 
-	this.fullPath = Paths.get(basePath, relPath);
-	this.slashName = toSlashNotation(relPath);
-	this.dotName = toDotNotation(relPath);
-    }
+	public String basePath() {
+		return basePath;
+	}
 
-    public String basePath() {
-	return basePath;
-    }
+	public String relPath() {
+		return relPath;
+	}
 
-    public String relPath() {
-	return relPath;
-    }
+	public Path fullPath() {
+		return Paths.get(basePath, relPath);
+	}
 
-    public Path fullPath() {
-	return fullPath;
-    }
+	public String slashName() {
+		// trim file suffix, if any
+		str = trimFileSuffix(str);
 
-    public String slashName() {
-	return slashName;
-    }
+		// trim leading slash, if any
+		str = trimLeadingSlash(str);
+		
+		return str;
+	}
 
-    public String dotName() {
-	return dotName;
-    }
+	public String dotName() {
+		str = slashName(str);
 
-    protected String toSlashNotation(String str) {
-	// trim file suffix, if any
-	str = trimFileSuffix(str);
+		// replace infix slashes with dots
+		str = str.replace("/", ".").replace("\\", ".");
+		
+		return str;
+	}
 
-	// trim leading slash, if any
-	return trimLeadingSlash(str);
-    }
+	protected String trimFileSuffix(String str) {
+		int idx = str.lastIndexOf('.');
 
-    protected String toDotNotation(String str) {
-	str = toSlashNotation(str);
+		return (idx == -1) ? str : str.substring(0, idx);
 
-	// replace infix slashes with dots
-	return replaceSlashesWithDots(str);
-    }
+	}
 
-    protected String trimFileSuffix(String str) {
-	int idx = str.lastIndexOf('.');
+	protected String trimLeadingSlash(String str) {
+		if (str.startsWith("/") || str.startsWith("\\"))
+			return str.substring(1, str.length());
+		else
+			return str;
+	}
 
-	return (idx == -1) ? str : str.substring(0, idx);
+	protected String replaceSlashesWithDots(String str) {
+		return 
+	}
 
-    }
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
 
-    protected String trimLeadingSlash(String str) {
-	if (str.startsWith("/") || str.startsWith("\\"))
-	    return str.substring(1, str.length());
-	else
-	    return str;
-    }
+		sb.append(String.format("basePath=%s\n", basePath));
+		sb.append(String.format("relPath=%s\n", relPath));
+		sb.append(String.format("fullPath=%s\n", fullPath));
+		sb.append(String.format("slashName=%s\n", slashName));
+		sb.append(String.format("dotName=%s\n", dotName));
 
-    protected String replaceSlashesWithDots(String str) {
-	return str.replace("/", ".").replace("\\", ".");
-    }
-
-    @Override
-    public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("basePath=%s\n", basePath));
-	sb.append(String.format("relPath=%s\n", relPath));
-	sb.append(String.format("fullPath=%s\n", fullPath));
-	sb.append(String.format("slashName=%s\n", slashName));
-	sb.append(String.format("dotName=%s\n", dotName));
-
-	return sb.toString();
-    }
+		return sb.toString();
+	}
 }

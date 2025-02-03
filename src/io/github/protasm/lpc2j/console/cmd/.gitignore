@@ -5,3 +5,5 @@
 /CmdScan.class
 /CmdLoad.class
 /CmdQuit.class
+/CmdHelp.class
+/CmdListObjects.class

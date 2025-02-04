@@ -7,3 +7,9 @@
 /CmdQuit.class
 /CmdHelp.class
 /CmdListObjects.class
+/CmdListDir.class
+/CmdChangeDir.class
+/CmdShowDir.class
+/CmdDirChange.class
+/CmdDirList.class
+/CmdDirShow.class

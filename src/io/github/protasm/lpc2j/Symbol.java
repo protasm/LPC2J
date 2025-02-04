@@ -1,41 +1,19 @@
 package io.github.protasm.lpc2j;
 
 public class Symbol {
-	private ClassBuilder cb;
-	private SymbolType sType;
-	private JType jType;
-	private String identifier;
-	private String descriptor;
+    private LPCType lpcType;
+    private String name;
 
-	protected Symbol(ClassBuilder cb, SymbolType sType, JType jType, String identifier, String descriptor) {
-		this.cb = cb;
-		this.sType = sType;
-		this.jType = jType;
-		this.identifier = identifier;
-		this.descriptor = descriptor;
-	}
+    protected Symbol(LPCType lpcType, String name) {
+	this.lpcType = lpcType;
+	this.name = name;
+    }
 
-	public ClassBuilder cb() {
-		return cb;
-	}
+    public LPCType lpcType() {
+	return lpcType;
+    }
 
-	public String className() {
-		return cb.className();
-	}
-
-	public SymbolType sType() {
-		return sType;
-	}
-
-	public JType jType() {
-		return jType;
-	}
-
-	public String identifier() {
-		return identifier;
-	}
-
-	public String descriptor() {
-		return descriptor;
-	}
+    public String name() {
+	return name;
+    }
 }

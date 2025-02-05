@@ -4,21 +4,21 @@ import io.github.protasm.lpc2j.console.Console;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 
 public class CmdParse extends Command {
-    @Override
-    public boolean execute(Console console, String... args) {
-	System.out.println("Parse");
+	@Override
+	public boolean execute(Console console, String... args) {
+		System.out.println("Parse");
 
-	if (args.length < 1) {
-	    System.out.println("Error: No file specified.");
+		if (args.length < 1) {
+			System.out.println("Error: No file specified.");
 
-	    return false;
+			return false;
+		}
+
+		ASTObject ast = console.parse(args[0]);
+
+		if (ast != null)
+			System.out.println(ast);
+
+		return false;
 	}
-
-	ASTObject ast = console.parse(args[0]);
-
-	if (ast != null)
-	    System.out.println(ast);
-
-	return false;
-    }
 }

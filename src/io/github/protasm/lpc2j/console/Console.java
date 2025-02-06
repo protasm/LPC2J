@@ -1,11 +1,12 @@
 package io.github.protasm.lpc2j.console;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.console.cmd.*;
@@ -22,29 +23,37 @@ public class Console {
 	private final java.util.Scanner inputScanner;
 
 	private static final String RUNTIMEOBJ = "io/github/protasm/lpc2j/runtime/LPCObject";
-
-	Map<String, Command> commands = Map.of(
-			"cd", new CmdDirChange(),
-			"c", new CmdCompile(),
-			"h", new CmdHelp(),
-			"l", new CmdLoad(),
-			"ls", new CmdDirList(),
-			"o", new CmdListObjects(),
-			"p", new CmdParse(),
-			"pwd", new CmdDirShow(),
-			"s", new CmdScan(),
-			"x", new CmdQuit() //
-	);
+	private static Map<String, Command> commands = new TreeMap<>();
+	
+	static {
+		commands.put("c", new CmdCompile());
+		commands.put("call", new CmdCall());
+		commands.put("cd", new CmdDirChange());
+		commands.put("h", new CmdHelp());
+		commands.put("l", new CmdLoad());
+		commands.put("ls", new CmdDirList());
+		commands.put("o", new CmdListObjects());
+		commands.put("p", new CmdParse());
+		commands.put("pwd", new CmdDirShow());
+		commands.put("s", new CmdScan());
+		commands.put("x", new CmdQuit());
+	}
 
 	public Console(String basePath) {
 		this.basePath = basePath;
 
 		objects = new HashMap<>();
 		inputScanner = new java.util.Scanner(System.in);
+		
+		new CmdLoad().execute(this, "obj/weapon/sword.lpc");
 	}
 
 	public Map<String, LPCObject> objects() {
 		return objects;
+	}
+
+	public static Map<String, Command> commands() {
+		return commands;
 	}
 
 	public void repl() {
@@ -59,8 +68,8 @@ public class Console {
 			String[] parts = line.split("\\s+");
 			String command = parts[0];
 
-			if (commands.containsKey(command)) {
-				Command cmd = commands.get(command);
+			if (Console.commands.containsKey(command)) {
+				Command cmd = Console.commands.get(command);
 				parts = (parts.length > 1) ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
 
 				boolean finished = cmd.execute(this, parts);
@@ -72,20 +81,6 @@ public class Console {
 
 				continue;
 			}
-
-//	    case "y": // Call Method
-//		if (parts.length < 3) {
-//		    System.out.println("Error: Insufficient arguments for call command.");
-//		    
-//		    break;
-//		}
-//
-//		String[] callArgs = parts[2].split(" ");
-//		
-//		call(parts[1], callArgs);
-//		
-//		break;
-//	    }
 		}
 
 		inputScanner.close();
@@ -93,67 +88,80 @@ public class Console {
 
 	public FSSourceFile load(String filePath) {
 		FSSourceFile sf = compile(filePath);
-		
-		String classFilePath = filePath.replace(".lpc", ".class");
-		Path classPath = Path.of(basePath, classFilePath);
 
-		if (!Files.exists(classPath)) {
-			System.out.println("Compiled class file not found, compiling...");
+		if (sf == null)
+			return null;
 
-			compile(filePath);
+		// Define the class dynamically from the bytecode
+		Class<?> clazz = new ClassLoader() {
+			public Class<?> defineClass(byte[] bytecode) {
+				return defineClass(null, bytecode, 0, bytecode.length);
+			}
+		}.defineClass(sf.bytes());
+
+		// Ensure the generated class extends LPCObject
+		if (!LPCObject.class.isAssignableFrom(clazz)) {
+			throw new IllegalArgumentException("Generated class must extend LPCObject.");
 		}
 
+		// Instantiate the class using reflection
 		try {
-			byte[] classBytes = Files.readAllBytes(classPath);
-			String fullyQualifiedName = filePath.replace('/', '.').replace(".lpc", "");
+			Constructor<?> constructor = clazz.getConstructor(); // Assumes a no-arg constructor
+			LPCObject instance = (LPCObject) constructor.newInstance();
 
-			objects.put(fullyQualifiedName, classBytes);
+			sf.setLPCObject(instance);
 
-			System.out.println("Loaded: " + fullyQualifiedName);
-		} catch (IOException e) {
-			System.out.println("Failed to read class file: " + classPath + ".");
+			return sf;
+		} catch (NoSuchMethodException e) {
+			return null;
+		} catch (InvocationTargetException e) {
+			return null;
+		} catch (IllegalAccessException e) {
+			return null;
+		} catch (InstantiationException e) {
+			return null;
 		}
 	}
 
-	public void call(String className, String[] args) {
-		if (!objects.containsKey(className)) {
-			System.out.println("Error: Class not loaded - " + className);
+	public void call(String className, String methodName, Object[] callArgs) {
+		LPCObject obj = objects.get(className);
+		
+		if (obj == null) {
+			System.out.println("Error: Object '" + className + "' not loaded.");
 
 			return;
 		}
 
 		try {
-			Class<?> clazz = Class.forName(className);
-			LPCObject instance = (LPCObject) clazz.getDeclaredConstructor().newInstance();
-			String methodName = args[0];
-			Object[] methodArgs = new Object[args.length - 1];
-
-			System.arraycopy(args, 1, methodArgs, 0, args.length - 1);
-
-			Object result = instance.dispatch(methodName, methodArgs);
+			Object result = obj.dispatch(methodName, callArgs);
 
 			System.out.println("Method result: " + result);
 		} catch (Exception e) {
-			System.out.println("Error invoking method: " + e.getMessage());
+			System.out.println(e.getMessage());
 		}
 	}
 
 	public FSSourceFile compile(String filePath) {
 		FSSourceFile sf = parse(filePath);
 
+		if (sf == null)
+			return null;
+
 		byte[] bytes = new Compiler(RUNTIMEOBJ).compile(sf.astObject());
 
 		sf.setBytes(bytes);
 		sf.write(basePath);
-		
+
 		return sf;
 	}
 
 	public FSSourceFile parse(String filePath) {
 		FSSourceFile sf = scan(filePath);
-		Parser parser = new Parser();
 
-		ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
+		if (sf == null)
+			return null;
+
+		ASTObject astObject = new Parser().parse(sf.slashName(), sf.tokens());
 
 		sf.setASTObject(astObject);
 
@@ -169,8 +177,12 @@ public class Console {
 			sf.setTokens(tokens);
 
 			return sf;
-		} catch (IllegalArgumentException | IOException e) {
-			System.out.println(e.getMessage());
+		} catch (IllegalArgumentException e) {
+			System.out.println(e.getLocalizedMessage());
+
+			return null;
+		} catch (IOException e) {
+			System.out.println("Could not read file '" + filePath + "'.");
 
 			return null;
 		}

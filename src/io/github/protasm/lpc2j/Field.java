@@ -8,8 +8,8 @@ public class Field implements HasSymbol {
 	}
 
 	@Override
-	public String className() {
-		return symbol.className();
+	public String classPath() {
+		return symbol.classPath();
 	}
 
 	@Override

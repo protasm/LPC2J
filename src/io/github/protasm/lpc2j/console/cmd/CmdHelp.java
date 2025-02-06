@@ -5,8 +5,13 @@ import io.github.protasm.lpc2j.console.Console;
 public class CmdHelp extends Command {
 	@Override
 	public boolean execute(Console console, String... args) {
-		System.out.println("Help");
+		Console.commands().forEach((key, value) -> System.out.println(key + "\t-> " + value));
 
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "Display list of available commands";
 	}
 }

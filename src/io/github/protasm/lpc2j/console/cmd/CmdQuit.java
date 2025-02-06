@@ -9,4 +9,9 @@ public class CmdQuit extends Command {
 
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "Quit";
+	}
 }

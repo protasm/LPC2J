@@ -237,14 +237,14 @@ public class Method implements HasSymbol {
 	private void fieldLoadInstr(Field field) {
 		operandTypes.push(field.jType());
 
-		mv.visitFieldInsn(GETFIELD, field.className(), field.identifier(), field.descriptor());
+		mv.visitFieldInsn(GETFIELD, field.classPath(), field.identifier(), field.descriptor());
 	}
 
 	private void fieldStoreInstr(Field field) {
 		operandTypes.pop(); // value being stored
 		operandTypes.pop(); // object reference
 
-		mv.visitFieldInsn(PUTFIELD, field.className(), field.identifier(), field.descriptor());
+		mv.visitFieldInsn(PUTFIELD, field.classPath(), field.identifier(), field.descriptor());
 	}
 
 	private void i2fInstr() {
@@ -255,7 +255,7 @@ public class Method implements HasSymbol {
 	}
 
 	private void invoke(String name, String descriptor) {
-		mv.visitMethodInsn(INVOKEVIRTUAL, symbol.className(), name, descriptor, false);
+		mv.visitMethodInsn(INVOKEVIRTUAL, symbol.classPath(), name, descriptor, false);
 	}
 
 	private void invokeOther() {
@@ -374,8 +374,8 @@ public class Method implements HasSymbol {
 	}
 
 	@Override
-	public String className() {
-		return symbol.className();
+	public String classPath() {
+		return symbol.classPath();
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import io.github.protasm.lpc2j.console.Console;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 
 public class CmdParse extends Command {
@@ -14,11 +15,21 @@ public class CmdParse extends Command {
 			return false;
 		}
 
-		ASTObject ast = console.parse(args[0]);
+		FSSourceFile sf = console.parse(args[0]);
 
-		if (ast != null)
-			System.out.println(ast);
+		if (sf == null)
+			return false;
+
+		ASTObject astObject = sf.astObject();
+
+		if (astObject != null)
+			System.out.println(astObject);
 
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "Parse <source file>";
 	}
 }

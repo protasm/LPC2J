@@ -4,10 +4,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public class LPCObject {
-	public LPCObject() {
-		System.out.println("LPCObject constructor.");
-	}
-
 	public Object dispatch(String methodName, Object... args) {
 		try {
 			// Get argument types dynamically
@@ -25,7 +21,7 @@ public class LPCObject {
 			// If method is not found, handle it gracefully
 			return missingMethod(methodName, args);
 		} catch (Exception e) {
-			throw new RuntimeException("Error invoking method: " + methodName, e);
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -33,7 +29,7 @@ public class LPCObject {
 		Method[] methods = this.getClass().getMethods();
 
 		for (Method method : methods)
-			if (method.getName().equals(methodName) && matchParameters(method.getParameterTypes(), argTypes))
+			if (method.getName().equals(methodName))// && matchParameters(method.getParameterTypes(), argTypes))
 				return method;
 
 		return null;

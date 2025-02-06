@@ -75,7 +75,7 @@ public class FSSourceFile {
 	public void write(String basePath) {
 		if (bytes == null) {
 			System.out.println("Write failed: no source file bytes to write.");
-			
+
 			return;
 		}
 
@@ -113,18 +113,22 @@ public class FSSourceFile {
 		return str;
 	}
 
-    private String stripExtension(Path path) {
-        String fileName = path.getFileName().toString();
-        int dotIndex = fileName.lastIndexOf('.');
+	public String classPath() {
+		return relPath.replace(".lpc", ".class");
+	}
 
-        if (dotIndex > 0) // Ensure dot is not the first character
-            return path.getParent() != null
-                ? path.getParent().resolve(fileName.substring(0, dotIndex)).toString()
-                : fileName.substring(0, dotIndex);
+	private String stripExtension(Path path) {
+		String fileName = path.getFileName().toString();
+		int dotIndex = fileName.lastIndexOf('.');
 
-        return path.toString(); // Return original if no extension
-    }
-    
+		if (dotIndex > 0) // Ensure dot is not the first character
+			return path.getParent() != null
+					? path.getParent().resolve(fileName.substring(0, dotIndex)).toString()
+					: fileName.substring(0, dotIndex);
+
+		return path.toString(); // Return original if no extension
+	}
+
 	private String trimLeadingSlash(String str) {
 		if (str.startsWith("/") || str.startsWith("\\"))
 			return str.substring(1, str.length());

@@ -10,4 +10,9 @@ public class CmdListObjects extends Command {
 
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "List loaded objects";
+	}
 }

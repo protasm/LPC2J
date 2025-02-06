@@ -8,4 +8,9 @@ public class CmdDirChange extends Command {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "Change current directory";
+	}
 }

@@ -8,4 +8,9 @@ public class CmdDirShow extends Command {
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "Display current directory";
+	}
 }

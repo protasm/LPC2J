@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import io.github.protasm.lpc2j.console.Console;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class CmdScan extends Command {
@@ -14,11 +15,21 @@ public class CmdScan extends Command {
 			return false;
 		}
 
-		Tokens tokens = console.scan(args[0]);
+		FSSourceFile sf = console.scan(args[0]);
+
+		if (sf == null)
+			return false;
+
+		Tokens tokens = sf.tokens();
 
 		if (tokens != null)
 			System.out.println(tokens);
 
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "Scan <source file>";
 	}
 }

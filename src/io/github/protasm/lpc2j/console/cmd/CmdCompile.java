@@ -17,4 +17,9 @@ public class CmdCompile extends Command {
 
 		return false;
 	}
+
+	@Override
+	public String toString() {
+		return "Compile <source file>";
+	}
 }

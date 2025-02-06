@@ -9,4 +9,8 @@ public class CmdDirList extends Command {
 		return false;
 	}
 
+	@Override
+	public String toString() {
+		return "List contents of current directory";
+	}
 }

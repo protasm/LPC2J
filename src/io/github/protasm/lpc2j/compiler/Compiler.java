@@ -98,25 +98,4 @@ public class Compiler {
 			mv.visitEnd();
 		}
 	}
-
-	public static void main(String[] args) throws IOException {
-		if (args.length != 1) {
-			System.err.println("Usage: java Compiler <source-file>");
-
-			System.exit(1);
-		}
-
-		FSSourceFile sf = new FSSourceFile("/Users/jonathan/brainjar/", args[0]);
-		Scanner scanner = new Scanner();
-		Tokens tokens = scanner.scan(sf.source());
-		Parser parser = new Parser();
-		ASTObject ast = parser.parse(sf.slashName(), tokens);
-		Compiler compiler = new Compiler("io/github/protasm/lpc2j/runtime/LPCObject");
-
-		byte[] bytes = compiler.compile(ast);
-
-		sf.write(bytes);
-
-		System.out.println("Compilation successful.");
-	}
 }

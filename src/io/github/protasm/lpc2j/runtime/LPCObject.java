@@ -4,54 +4,54 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 public class LPCObject {
-	public Object dispatch(String methodName, Object... args) {
-		try {
-			// Get argument types dynamically
-			Class<?>[] argTypes = new Class<?>[args.length];
-
-			for (int i = 0; i < args.length; i++)
-				argTypes[i] = (args[i] == null) ? Object.class : args[i].getClass();
-
-			// Attempt to find a matching method
-			Method method = findMethod(methodName, argTypes);
-
-			if (method != null)
-				return method.invoke(this, args);
-
-			// If method is not found, handle it gracefully
-			return missingMethod(methodName, args);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private Method findMethod(String methodName, Class<?>[] argTypes) {
-		Method[] methods = this.getClass().getMethods();
-
-		for (Method method : methods)
-			if (method.getName().equals(methodName))// && matchParameters(method.getParameterTypes(), argTypes))
-				return method;
-
-		return null;
-	}
-
-	private boolean matchParameters(Class<?>[] declaredTypes, Class<?>[] givenTypes) {
-		if (declaredTypes.length != givenTypes.length)
-			return false;
-
-		for (int i = 0; i < declaredTypes.length; i++)
-			if (!declaredTypes[i].isAssignableFrom(givenTypes[i]))
-				return false;
-
-		return true;
-	}
-
-	protected Object missingMethod(String methodName, Object... args) {
-		System.err.println("Method '" + methodName + "' not found in " + this.getClass().getName() + " with args: "
-				+ Arrays.toString(args));
-
-		return null; // Default behavior: return null (could be changed to throw an exception)
-	}
+//	public Object dispatch(String methodName, Object... args) {
+//		try {
+//			// Get argument types dynamically
+//			Class<?>[] argTypes = new Class<?>[args.length];
+//
+//			for (int i = 0; i < args.length; i++)
+//				argTypes[i] = (args[i] == null) ? Object.class : args[i].getClass();
+//
+//			// Attempt to find a matching method
+//			Method method = findMethod(methodName, argTypes);
+//
+//			if (method != null)
+//				return method.invoke(this, args);
+//
+//			// If method is not found, handle it gracefully
+//			return missingMethod(methodName, args);
+//		} catch (Exception e) {
+//			throw new RuntimeException(e);
+//		}
+//	}
+//
+//	private Method findMethod(String methodName, Class<?>[] argTypes) {
+//		Method[] methods = this.getClass().getMethods();
+//
+//		for (Method method : methods)
+//			if (method.getName().equals(methodName))// && matchParameters(method.getParameterTypes(), argTypes))
+//				return method;
+//
+//		return null;
+//	}
+//
+//	private boolean matchParameters(Class<?>[] declaredTypes, Class<?>[] givenTypes) {
+//		if (declaredTypes.length != givenTypes.length)
+//			return false;
+//
+//		for (int i = 0; i < declaredTypes.length; i++)
+//			if (!declaredTypes[i].isAssignableFrom(givenTypes[i]))
+//				return false;
+//
+//		return true;
+//	}
+//
+//	protected Object missingMethod(String methodName, Object... args) {
+//		System.err.println("Method '" + methodName + "' not found in " + this.getClass().getName() + " with args: "
+//				+ Arrays.toString(args));
+//
+//		return null; // Default behavior: return null (could be changed to throw an exception)
+//	}
 }
 
 //    public Object dispatch(String methodName, Object[] args) {

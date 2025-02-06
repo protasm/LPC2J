@@ -3,6 +3,7 @@ package io.github.protasm.lpc2j.console;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,19 +25,26 @@ public class Console {
 
 	private static final String RUNTIMEOBJ = "io/github/protasm/lpc2j/runtime/LPCObject";
 	private static Map<String, Command> commands = new TreeMap<>();
-	
+
 	static {
 		commands.put("c", new CmdCompile());
+		commands.put("compile", new CmdCompile());
 		commands.put("call", new CmdCall());
 		commands.put("cd", new CmdDirChange());
 		commands.put("h", new CmdHelp());
+		commands.put("help", new CmdHelp());
 		commands.put("l", new CmdLoad());
+		commands.put("load", new CmdLoad());
 		commands.put("ls", new CmdDirList());
 		commands.put("o", new CmdListObjects());
+		commands.put("objects", new CmdListObjects());
 		commands.put("p", new CmdParse());
+		commands.put("parse", new CmdParse());
 		commands.put("pwd", new CmdDirShow());
 		commands.put("s", new CmdScan());
+		commands.put("scan", new CmdScan());
 		commands.put("x", new CmdQuit());
+		commands.put("exit", new CmdQuit());
 	}
 
 	public Console(String basePath) {
@@ -44,7 +52,7 @@ public class Console {
 
 		objects = new HashMap<>();
 		inputScanner = new java.util.Scanner(System.in);
-		
+
 		new CmdLoad().execute(this, "obj/weapon/sword.lpc");
 	}
 
@@ -100,9 +108,8 @@ public class Console {
 		}.defineClass(sf.bytes());
 
 		// Ensure the generated class extends LPCObject
-		if (!LPCObject.class.isAssignableFrom(clazz)) {
+		if (!LPCObject.class.isAssignableFrom(clazz))
 			throw new IllegalArgumentException("Generated class must extend LPCObject.");
-		}
 
 		// Instantiate the class using reflection
 		try {
@@ -125,7 +132,7 @@ public class Console {
 
 	public void call(String className, String methodName, Object[] callArgs) {
 		LPCObject obj = objects.get(className);
-		
+
 		if (obj == null) {
 			System.out.println("Error: Object '" + className + "' not loaded.");
 
@@ -133,9 +140,16 @@ public class Console {
 		}
 
 		try {
-			Object result = obj.dispatch(methodName, callArgs);
+			Method[] methods = obj.getClass().getMethods();
 
-			System.out.println("Method result: " + result);
+			for (Method method : methods)
+				if (method.getName().equals(methodName)) { // && matchParameters(method.getParameterTypes(), argTypes))
+					Object result = method.invoke(obj, callArgs);
+
+					System.out.println("Method result: " + result);
+					
+					break;
+				}
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}

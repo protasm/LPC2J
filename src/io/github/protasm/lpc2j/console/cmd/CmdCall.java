@@ -16,30 +16,44 @@ public class CmdCall extends Command {
 		}
 
 		String[] strArgs = Arrays.copyOfRange(args, 2, args.length);
-		Object[] objArgs = inferArgTypes(strArgs);
+		Object[] objArgs = inferArgTypes(console, strArgs);
 
 		console.call(args[0], args[1], objArgs);
 
 		return false;
 	}
-	
-	private Object[] inferArgTypes(String[] strArgs) {
+
+	private Object[] inferArgTypes(Console console, String[] strArgs) {
 		Object[] objArgs = new Object[strArgs.length];
-		
+
 		for (int i = 0; i < strArgs.length; i++) {
 			String strArg = strArgs[i];
-			
-		    try { objArgs[i] = Integer.parseInt(strArg); continue; } catch (NumberFormatException ignored) {}
 
-		    if ("true".equalsIgnoreCase(strArg) || "false".equalsIgnoreCase(strArg)) {
-		        objArgs[i] = Boolean.parseBoolean(strArg);
-		        
-		        continue;
-		    }
+			// Integer?
+			try {
+				objArgs[i] = Integer.parseInt(strArg);
+				continue;
+			} catch (NumberFormatException ignored) {
+			}
 
-		    objArgs[i] = strArg;
+			// Boolean?
+			if ("true".equalsIgnoreCase(strArg) || "false".equalsIgnoreCase(strArg)) {
+				objArgs[i] = Boolean.parseBoolean(strArg);
+
+				continue;
+			}
+
+			// Loaded object?
+			if (console.objects().containsKey(strArg)) {
+				objArgs[i] = console.objects().get(strArg);
+
+				continue;
+			}
+
+			// String.
+			objArgs[i] = strArg;
 		}
-		
+
 		return objArgs;
 	}
 

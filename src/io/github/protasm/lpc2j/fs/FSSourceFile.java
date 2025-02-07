@@ -80,10 +80,9 @@ public class FSSourceFile {
 
 		String str = stripExtension(relPath) + ".class";
 		Path fullPath = Path.of(basePath, str);
-		Path writePath = Paths.get(str);
 
 		try {
-			Files.write(writePath, bytes);
+			Files.write(fullPath, bytes);
 		} catch (IOException e) {
 			System.out.println("Failed to write file: " + str + ".");
 

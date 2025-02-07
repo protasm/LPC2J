@@ -1,26 +1,28 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
 import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+
+import static org.objectweb.asm.Opcodes.*;
 
 import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 
 public class ASTExprLocalMethodInvoke extends ASTExpression {
-	private final Integer localSlot;
+	private final Integer slot;
 	private final String methodName;
 	private final ASTArguments args;
 
-	public ASTExprLocalMethodInvoke(int line, int localSlot, String methodName, ASTArguments args) {
+	public ASTExprLocalMethodInvoke(int line, int slot, String methodName, ASTArguments args) {
 		super(line);
 
-		this.localSlot = localSlot;
+		this.slot = slot;
 		this.methodName = methodName;
 		this.args = args;
 	}
 
-	public Integer localSlot() {
-		return localSlot;
+	public Integer slot() {
+		return slot;
 	}
 
 	public String methodName() {
@@ -33,34 +35,77 @@ public class ASTExprLocalMethodInvoke extends ASTExpression {
 
 	@Override
 	public LPCType lpcType() {
-		// TODO Auto-generated method stub
 		return LPCType.LPCMIXED;
 	}
 
 	@Override
 	public void toBytecode(MethodVisitor mv) {
-		// Step 1: Load the object from the local variable slot
-		mv.visitVarInsn(Opcodes.ALOAD, localSlot); // Load obj from local variable slot
+	    // Load the target object from its slot
+	    mv.visitVarInsn(ALOAD, slot);
 
-		// Step 2: Push the method name (e.g., "bar")
-		mv.visitLdcInsn(methodName); // Push method name as a string constant
+	    // Get the Class of the object
+	    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
 
-		// Step 3: Box up the method arguments into an array
-		args.toBytecode(mv);
+	    // Push method name
+	    mv.visitLdcInsn(methodName);
 
-		// Step 4: Invoke `dispatch(methodName, Object...)`
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/Object", // Class
-				"dispatch", // Method
-				"(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;", // Descriptor
-				false // Not an interface
-		);
+	 // Generate and push the Class<?>[] for method signature
+	    mv.visitLdcInsn(args.size()); // Array length
+	    mv.visitTypeInsn(ANEWARRAY, "java/lang/Class"); // new Class<?>[size]
 
-		// Step 5: Handle the return value (if needed)
-//        if (expectsReturnValue) {
-//            unboxIfPrimitive(mv, returnType);
-//        } else {
-//            mv.visitInsn(Opcodes.POP); // Discard return value if void
-//        }
+	    for (int i = 0; i < args.size(); i++) {
+	        mv.visitInsn(DUP); // Duplicate array reference
+	        mv.visitLdcInsn(i); // Push index
+
+	        // Get LPCType of the argument expression
+	        LPCType argType = args.get(i).expr().lpcType();
+
+	        // Push corresponding Java Class type
+	        pushLPCTypeClass(mv, argType);
+
+	        mv.visitInsn(AASTORE); // Store into array
+	    }
+
+	    // Call getMethod(methodName, argumentTypes)
+	    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod",
+	            "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+
+	    // Load the target object again for invocation
+	    mv.visitVarInsn(ALOAD, slot);
+
+	    // Generate and push the Object[] containing actual argument values
+	    args.toBytecode(mv);
+
+	 // Call Method.invoke(obj, args)
+	    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke",
+	            "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+
+	    // Cast result to String
+	    mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+
+	    // Return the String result
+	    mv.visitInsn(ARETURN);
+	}
+	private void pushLPCTypeClass(MethodVisitor mv, LPCType type) {
+	    switch (type.jType()) {
+	        case JINT:
+	            mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
+	            break;
+	        case JFLOAT:
+	            mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
+	            break;
+	        case JBOOLEAN:
+	            mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
+	            break;
+	        case JSTRING:
+	            mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
+	            break;
+	        case JOBJECT:
+	            mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
+	            break;
+	        default:
+	            throw new IllegalArgumentException("Unsupported LPCType: " + type);
+	    }
 	}
 
 	@Override

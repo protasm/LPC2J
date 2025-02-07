@@ -1,8 +1,9 @@
 package io.github.protasm.lpc2j;
 
 public enum JType {
-	JBOOLEAN("Z"), JCHAR("C"), JFLOAT("F"), JDOUBLE("D"), JBYTE("B"), JSHORT("S"), JINT("I"), JLONG("J"), JNULL(null),
-	JSTRING("Ljava/lang/String;"), JLPCOBJECT("Ljava/lang/Object;"), JVOID("V");
+	JBOOLEAN("Z"), JCHAR("C"), JFLOAT("F"), JDOUBLE("D"), JBYTE("B"), JSHORT("S"),
+	JINT("I"), JLONG("J"), JNULL(null),
+	JSTRING("Ljava/lang/String;"), JOBJECT("Ljava/lang/Object;"), JVOID("V");
 
 	private final String descriptor;
 

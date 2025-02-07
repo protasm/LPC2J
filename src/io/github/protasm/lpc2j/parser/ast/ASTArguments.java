@@ -19,6 +19,14 @@ public class ASTArguments extends ASTNode {
 	public void add(ASTArgument argument) {
 		arguments.add(argument);
 	}
+	
+	public ASTArgument get(int i) {
+		return arguments.get(i);
+	}
+	
+	public int size() {
+		return arguments.size();
+	}
 
 	@Override
 	public void toBytecode(MethodVisitor mv) {

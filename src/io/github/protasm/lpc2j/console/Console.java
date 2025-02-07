@@ -108,7 +108,8 @@ public class Console {
 
 		// Instantiate the class using reflection
 		try {
-			Constructor<?> constructor = clazz.getConstructor(); // Assumes a no-arg constructor
+			 // Assume a no-arg constructor
+			Constructor<?> constructor = clazz.getConstructor();
 			Object instance = (Object) constructor.newInstance();
 
 			sf.setLPCObject(instance);
@@ -136,8 +137,6 @@ public class Console {
 
 		try {
 			Method[] methods = obj.getClass().getMethods();
-			for (int i = 0; i < methods.length; i++)
-				System.out.println(methods[i]);
 
 			for (Method method : methods)
 				if (method.getName().equals(methodName)) { // && matchParameters(method.getParameterTypes(), argTypes))
@@ -147,9 +146,11 @@ public class Console {
 
 					break;
 				}
+		} catch (InvocationTargetException e) {
+		    Throwable actualException = e.getCause();
+		    actualException.printStackTrace();
 		} catch (Exception e) {
 			System.out.println("Error: " + e.getMessage());
-			System.out.println(e.getLocalizedMessage());
 		}
 	}
 

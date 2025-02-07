@@ -4,9 +4,9 @@ import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.LPCType;
 
 public abstract class ASTExpression extends ASTNode {
-	public ASTExpression(int line) {
-		super(line);
-	}
+    public ASTExpression(int line) {
+	super(line);
+    }
 
-	public abstract LPCType lpcType();
+    public abstract LPCType lpcType();
 }

@@ -3,23 +3,23 @@ package io.github.protasm.lpc2j.console.cmd;
 import io.github.protasm.lpc2j.console.Console;
 
 public class CmdCompile extends Command {
-	@Override
-	public boolean execute(Console console, String... args) {
-		System.out.println("Compile");
+    @Override
+    public boolean execute(Console console, String... args) {
+	System.out.println("Compile");
 
-		if (args.length < 1) {
-			System.out.println("Error: No file specified.");
+	if (args.length < 1) {
+	    System.out.println("Error: No file specified.");
 
-			return false;
-		}
-
-		console.compile(args[0]);
-
-		return false;
+	    return false;
 	}
 
-	@Override
-	public String toString() {
-		return "Compile <source file>";
-	}
+	console.compile(args[0]);
+
+	return false;
+    }
+
+    @Override
+    public String toString() {
+	return "Compile <source file>";
+    }
 }

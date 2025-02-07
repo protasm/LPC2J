@@ -4,5 +4,5 @@ import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public interface PrefixParselet {
-    ASTExpression parse(Parser parser, boolean canAssign);
+	ASTExpression parse(Parser parser, boolean canAssign);
 }

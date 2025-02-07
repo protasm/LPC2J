@@ -1,13 +1,11 @@
 package io.github.protasm.lpc2j.lpc;
 
-import io.github.protasm.lpc2j.runtime.LPCObject;
+class JSword {
+	int x = 101;
 
-class JSword extends LPCObject {
-    int x = 101;
+	int foo() {
+		x = 1;
 
-    int foo() {
-	x = 1;
-
-	return x;
-    }
+		return x;
+	}
 }

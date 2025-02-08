@@ -6,34 +6,34 @@ import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprLiteralString extends ASTExpression {
-	private final String value;
+    private final String value;
 
-	public ASTExprLiteralString(int line, Token<String> token) {
-		super(line);
+    public ASTExprLiteralString(int line, Token<String> token) {
+	super(line);
 
-		this.value = token.literal();
-	}
+	this.value = token.literal();
+    }
 
-	public String value() {
-		return value;
-	}
+    public String value() {
+	return value;
+    }
 
-	@Override
-	public LPCType lpcType() {
-		return LPCType.LPCSTRING;
-	}
+    @Override
+    public LPCType lpcType() {
+	return LPCType.LPCSTRING;
+    }
 
-	@Override
-	public void toBytecode(MethodVisitor mv) {
-		mv.visitLdcInsn(value);
-	}
+    @Override
+    public void toBytecode(MethodVisitor mv) {
+	mv.visitLdcInsn(value);
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
+    @Override
+    public String toString() {
+	StringBuilder sb = new StringBuilder();
 
-		sb.append(String.format("%s(value=%s)", className(), value));
+	sb.append(String.format("%s(value=%s)", className(), value));
 
-		return sb.toString();
-	}
+	return sb.toString();
+    }
 }

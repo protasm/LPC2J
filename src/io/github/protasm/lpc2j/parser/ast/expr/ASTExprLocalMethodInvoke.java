@@ -9,122 +9,122 @@ import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 
 public class ASTExprLocalMethodInvoke extends ASTExpression {
-	private final Integer slot;
-	private final String methodName;
-	private final ASTArguments args;
+    private final Integer slot;
+    private final String methodName;
+    private final ASTArguments args;
 
-	public ASTExprLocalMethodInvoke(int line, int slot, String methodName, ASTArguments args) {
-		super(line);
+    public ASTExprLocalMethodInvoke(int line, int slot, String methodName, ASTArguments args) {
+	super(line);
 
-		this.slot = slot;
-		this.methodName = methodName;
-		this.args = args;
+	this.slot = slot;
+	this.methodName = methodName;
+	this.args = args;
+    }
+
+    public Integer slot() {
+	return slot;
+    }
+
+    public String methodName() {
+	return methodName;
+    }
+
+    public ASTArguments args() {
+	return args;
+    }
+
+    @Override
+    public LPCType lpcType() {
+	return LPCType.LPCMIXED;
+    }
+
+    @Override
+    public void toBytecode(MethodVisitor mv) {
+	// 1. Load the target object from its local variable slot.
+	mv.visitVarInsn(ALOAD, slot);
+
+	// 2. Call getClass() on the target object.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Object",
+		"getClass",
+		"()Ljava/lang/Class;",
+		false);
+
+	// 3. Push the method name (as a constant) onto the stack.
+	mv.visitLdcInsn(methodName);
+
+	// 4. Build an array of Class objects representing the parameter types.
+	int numArgs = args.size();
+
+	mv.visitLdcInsn(numArgs);
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+
+	for (int i = 0; i < numArgs; i++) {
+	    mv.visitInsn(DUP); // Duplicate array reference.
+	    mv.visitLdcInsn(i); // Push array index.
+
+	    // Get the LPC type for the i-th argument.
+	    LPCType argType = args.get(i).expr().lpcType();
+
+	    pushLPCTypeClass(mv, argType); // Push the corresponding Java Class object.
+
+	    mv.visitInsn(AASTORE); // Store it in the array.
 	}
 
-	public Integer slot() {
-		return slot;
+	// 5. Invoke Class.getMethod(String, Class[]) to get the Method object.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Class",
+		"getMethod",
+		"(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
+		false);
+
+	// 6. Load the target object again (for the invoke call).
+	mv.visitVarInsn(ALOAD, slot);
+
+	// 7. Generate code to push the Object[] containing the actual argument values.
+	args.toBytecode(mv);
+
+	// 8. Invoke Method.invoke(Object, Object[]); the result (an Object) is left on
+	// the stack.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/reflect/Method",
+		"invoke",
+		"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+		false);
+
+	// Since the expression’s type is LPCMIXED, we leave the result as an Object.
+    }
+
+    private void pushLPCTypeClass(MethodVisitor mv, LPCType type) {
+	switch (type.jType()) {
+	case JINT:
+	    mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
+	    break;
+	case JFLOAT:
+	    mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
+	    break;
+	case JBOOLEAN:
+	    mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
+	    break;
+	case JSTRING:
+	    mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
+	    break;
+	default:
+	    // For LPCMIXED or other types, default to Object.
+	    mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
+	    break;
 	}
+    }
 
-	public String methodName() {
-		return methodName;
-	}
+    @Override
+    public String toString() {
+	StringBuilder sb = new StringBuilder();
 
-	public ASTArguments args() {
-		return args;
-	}
+	sb.append(String.format("%s", className()));
 
-	@Override
-	public LPCType lpcType() {
-		return LPCType.LPCMIXED;
-	}
-
-	@Override
-	public void toBytecode(MethodVisitor mv) {
-		// 1. Load the target object from its local variable slot.
-		mv.visitVarInsn(ALOAD, slot);
-
-		// 2. Call getClass() on the target object.
-		mv.visitMethodInsn(
-				INVOKEVIRTUAL,
-				"java/lang/Object",
-				"getClass",
-				"()Ljava/lang/Class;",
-				false);
-
-		// 3. Push the method name (as a constant) onto the stack.
-		mv.visitLdcInsn(methodName);
-
-		// 4. Build an array of Class objects representing the parameter types.
-		int numArgs = args.size();
-
-		mv.visitLdcInsn(numArgs);
-		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
-
-		for (int i = 0; i < numArgs; i++) {
-			mv.visitInsn(DUP); // Duplicate array reference.
-			mv.visitLdcInsn(i); // Push array index.
-
-			// Get the LPC type for the i-th argument.
-			LPCType argType = args.get(i).expr().lpcType();
-
-			pushLPCTypeClass(mv, argType); // Push the corresponding Java Class object.
-
-			mv.visitInsn(AASTORE); // Store it in the array.
-		}
-
-		// 5. Invoke Class.getMethod(String, Class[]) to get the Method object.
-		mv.visitMethodInsn(
-				INVOKEVIRTUAL,
-				"java/lang/Class",
-				"getMethod",
-				"(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
-				false);
-
-		// 6. Load the target object again (for the invoke call).
-		mv.visitVarInsn(ALOAD, slot);
-
-		// 7. Generate code to push the Object[] containing the actual argument values.
-		args.toBytecode(mv);
-
-		// 8. Invoke Method.invoke(Object, Object[]); the result (an Object) is left on
-		// the stack.
-		mv.visitMethodInsn(
-				INVOKEVIRTUAL,
-				"java/lang/reflect/Method",
-				"invoke",
-				"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
-				false);
-
-		// Since the expression’s type is LPCMIXED, we leave the result as an Object.
-	}
-
-	private void pushLPCTypeClass(MethodVisitor mv, LPCType type) {
-		switch (type.jType()) {
-			case JINT:
-				mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
-				break;
-			case JFLOAT:
-				mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
-				break;
-			case JBOOLEAN:
-				mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
-				break;
-			case JSTRING:
-				mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
-				break;
-			default:
-				// For LPCMIXED or other types, default to Object.
-				mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
-				break;
-		}
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(String.format("%s", className()));
-
-		return sb.toString();
-	}
+	return sb.toString();
+    }
 }

@@ -3,8 +3,6 @@ package io.github.protasm.lpc2j.parser;
 import java.util.ListIterator;
 import java.util.Stack;
 
-import io.github.protasm.lpc2j.LPCType;
-
 public class Locals {
     private Stack<Local> locals;
     private int workingScopeDepth;

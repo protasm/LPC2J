@@ -5,7 +5,7 @@ import org.objectweb.asm.Type;
 
 import static org.objectweb.asm.Opcodes.*;
 
-import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 
 public class ASTExprLocalMethodInvoke extends ASTExpression {

@@ -3,11 +3,11 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
-import io.github.protasm.lpc2j.LPCType;
-import io.github.protasm.lpc2j.UnaryOpType;
+import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.UnaryOpType;
 
+import static io.github.protasm.lpc2j.parser.LPCType.*;
 import static org.objectweb.asm.Opcodes.*;
-import static io.github.protasm.lpc2j.LPCType.*;
 
 public class ASTExprOpUnary extends ASTExpression {
     private final ASTExpression right;

@@ -1,9 +1,6 @@
-package io.github.protasm.lpc2j;
+package io.github.protasm.lpc2j.parser;
 
-//import java.util.HashMap;
-//import java.util.Map;
-
-import static io.github.protasm.lpc2j.JType.*;
+import static io.github.protasm.lpc2j.parser.JType.*;
 
 public enum LPCType {
     LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(JOBJECT), LPCNULL(JNULL), LPCOBJECT(JOBJECT),

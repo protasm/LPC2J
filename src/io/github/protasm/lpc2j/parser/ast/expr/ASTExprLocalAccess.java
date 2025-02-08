@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.Local;
 
 import org.objectweb.asm.MethodVisitor;

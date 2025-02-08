@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.parser.LPCType;
 
 public class ASTExprLiteralTrue extends ASTExpression {
     public ASTExprLiteralTrue(int line) {

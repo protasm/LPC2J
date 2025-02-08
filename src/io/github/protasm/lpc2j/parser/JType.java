@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j;
+package io.github.protasm.lpc2j.parser;
 
 public enum JType {
     JBOOLEAN("Z"), JCHAR("C"), JFLOAT("F"), JDOUBLE("D"), JBYTE("B"), JSHORT("S"),

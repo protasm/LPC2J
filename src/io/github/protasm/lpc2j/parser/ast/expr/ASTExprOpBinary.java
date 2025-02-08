@@ -2,14 +2,13 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 
 import org.objectweb.asm.MethodVisitor;
 
-import io.github.protasm.lpc2j.BinaryOpType;
-import io.github.protasm.lpc2j.LPCType;
+import io.github.protasm.lpc2j.parser.BinaryOpType;
+import io.github.protasm.lpc2j.parser.LPCType;
 
+import static io.github.protasm.lpc2j.parser.LPCType.*;
 import static org.objectweb.asm.Opcodes.*;
 
 import org.objectweb.asm.Label;
-
-import static io.github.protasm.lpc2j.LPCType.*;
 
 public class ASTExprOpBinary extends ASTExpression {
     private final ASTExpression left;

@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j;
+package io.github.protasm.lpc2j.parser;
 
 public enum InstrType {
     IT_BINARY, IT_CONST_FLOAT, IT_CONST_INT, IT_CONST_STR, IT_FIELD_LOAD, IT_FIELD_STORE, IT_I2F, IT_INVOKE,

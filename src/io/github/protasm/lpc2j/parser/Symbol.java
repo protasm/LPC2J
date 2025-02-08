@@ -1,6 +1,5 @@
 package io.github.protasm.lpc2j.parser;
 
-import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class Symbol {

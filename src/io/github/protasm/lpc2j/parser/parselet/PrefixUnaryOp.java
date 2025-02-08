@@ -1,12 +1,12 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
+import static io.github.protasm.lpc2j.parser.UnaryOpType.*;
+
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.PrattParser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.scanner.TokenType;
-
-import static io.github.protasm.lpc2j.UnaryOpType.*;
 
 public class PrefixUnaryOp implements PrefixParselet {
     @Override

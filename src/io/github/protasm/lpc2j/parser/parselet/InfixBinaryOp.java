@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
+import static io.github.protasm.lpc2j.parser.BinaryOpType.*;
+
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.ParseRule;
 import io.github.protasm.lpc2j.parser.Parser;
@@ -7,8 +9,6 @@ import io.github.protasm.lpc2j.parser.PrattParser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.scanner.Token;
-
-import static io.github.protasm.lpc2j.BinaryOpType.*;
 
 public class InfixBinaryOp implements InfixParselet {
     @Override

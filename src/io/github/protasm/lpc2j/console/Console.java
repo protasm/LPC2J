@@ -52,7 +52,7 @@ public class Console {
 		inputScanner = new java.util.Scanner(System.in);
 
 		new CmdLoad().execute(this, "obj/weapon/sword.lpc");
-		new CmdLoad().execute(this, "obj/armor/armor.lpc");
+		new CmdParse().execute(this, "obj/armor/armor.lpc");
 	}
 
 	public Map<String, Object> objects() {
@@ -108,7 +108,7 @@ public class Console {
 
 		// Instantiate the class using reflection
 		try {
-			 // Assume a no-arg constructor
+			// Assume a no-arg constructor
 			Constructor<?> constructor = clazz.getConstructor();
 			Object instance = (Object) constructor.newInstance();
 
@@ -147,8 +147,8 @@ public class Console {
 					break;
 				}
 		} catch (InvocationTargetException e) {
-		    Throwable actualException = e.getCause();
-		    actualException.printStackTrace();
+			Throwable actualException = e.getCause();
+			actualException.printStackTrace();
 		} catch (Exception e) {
 			System.out.println("Error: " + e.getMessage());
 		}

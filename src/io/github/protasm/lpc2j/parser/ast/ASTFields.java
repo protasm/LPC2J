@@ -26,12 +26,12 @@ public class ASTFields extends ASTNode implements Iterable<ASTField> {
 	public ASTField get(String name) {
 		return fields.get(name);
 	}
-	
+
 	@Override
-    public Iterator<ASTField> iterator() {
-        return fields.values().iterator();
-    }
-	
+	public Iterator<ASTField> iterator() {
+		return fields.values().iterator();
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();

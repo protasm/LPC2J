@@ -28,7 +28,7 @@ public class ASTExprMethodCall extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return method.lpcReturnType();
+	return method.symbol().lpcType();
     }
 
     @Override
@@ -37,7 +37,7 @@ public class ASTExprMethodCall extends ASTExpression {
 
 	arguments.toBytecode(mv);
 
-	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.name(), method.descriptor(), false);
+	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.symbol().name(), method.descriptor(), false);
 
 	// Pop if the method returns a value but it's unused
 //		if (!method.lpcReturnType().equals("V"))

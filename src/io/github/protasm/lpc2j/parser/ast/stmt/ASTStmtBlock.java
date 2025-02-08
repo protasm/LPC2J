@@ -4,8 +4,6 @@ import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
 
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
-
 public class ASTStmtBlock extends ASTStatement {
     private final List<ASTStatement> statements;
 

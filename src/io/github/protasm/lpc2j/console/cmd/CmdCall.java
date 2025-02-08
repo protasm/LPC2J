@@ -1,8 +1,6 @@
 package io.github.protasm.lpc2j.console.cmd;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import io.github.protasm.lpc2j.console.Console;
 

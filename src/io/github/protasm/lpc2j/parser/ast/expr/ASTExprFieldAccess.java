@@ -22,20 +22,20 @@ public class ASTExprFieldAccess extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return field.lpcType();
+	return field.symbol().lpcType();
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
 	mv.visitVarInsn(ALOAD, 0);
-	mv.visitFieldInsn(GETFIELD, field.ownerName(), field.name(), field.descriptor());
+	mv.visitFieldInsn(GETFIELD, field.ownerName(), field.symbol().name(), field.descriptor());
     }
 
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("%s(field=%s)", className(), field.name()));
+	sb.append(String.format("%s(field=%s)", className(), field.symbol()));
 
 	return sb.toString();
     }

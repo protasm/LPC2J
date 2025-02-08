@@ -48,7 +48,7 @@ public class Compiler {
 
     private void fields() {
 	for (ASTField field : astObject.fields()) {
-	    FieldVisitor fv = classWriter.visitField(ACC_PRIVATE, field.name(), field.descriptor(), null, null);
+	    FieldVisitor fv = classWriter.visitField(ACC_PRIVATE, field.symbol().name(), field.descriptor(), null, null);
 
 	    if (fv != null)
 		fv.visitEnd();
@@ -71,7 +71,7 @@ public class Compiler {
 
 		field.initializer().toBytecode(mv); // Generate bytecode for the initializer
 
-		mv.visitFieldInsn(PUTFIELD, astObject.name(), field.name(), field.descriptor());
+		mv.visitFieldInsn(PUTFIELD, astObject.name(), field.symbol().name(), field.descriptor());
 	    }
 
 	mv.visitInsn(RETURN);
@@ -82,7 +82,7 @@ public class Compiler {
 
     private void methods() {
 	for (ASTMethod method : astObject.methods()) {
-	    MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC, method.name(), method.descriptor(), null, null);
+	    MethodVisitor mv = classWriter.visitMethod(ACC_PUBLIC, method.symbol().name(), method.descriptor(), null, null);
 
 	    mv.visitCode();
 

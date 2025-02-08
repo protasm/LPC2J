@@ -27,12 +27,12 @@ public class ASTExprLocalAccess extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return local.lpcType();
+	return local.symbol().lpcType();
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
-	switch (local.lpcType()) {
+	switch (local.symbol().lpcType()) {
 	case LPCINT:
 	case LPCSTATUS:
 	    mv.visitVarInsn(ILOAD, local.slot());
@@ -42,7 +42,7 @@ public class ASTExprLocalAccess extends ASTExpression {
 	    mv.visitVarInsn(ALOAD, local.slot());
 	    break;
 	default:
-	    throw new IllegalStateException("Unsupported type: " + local.lpcType());
+	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}
     }
 

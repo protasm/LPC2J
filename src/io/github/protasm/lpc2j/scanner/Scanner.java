@@ -60,7 +60,6 @@ import org.anarres.cpp.StringLexerSource;
 
 import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
-import io.github.protasm.lpc2j.fs.FSSourceFile;
 
 public class Scanner {
     private static final char EOL = '\n';

@@ -3,6 +3,8 @@ package io.github.protasm.lpc2j.parser;
 import java.util.ListIterator;
 import java.util.Stack;
 
+import io.github.protasm.lpc2j.LPCType;
+
 public class Locals {
     private Stack<Local> locals;
     private int workingScopeDepth;
@@ -12,7 +14,7 @@ public class Locals {
 	workingScopeDepth = 1;
 
 	// Locals slot 0 reserved for "this"
-	Local local = new Local(null, "this");
+	Local local = new Local(new Symbol(LPCType.LPCOBJECT, "this"));
 
 	local.setScopeDepth(0);
 
@@ -39,7 +41,7 @@ public class Locals {
 	while (localsItr.hasPrevious()) {
 	    Local local = localsItr.previous();
 
-	    if (local.name().equals(name))
+	    if (local.symbol().name().equals(name))
 		if (local.scopeDepth() == -1) // "sentinel" value
 		    throw new ParseException("Can't read local variable in its own initializer.");
 		else

@@ -4,7 +4,6 @@ import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.LPCType;
 import io.github.protasm.lpc2j.parser.Local;
-import io.github.protasm.lpc2j.parser.ast.ASTField;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -29,14 +28,14 @@ public class ASTExprLocalStore extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return local.lpcType();
+	return local.symbol().lpcType();
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
 	value.toBytecode(mv);
 
-	switch (local.lpcType()) {
+	switch (local.symbol().lpcType()) {
 	case LPCINT:
 	case LPCSTATUS:
 	    mv.visitVarInsn(ISTORE, local.slot());
@@ -46,7 +45,7 @@ public class ASTExprLocalStore extends ASTExpression {
 	    mv.visitVarInsn(ASTORE, local.slot());
 	    break;
 	default:
-	    throw new IllegalStateException("Unsupported type: " + local.lpcType());
+	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}
     }
 

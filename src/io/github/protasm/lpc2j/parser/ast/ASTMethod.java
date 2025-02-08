@@ -2,22 +2,20 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.Symbol;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
-import io.github.protasm.lpc2j.LPCType;
 
 public class ASTMethod extends ASTNode {
     private final String ownerName;
-    private final LPCType lpcReturnType;
-    private final String name;
+    private final Symbol symbol;
     private ASTParameters parameters;
     private ASTStmtBlock body;
 
-    public ASTMethod(int line, String ownerName, LPCType lpcType, String name) {
+    public ASTMethod(int line, String ownerName, Symbol symbol) {
 	super(line);
 
 	this.ownerName = ownerName;
-	this.lpcReturnType = lpcType;
-	this.name = name;
+	this.symbol = symbol;
 
 	parameters = null;
 	body = null;
@@ -27,12 +25,8 @@ public class ASTMethod extends ASTNode {
 	return ownerName;
     }
 
-    public LPCType lpcReturnType() {
-	return lpcReturnType;
-    }
-
-    public String name() {
-	return name;
+    public Symbol symbol() {
+	return symbol;
     }
 
     public ASTParameters parameters() {
@@ -52,7 +46,7 @@ public class ASTMethod extends ASTNode {
     }
 
     public String descriptor() {
-	return parameters.descriptor() + lpcReturnType.jType().descriptor();
+	return parameters.descriptor() + symbol.descriptor();
     }
 
     @Override
@@ -64,7 +58,7 @@ public class ASTMethod extends ASTNode {
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("%s(%s %s)\n", className(), lpcReturnType, name));
+	sb.append(String.format("%s(%s)\n", className(), symbol));
 
 	sb.append(parameters);
 

@@ -28,7 +28,7 @@ public class ASTExprFieldStore extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return field.lpcType();
+	return field.symbol().lpcType();
     }
 
     @Override
@@ -37,14 +37,14 @@ public class ASTExprFieldStore extends ASTExpression {
 
 	value.toBytecode(mv);
 
-	mv.visitFieldInsn(PUTFIELD, field.ownerName(), field.name(), field.descriptor());
+	mv.visitFieldInsn(PUTFIELD, field.ownerName(), field.symbol().name(), field.symbol().descriptor());
     }
 
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("%s(field=%s, value=%s)", className(), field.name(), value));
+	sb.append(String.format("%s(field=%s, value=%s)", className(), field.symbol(), value));
 
 	return sb.toString();
     }

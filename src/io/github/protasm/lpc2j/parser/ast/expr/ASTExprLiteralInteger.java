@@ -4,7 +4,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import io.github.protasm.lpc2j.LPCType;
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprLiteralInteger extends ASTExpression {

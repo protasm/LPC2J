@@ -1,27 +1,19 @@
 package io.github.protasm.lpc2j.parser;
 
-import io.github.protasm.lpc2j.LPCType;
-
 public class Local {
-    private LPCType lpcType;
-    private String name;
+    private final Symbol symbol;
     private int slot;
     private int scopeDepth;
 
-    public Local(LPCType lpcType, String name) {
-	this.lpcType = lpcType;
-	this.name = name;
+    public Local(Symbol symbol) {
+	this.symbol = symbol;
 
 	slot = -1;
 	scopeDepth = -1;
     }
 
-    public LPCType lpcType() {
-	return lpcType;
-    }
-
-    public String name() {
-	return name;
+    public Symbol symbol() {
+	return symbol;
     }
 
     public int slot() {
@@ -41,14 +33,14 @@ public class Local {
     }
 
     public String descriptor() {
-	return lpcType.jType().descriptor();
+	return symbol.descriptor();
     }
 
     @Override
     public String toString() {
 	StringBuilder sb = new StringBuilder();
 
-	sb.append(String.format("Local(type=%s, name=%s, slot=%d, depth=%d)", lpcType, name, slot, scopeDepth));
+	sb.append(String.format("Local(symbol=%s, slot=%d, depth=%d)", symbol, slot, scopeDepth));
 
 	return sb.toString();
     }

@@ -2,7 +2,6 @@ package io.github.protasm.lpc2j.parser;
 
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,11 +13,9 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.LPCType;
-import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.parselet.*;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.Tokens;
-import io.github.protasm.lpc2j.scanner.*;
 
 public class Parser {
     private Tokens tokens;
@@ -86,28 +83,27 @@ public class Parser {
     private void property(boolean define) {
 	Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect property type.");
 	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
-	LPCType lpcType = typeToken.literal();
-	String name = nameToken.lexeme();
+	Symbol symbol = new Symbol(typeToken, nameToken);
 
 	if (tokens.match(T_LEFT_PAREN))
-	    method(lpcType, name, define);
+	    method(symbol, define);
 	else
-	    field(lpcType, name, define);
+	    field(symbol, define);
     }
 
-    private void field(LPCType lpcType, String name, boolean define) {
+    private void field(Symbol symbol, boolean define) {
 	if (!define) {
 	    skipFieldInit();
 
-	    ASTField field = new ASTField(currLine(), currObj.name(), lpcType, name);
+	    ASTField field = new ASTField(currLine(), currObj.name(), symbol);
 
-	    currObj.fields().put(field.name(), field);
+	    currObj.fields().put(field.symbol().name(), field);
 
 	    return;
 	}
 
 	if (tokens.match(T_EQUAL)) {
-	    ASTField field = currObj.fields().get(name);
+	    ASTField field = currObj.fields().get(symbol.name());
 	    ASTExpression initializer = expression();
 
 	    field.setInitializer(initializer);
@@ -116,18 +112,18 @@ public class Parser {
 	tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
     }
 
-    private void method(LPCType lpcType, String name, boolean define) {
+    private void method(Symbol symbol, boolean define) {
 	if (!define) {
 	    skipMethodBody();
 
-	    ASTMethod method = new ASTMethod(currLine(), currObj.name(), lpcType, name);
+	    ASTMethod method = new ASTMethod(currLine(), currObj.name(), symbol);
 
-	    currObj.methods().put(method.name(), method);
+	    currObj.methods().put(method.symbol().name(), method);
 
 	    return;
 	}
 
-	ASTMethod method = currObj.methods().get(name);
+	ASTMethod method = currObj.methods().get(symbol.name());
 
 	locals = new Locals();
 
@@ -175,11 +171,10 @@ public class Parser {
 	do {
 	    Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
 	    Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-	    LPCType lpcType = typeToken.literal();
-	    String name = nameToken.lexeme();
+	    Symbol symbol = new Symbol(typeToken, nameToken);
 
-	    ASTParameter param = new ASTParameter(currLine(), lpcType, name);
-	    Local local = new Local(lpcType, name);
+	    ASTParameter param = new ASTParameter(currLine(), symbol);
+	    Local local = new Local(symbol);
 
 	    params.add(param);
 
@@ -243,13 +238,12 @@ public class Parser {
     private Local local() {
 	Token<LPCType> typeToken = tokens.previous();
 	Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
-	LPCType lpcType = typeToken.literal();
-	String name = nameToken.lexeme();
+	Symbol symbol = new Symbol(typeToken, nameToken);
 
-	if (locals.hasCollision(name))
-	    throw new ParseException("Already a local variable named '" + name + "' in current scope.");
+	if (locals.hasCollision(symbol.name()))
+	    throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
 
-	return new Local(lpcType, name);
+	return new Local(symbol);
     }
 
     public ASTStatement statement() {
@@ -334,22 +328,5 @@ public class Parser {
 		throw new ParseException("Invalid assignment target.", tokens.current());
 
 	return expr;
-    }
-
-    public static void main(String[] args) throws IOException {
-	if (args.length != 1) {
-	    System.err.println("Usage: java Parser <source-file>");
-
-	    System.exit(1);
-	}
-
-	FSSourceFile sf = new FSSourceFile("/Users/jonathan/brainjar", args[0]);
-	Scanner scanner = new Scanner();
-	Tokens tokens = scanner.scan(sf.source());
-	Parser parser = new Parser();
-
-	ASTObject ast = parser.parse(sf.slashName(), tokens);
-
-	System.out.println(ast);
     }
 }

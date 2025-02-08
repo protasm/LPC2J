@@ -87,7 +87,7 @@ public class Parser {
 	if (tokens.match(T_LEFT_PAREN))
 	    method(symbol, define);
 	else
-	    field(symbol, define);
+	    field(symbol, define); //TODO: field(s)
     }
 
     private void field(Symbol symbol, boolean define) {
@@ -100,7 +100,9 @@ public class Parser {
 
 	    return;
 	}
-
+	
+	// TODO:  what about int x, y = 45, z;?
+	
 	if (tokens.match(T_EQUAL)) {
 	    ASTField field = currObj.fields().get(symbol.name());
 	    ASTExpression initializer = expression();
@@ -211,11 +213,13 @@ public class Parser {
 	List<ASTStatement> statements = new ArrayList<>();
 
 	while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-	    if (tokens.match(T_TYPE)) { // local declaration
+	    if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
 		Local local = local();
 
 		locals.add(local, true); // sets slot # and depth
-
+		
+		// TODO:  what about int x, y = 45, z;?
+		
 		if (tokens.match(T_EQUAL)) { // local assignment
 		    ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
 		    ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);

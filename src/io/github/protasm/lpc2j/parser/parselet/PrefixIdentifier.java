@@ -31,7 +31,7 @@ public class PrefixIdentifier implements PrefixParselet {
 		Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
 
 		return new ASTExprLocalMethodInvoke(line, local.slot(), nameToken.lexeme(), parser.arguments());
-		// Assign?
+	    // Assign?
 	    } else if (canAssign && parser.tokens().match(T_EQUAL))
 		return new ASTExprLocalStore(line, local, parser.expression());
 	    // Retrieve.
@@ -42,8 +42,11 @@ public class PrefixIdentifier implements PrefixParselet {
 
 	// Field?
 	if (field != null)
+	    // Invoke?
+	    if (parser.tokens().match(T_RIGHT_ARROW)) {
+		return null; // TODO
 	    // Assign?
-	    if (canAssign && parser.tokens().match(T_EQUAL))
+	    } else if (canAssign && parser.tokens().match(T_EQUAL))
 		return new ASTExprFieldStore(line, field, parser.expression());
 	    // Retrieve.
 	    else

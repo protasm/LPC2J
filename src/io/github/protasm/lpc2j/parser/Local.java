@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.parser;
 
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
+
 public class Local {
     private final Symbol symbol;
     private int slot;
@@ -38,10 +40,6 @@ public class Local {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("Local(symbol=%s, slot=%d, depth=%d)", symbol, slot, scopeDepth));
-
-	return sb.toString();
+	return String.format("%sLocal(%s, slot=%d, depth=%d)", ASTNode.indent(), symbol, slot, scopeDepth);
     }
 }

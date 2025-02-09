@@ -1,8 +1,11 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
 import java.util.List;
+import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
+
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 public class ASTStmtBlock extends ASTStatement {
     private final List<ASTStatement> statements;
@@ -25,13 +28,20 @@ public class ASTStmtBlock extends ASTStatement {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
+
+	ASTNode.indentLvl++;
+
+	if (statements.size() == 0)
+	    sj.add(String.format("%s[No Statements]", ASTNode.indent()));
 
 	for (ASTStatement stmt : statements)
-	    sb.append(stmt);
+	    sj.add(String.format("%s", stmt));
 
-	return sb.toString();
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

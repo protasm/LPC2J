@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import java.util.StringJoiner;
+
 public class ASTObject extends ASTNode {
     private String parentName;
     private final String name;
@@ -38,17 +40,22 @@ public class ASTObject extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
 	if (parentName != null)
-	    sb.append(String.format("%s(%s inherits %s)\n", className(), name, parentName));
+	    sj.add(String.format("%s(%s inherits %s)", className(), name, parentName));
 	else
-	    sb.append(String.format("%s(%s)\n", className(), name));
+	    sj.add(String.format("%s(%s)", className(), name));
 
-	sb.append(fields);
+	ASTNode.indentLvl++;
 
-	sb.append(methods);
+	sj.add(String.format("%s", fields));
+	sj.add(String.format("%s", methods));
 
-	return sb.toString();
+	ASTNode.indentLvl--;
+
+	sj.add("End Object\n");
+
+	return sj.toString();
     }
 }

@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import java.util.StringJoiner;
+
 import io.github.protasm.lpc2j.parser.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
@@ -39,10 +41,18 @@ public class ASTField extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s(%s)\n", className(), symbol));
+	sj.add(String.format("%s%s(%s)", ASTNode.indent(), className(), symbol));
 
-	return sb.toString();
+	if (initializer != null) {
+	    ASTNode.indentLvl++;
+
+	    sj.add(String.format("%s", initializer));
+
+	    ASTNode.indentLvl--;
+	}
+
+	return sj.toString();
     }
 }

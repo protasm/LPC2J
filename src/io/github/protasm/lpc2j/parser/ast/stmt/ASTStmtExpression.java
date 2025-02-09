@@ -1,7 +1,10 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
+import java.util.StringJoiner;
+
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtExpression extends ASTStatement {
@@ -24,10 +27,16 @@ public class ASTStmtExpression extends ASTStatement {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", expression));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

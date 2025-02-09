@@ -1,33 +1,41 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import java.util.StringJoiner;
+
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTArgument extends ASTNode {
-    private final ASTExpression expr;
+    private final ASTExpression expression;
 
     public ASTArgument(int line, ASTExpression expr) {
 	super(line);
 
-	this.expr = expr;
+	this.expression = expr;
     }
 
-    public ASTExpression expr() {
-	return expr;
+    public ASTExpression expression() {
+	return expression;
     }
 
     @Override
     public void toBytecode(MethodVisitor mv) {
-	expr.toBytecode(mv);
+	expression.toBytecode(mv);
     }
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className(), expr));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", expression));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

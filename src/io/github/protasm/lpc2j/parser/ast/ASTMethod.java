@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import java.util.StringJoiner;
+
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.Symbol;
@@ -56,14 +58,17 @@ public class ASTMethod extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s(%s)\n", className(), symbol));
+	sj.add(String.format("\n%s%s(%s)", ASTNode.indent(), className(), symbol));
 
-	sb.append(parameters);
+	ASTNode.indentLvl++;
 
-	sb.append(body);
+	sj.add(String.format("%s\n", parameters));
+	sj.add(String.format("%s", body));
 
-	return sb.toString();
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

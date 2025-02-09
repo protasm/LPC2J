@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.parser.ast;
 import org.objectweb.asm.MethodVisitor;
 
 public abstract class ASTNode {
-    protected static int indentLvl = 0;
+    public static int indentLvl = 0;
 
     protected final int line;
 
@@ -13,6 +13,15 @@ public abstract class ASTNode {
 
     public int line() {
 	return line;
+    }
+
+    public static String indent() {
+//	return String.valueOf(indentLvl).toString().repeat(indentLvl);
+	return indent("\u22A2");
+    }
+    
+    public static String indent(String suffix) {
+	return " ".repeat(indentLvl) + suffix;
     }
 
     protected String className() {

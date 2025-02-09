@@ -2,10 +2,13 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 import org.objectweb.asm.Label;
 import static org.objectweb.asm.Opcodes.*;
+
+import java.util.StringJoiner;
 
 public class ASTStmtIfThenElse extends ASTStatement {
     private final ASTExpression condition;
@@ -61,10 +64,42 @@ public class ASTStmtIfThenElse extends ASTStatement {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s[IF]", ASTNode.indent()));
+
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", condition));
+
+	ASTNode.indentLvl--;
+
+	sj.add(String.format("%s[THEN]", ASTNode.indent()));
+
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", thenBranch));
+
+	ASTNode.indentLvl--;
+
+	if (elseBranch != null) {
+	    sj.add(String.format("%s[ELSE]", ASTNode.indent()));
+
+	    ASTNode.indentLvl++;
+
+	    sj.add(String.format("%s", elseBranch));
+
+	    ASTNode.indentLvl--;
+
+	} else
+	    sj.add(String.format("%s[No Else Condition]", ASTNode.indent()));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

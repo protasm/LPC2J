@@ -5,9 +5,12 @@ import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.UnaryOpType;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 import static io.github.protasm.lpc2j.parser.LPCType.*;
 import static org.objectweb.asm.Opcodes.*;
+
+import java.util.StringJoiner;
 
 public class ASTExprOpUnary extends ASTExpression {
     private final ASTExpression right;
@@ -80,10 +83,6 @@ public class ASTExprOpUnary extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("%s(%s)", className(), operator));
-
-	return sb.toString();
+	return String.format("%s%s(%s)", ASTNode.indent(), className(), operator);
     }
 }

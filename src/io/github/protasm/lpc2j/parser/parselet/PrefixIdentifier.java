@@ -7,12 +7,12 @@ import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalMethodInvoke;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalInvoke;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.scanner.Token;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMethodCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
 
 import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
@@ -30,8 +30,8 @@ public class PrefixIdentifier implements PrefixParselet {
 	    if (parser.tokens().match(T_RIGHT_ARROW)) {
 		Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
 
-		return new ASTExprLocalMethodInvoke(line, local.slot(), nameToken.lexeme(), parser.arguments());
-	    // Assign?
+		return new ASTExprLocalInvoke(line, local.slot(), nameToken.lexeme(), parser.arguments());
+		// Assign?
 	    } else if (canAssign && parser.tokens().match(T_EQUAL))
 		return new ASTExprLocalStore(line, local, parser.expression());
 	    // Retrieve.
@@ -45,7 +45,7 @@ public class PrefixIdentifier implements PrefixParselet {
 	    // Invoke?
 	    if (parser.tokens().match(T_RIGHT_ARROW)) {
 		return null; // TODO
-	    // Assign?
+		// Assign?
 	    } else if (canAssign && parser.tokens().match(T_EQUAL))
 		return new ASTExprFieldStore(line, field, parser.expression());
 	    // Retrieve.
@@ -57,7 +57,7 @@ public class PrefixIdentifier implements PrefixParselet {
 	// Method of same object?
 	if (method != null)
 	    // Call.
-	    return new ASTExprMethodCall(line, method, parser.arguments());
+	    return new ASTExprCall(line, method, parser.arguments());
 
 	throw new ParseException("Unrecognized identifier '" + identifier + "'.");
     }

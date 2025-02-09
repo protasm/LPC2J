@@ -51,7 +51,7 @@ public class Console {
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
 
-	new CmdLoad().execute(this, "obj/weapon/sword.lpc");
+	new CmdParse().execute(this, "obj/weapon/sword.lpc");
 	new CmdParse().execute(this, "obj/armor/armor.lpc");
     }
 

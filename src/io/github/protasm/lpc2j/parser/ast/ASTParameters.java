@@ -2,6 +2,7 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 public class ASTParameters extends ASTNode {
     private final List<ASTParameter> parameters;
@@ -15,6 +16,10 @@ public class ASTParameters extends ASTNode {
     public void add(ASTParameter parameter) {
 	parameters.add(parameter);
     }
+    
+    public int size() {
+	return parameters.size();
+    }
 
     public String descriptor() {
 	StringBuilder sb = new StringBuilder();
@@ -27,11 +32,14 @@ public class ASTParameters extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
+
+	if (parameters.size() == 0)
+	    return String.format("%s[No Parameters]", ASTNode.indent());
 
 	for (ASTParameter param : parameters)
-	    sb.append(param);
+	    sj.add(String.format("%s", param));
 
-	return sb.toString();
+	return sj.toString();
     }
 }

@@ -21,10 +21,6 @@ public class ASTParameter extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("%s(%s)\n", className(), symbol));
-
-	return sb.toString();
+	return String.format("%s%s(%s)", ASTNode.indent(), className(), symbol);
     }
 }

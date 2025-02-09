@@ -4,9 +4,12 @@ import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.BinaryOpType;
 import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 import static io.github.protasm.lpc2j.parser.LPCType.*;
 import static org.objectweb.asm.Opcodes.*;
+
+import java.util.StringJoiner;
 
 import org.objectweb.asm.Label;
 
@@ -100,10 +103,17 @@ public class ASTExprOpBinary extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s(%s)", className(), operator));
+	sj.add(String.format("%s%s(%s)", ASTNode.indent(), className(), operator));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", left));
+	sj.add(String.format("%s", right));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

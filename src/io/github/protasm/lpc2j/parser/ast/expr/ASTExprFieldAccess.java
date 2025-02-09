@@ -4,8 +4,11 @@ import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 import static org.objectweb.asm.Opcodes.*;
+
+import java.util.StringJoiner;
 
 public class ASTExprFieldAccess extends ASTExpression {
     private ASTField field;
@@ -33,10 +36,16 @@ public class ASTExprFieldAccess extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s(field=%s)", className(), field.symbol()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", field));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

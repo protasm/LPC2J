@@ -4,6 +4,7 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_EOF;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 import io.github.protasm.lpc2j.parser.ParseException;
 
@@ -93,11 +94,11 @@ public class Tokens {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
 	for (Token<?> token : tokens)
-	    sb.append(String.format("%s\n", token));
+	    sj.add(String.format("%s\n", token));
 
-	return sb.toString();
+	return sj.toString();
     }
 }

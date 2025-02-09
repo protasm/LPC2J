@@ -4,6 +4,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprLiteralInteger extends ASTExpression {
@@ -38,10 +39,6 @@ public class ASTExprLiteralInteger extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("%s(value=%s)", className(), value));
-
-	return sb.toString();
+	return String.format("%s%s(%s)", ASTNode.indent(), className(), value);
     }
 }

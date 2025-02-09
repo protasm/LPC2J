@@ -5,15 +5,18 @@ import org.objectweb.asm.Type;
 
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.StringJoiner;
+
 import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
-public class ASTExprLocalMethodInvoke extends ASTExpression {
+public class ASTExprLocalInvoke extends ASTExpression {
     private final Integer slot;
     private final String methodName;
     private final ASTArguments args;
 
-    public ASTExprLocalMethodInvoke(int line, int slot, String methodName, ASTArguments args) {
+    public ASTExprLocalInvoke(int line, int slot, String methodName, ASTArguments args) {
 	super(line);
 
 	this.slot = slot;
@@ -65,7 +68,7 @@ public class ASTExprLocalMethodInvoke extends ASTExpression {
 	    mv.visitLdcInsn(i); // Push array index.
 
 	    // Get the LPC type for the i-th argument.
-	    LPCType argType = args.get(i).expr().lpcType();
+	    LPCType argType = args.get(i).expression().lpcType();
 
 	    pushLPCTypeClass(mv, argType); // Push the corresponding Java Class object.
 
@@ -121,10 +124,16 @@ public class ASTExprLocalMethodInvoke extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s", className()));
+	sj.add(String.format("%s%s(slot=%d, methodName=%s)", ASTNode.indent(), className(), slot, methodName));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", args));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

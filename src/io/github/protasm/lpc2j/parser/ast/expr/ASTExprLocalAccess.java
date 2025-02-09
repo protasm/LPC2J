@@ -2,23 +2,20 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 
 import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.Local;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
 import org.objectweb.asm.MethodVisitor;
 import static org.objectweb.asm.Opcodes.*;
 
+import java.util.StringJoiner;
+
 public class ASTExprLocalAccess extends ASTExpression {
-    private final int line;
     private final Local local;
 
     public ASTExprLocalAccess(int line, Local local) {
 	super(line);
 
-	this.line = line;
 	this.local = local;
-    }
-
-    public int line() {
-	return line;
     }
 
     public Local local() {
@@ -48,10 +45,16 @@ public class ASTExprLocalAccess extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	sj.add(String.format("%s", local));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

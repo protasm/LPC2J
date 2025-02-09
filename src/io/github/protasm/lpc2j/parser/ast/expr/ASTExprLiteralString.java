@@ -3,6 +3,7 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprLiteralString extends ASTExpression {
@@ -30,10 +31,6 @@ public class ASTExprLiteralString extends ASTExpression {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
-
-	sb.append(String.format("%s(value=%s)", className(), value));
-
-	return sb.toString();
+	return String.format("%s%s(\"%s\")", ASTNode.indent(), className(), value);
     }
 }

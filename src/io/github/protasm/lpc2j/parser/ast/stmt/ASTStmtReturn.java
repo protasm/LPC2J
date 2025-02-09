@@ -1,8 +1,11 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
+import java.util.StringJoiner;
+
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
 public class ASTStmtReturn extends ASTStatement {
@@ -44,10 +47,19 @@ public class ASTStmtReturn extends ASTStatement {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("%s\n", className()));
+	sj.add(String.format("%s%s", ASTNode.indent(), className()));
 
-	return sb.toString();
+	ASTNode.indentLvl++;
+
+	if (value != null)
+	    sj.add(String.format("%s", value));
+	else
+	    sj.add(String.format("%s[No Return Value]", ASTNode.indent()));
+
+	ASTNode.indentLvl--;
+
+	return sj.toString();
     }
 }

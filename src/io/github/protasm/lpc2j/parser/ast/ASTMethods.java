@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 public class ASTMethods extends ASTNode implements Iterable<ASTMethod> {
     private Map<String, ASTMethod> methods;
@@ -27,6 +28,10 @@ public class ASTMethods extends ASTNode implements Iterable<ASTMethod> {
 	return methods.get(name);
     }
 
+    public int size() {
+	return methods.size();
+    }
+
     @Override
     public Iterator<ASTMethod> iterator() {
 	return methods.values().iterator();
@@ -34,11 +39,14 @@ public class ASTMethods extends ASTNode implements Iterable<ASTMethod> {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
+	if (methods.size() == 0)
+	    return String.format("%s[No Fields]", ASTNode.indent());
+	
 	for (ASTMethod method : methods.values())
-	    sb.append(method);
+	    sj.add(String.format("%s", method));
 
-	return sb.toString();
+	return sj.toString();
     }
 }

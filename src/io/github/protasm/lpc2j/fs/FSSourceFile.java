@@ -3,6 +3,7 @@ package io.github.protasm.lpc2j.fs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.StringJoiner;
 
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Tokens;
@@ -132,12 +133,12 @@ public class FSSourceFile {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
 
-	sb.append(String.format("relPath=%s\n", relPath));
-	sb.append(String.format("slashName=%s\n", slashName()));
-	sb.append(String.format("dotName=%s\n", dotName()));
+	sj.add(String.format("relPath=%s", relPath));
+	sj.add(String.format("slashName=%s", slashName()));
+	sj.add(String.format("dotName=%s", dotName()));
 
-	return sb.toString();
+	return sj.toString();
     }
 }

@@ -2,6 +2,7 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
 
@@ -50,11 +51,14 @@ public class ASTArguments extends ASTNode {
 
     @Override
     public String toString() {
-	StringBuilder sb = new StringBuilder();
+	StringJoiner sj = new StringJoiner("\n");
+
+	if (arguments.size() == 0)
+	    return String.format("%s[No Arguments]", ASTNode.indent());
 
 	for (ASTArgument arg : arguments)
-	    sb.append(arg);
+	    sj.add(String.format("%s", arg));
 
-	return sb.toString();
+	return sj.toString();
     }
 }

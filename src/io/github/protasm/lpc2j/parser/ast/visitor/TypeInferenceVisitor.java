@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast.visitor;
 
-import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
@@ -22,6 +22,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class TypeInferenceVisitor implements TypeInferenceVisitorIntfc {
 	@Override
@@ -106,5 +107,9 @@ public class TypeInferenceVisitor implements TypeInferenceVisitorIntfc {
 
 	@Override
 	public void visit(ASTStmtReturn stmt, LPCType lpcType) {
+	}
+
+	@Override
+	public void visit(ASTLocal local, LPCType lpcType) {
 	}
 }

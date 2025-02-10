@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static io.github.protasm.lpc2j.parser.BinaryOpType.*;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.*;
 
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.ParseRule;

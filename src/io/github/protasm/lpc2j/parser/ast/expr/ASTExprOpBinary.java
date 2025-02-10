@@ -2,12 +2,12 @@ package io.github.protasm.lpc2j.parser.ast.expr;
 
 import org.objectweb.asm.MethodVisitor;
 
-import io.github.protasm.lpc2j.parser.BinaryOpType;
-import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
+import io.github.protasm.lpc2j.parser.type.BinaryOpType;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
-import static io.github.protasm.lpc2j.parser.LPCType.*;
+import static io.github.protasm.lpc2j.parser.type.LPCType.*;
 import static org.objectweb.asm.Opcodes.*;
 
 import org.objectweb.asm.Label;

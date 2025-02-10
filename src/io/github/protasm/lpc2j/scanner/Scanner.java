@@ -59,7 +59,7 @@ import org.anarres.cpp.Preprocessor;
 import org.anarres.cpp.StringLexerSource;
 
 import io.github.protasm.lpc2j.fs.FSSourceFile;
-import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class Scanner {
 	private static final char EOL = '\n';

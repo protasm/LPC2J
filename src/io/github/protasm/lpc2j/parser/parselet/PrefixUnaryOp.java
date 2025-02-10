@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static io.github.protasm.lpc2j.parser.UnaryOpType.*;
+import static io.github.protasm.lpc2j.parser.type.UnaryOpType.*;
 
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.PrattParser;

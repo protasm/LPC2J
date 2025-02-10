@@ -13,6 +13,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.parselet.*;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.Tokens;
 

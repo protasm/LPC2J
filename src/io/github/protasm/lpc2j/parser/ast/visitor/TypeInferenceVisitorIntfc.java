@@ -1,6 +1,5 @@
 package io.github.protasm.lpc2j.parser.ast.visitor;
 
-import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
@@ -8,6 +7,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.expr.*;
 import io.github.protasm.lpc2j.parser.ast.stmt.*;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
 interface TypeInferenceVisitorIntfc {
 	void visit(ASTObject object, LPCType lpcType);

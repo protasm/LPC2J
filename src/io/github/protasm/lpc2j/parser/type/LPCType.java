@@ -1,6 +1,6 @@
-package io.github.protasm.lpc2j.parser;
+package io.github.protasm.lpc2j.parser.type;
 
-import static io.github.protasm.lpc2j.parser.JType.*;
+import static io.github.protasm.lpc2j.parser.type.JType.*;
 
 public enum LPCType {
 	LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(JOBJECT), LPCNULL(JNULL), LPCOBJECT(JOBJECT),

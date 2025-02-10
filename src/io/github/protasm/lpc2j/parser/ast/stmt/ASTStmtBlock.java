@@ -4,9 +4,9 @@ import java.util.List;
 
 import org.objectweb.asm.MethodVisitor;
 
-import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTStmtBlock extends ASTStatement {
 	private final List<ASTStatement> statements;

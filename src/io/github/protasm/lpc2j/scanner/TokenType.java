@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.scanner;
 
-import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public enum TokenType {
 	// Operators and punctuation

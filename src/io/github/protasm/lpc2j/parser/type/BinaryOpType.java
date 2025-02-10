@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j.parser;
+package io.github.protasm.lpc2j.parser.type;
 
 import static org.objectweb.asm.Opcodes.*;
 

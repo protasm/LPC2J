@@ -4,6 +4,7 @@ import java.util.ListIterator;
 import java.util.Stack;
 
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class Locals {

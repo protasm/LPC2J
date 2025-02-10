@@ -9,50 +9,49 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTStmtReturn extends ASTStatement {
-	private final ASTExpression value; // return value, if any
+    private final ASTExpression value; // return value, if any
 
-	public ASTStmtReturn(int line, ASTExpression value) {
-		super(line);
+    public ASTStmtReturn(int line, ASTExpression value) {
+	super(line);
 
-		this.value = value;
+	this.value = value;
+    }
+
+    public ASTExpression value() {
+	return value;
+    }
+
+    @Override
+    public void accept(MethodVisitor mv) {
+	if (value == null) {
+	    mv.visitInsn(Opcodes.RETURN);
+
+	    return;
 	}
 
-	public ASTExpression value() {
-		return value;
+	value.accept(mv);
+
+	switch (value.lpcType()) {
+	case LPCINT:
+	    mv.visitInsn(Opcodes.IRETURN);
+	    break;
+	case LPCMIXED:
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitInsn(Opcodes.ARETURN);
+	    break;
+	default:
+	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
 	}
+    }
 
-	@Override
-	public void accept(MethodVisitor mv) {
-		if (value == null) {
-			mv.visitInsn(Opcodes.RETURN);
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+	visitor.visit(this, lpcType);
+    }
 
-			return;
-		}
-
-		value.accept(mv);
-
-		switch (value.lpcType()) {
-		case LPCINT:
-			mv.visitInsn(Opcodes.IRETURN);
-		break;
-		case LPCMIXED:
-		case LPCSTRING:
-		case LPCOBJECT:
-			mv.visitInsn(Opcodes.ARETURN);
-		break;
-		default:
-			throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
-		}
-	}
-
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+	visitor.visit(this);
+    }
 }

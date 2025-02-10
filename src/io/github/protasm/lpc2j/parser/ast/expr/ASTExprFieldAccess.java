@@ -10,37 +10,36 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprFieldAccess extends ASTExpression {
-	private ASTField field;
+    private ASTField field;
 
-	public ASTExprFieldAccess(int line, ASTField field) {
-		super(line);
+    public ASTExprFieldAccess(int line, ASTField field) {
+	super(line);
 
-		this.field = field;
-	}
+	this.field = field;
+    }
 
-	public ASTField field() {
-		return field;
-	}
+    public ASTField field() {
+	return field;
+    }
 
-	@Override
-	public LPCType lpcType() {
-		return field.symbol().lpcType();
-	}
+    @Override
+    public LPCType lpcType() {
+	return field.symbol().lpcType();
+    }
 
-	@Override
-	public void accept(MethodVisitor mv) {
-		mv.visitVarInsn(ALOAD, 0);
-		mv.visitFieldInsn(GETFIELD, field.ownerName(), field.symbol().name(), field.descriptor());
-	}
+    @Override
+    public void accept(MethodVisitor mv) {
+	mv.visitVarInsn(ALOAD, 0);
+	mv.visitFieldInsn(GETFIELD, field.ownerName(), field.symbol().name(), field.descriptor());
+    }
 
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		// TODO Auto-generated method stub
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+	visitor.visit(this, lpcType);
+    }
 
-	}
-
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+	visitor.visit(this);
+    }
 }

@@ -1,60 +1,37 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
-public class ASTParameters extends ASTNode implements Iterable<ASTParameter> {
-	private final List<ASTParameter> parameters;
+public class ASTParameters extends ASTListNode<ASTParameter> {
+    public ASTParameters(int line) {
+	super(line);
+    }
 
-	public ASTParameters(int line) {
-		super(line);
+    public String descriptor() {
+	StringBuilder sb = new StringBuilder();
 
-		this.parameters = new ArrayList<>();
-	}
+	for (ASTParameter param : nodes)
+	    sb.append(param.descriptor());
 
-	public void add(ASTParameter parameter) {
-		parameters.add(parameter);
-	}
+	return "(" + sb.toString().trim() + ")";
+    }
 
-	public int size() {
-		return parameters.size();
-	}
+    @Override
+    public void accept(MethodVisitor visitor) {
+	// TODO Auto-generated method stub
+    }
 
-	public String descriptor() {
-		StringBuilder sb = new StringBuilder();
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+	visitor.visit(this, lpcType);
+    }
 
-		for (ASTParameter param : parameters)
-			sb.append(param.descriptor());
-
-		return "(" + sb.toString().trim() + ")";
-	}
-
-	@Override
-	public Iterator<ASTParameter> iterator() {
-		return parameters.iterator();
-	}
-
-	@Override
-	public void accept(MethodVisitor visitor) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+	visitor.visit(this);
+    }
 }

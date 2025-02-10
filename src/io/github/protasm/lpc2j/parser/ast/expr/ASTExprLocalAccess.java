@@ -9,47 +9,46 @@ import org.objectweb.asm.MethodVisitor;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprLocalAccess extends ASTExpression {
-	private final ASTLocal local;
+    private final ASTLocal local;
 
-	public ASTExprLocalAccess(int line, ASTLocal local) {
-		super(line);
+    public ASTExprLocalAccess(int line, ASTLocal local) {
+	super(line);
 
-		this.local = local;
+	this.local = local;
+    }
+
+    public ASTLocal local() {
+	return local;
+    }
+
+    @Override
+    public LPCType lpcType() {
+	return local.symbol().lpcType();
+    }
+
+    @Override
+    public void accept(MethodVisitor mv) {
+	switch (local.symbol().lpcType()) {
+	case LPCINT:
+	case LPCSTATUS:
+	    mv.visitVarInsn(ILOAD, local.slot());
+	    break;
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitVarInsn(ALOAD, local.slot());
+	    break;
+	default:
+	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}
+    }
 
-	public ASTLocal local() {
-		return local;
-	}
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+	visitor.visit(this, lpcType);
+    }
 
-	@Override
-	public LPCType lpcType() {
-		return local.symbol().lpcType();
-	}
-
-	@Override
-	public void accept(MethodVisitor mv) {
-		switch (local.symbol().lpcType()) {
-		case LPCINT:
-		case LPCSTATUS:
-			mv.visitVarInsn(ILOAD, local.slot());
-		break;
-		case LPCSTRING:
-		case LPCOBJECT:
-			mv.visitVarInsn(ALOAD, local.slot());
-		break;
-		default:
-			throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
-		}
-	}
-
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+	visitor.visit(this);
+    }
 }

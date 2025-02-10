@@ -1,9 +1,5 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
@@ -12,60 +8,38 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class ASTArguments extends ASTNode implements Iterable<ASTArgument> {
-	private final List<ASTArgument> arguments;
+public class ASTArguments extends ASTListNode<ASTArgument> {
+    public ASTArguments(int line) {
+	super(line);
+    }
 
-	public ASTArguments(int line) {
-		super(line);
+    @Override
+    public void accept(MethodVisitor mv) {
+	mv.visitLdcInsn(nodes.size()); // Push array length
 
-		this.arguments = new ArrayList<>();
-	}
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
 
-	public void add(ASTArgument argument) {
-		arguments.add(argument);
-	}
+	for (int i = 0; i < nodes.size(); i++) {
+	    mv.visitInsn(DUP); // Duplicate array reference
 
-	public ASTArgument get(int i) {
-		return arguments.get(i);
-	}
+	    mv.visitLdcInsn(i); // Push index
 
-	public int size() {
-		return arguments.size();
-	}
+	    nodes.get(i).accept(mv); // Push argument value
 
-	@Override
-	public Iterator<ASTArgument> iterator() {
-		return arguments.iterator();
-	}
-
-	@Override
-	public void accept(MethodVisitor mv) {
-		mv.visitLdcInsn(arguments.size()); // Push array length
-
-		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
-
-		for (int i = 0; i < arguments.size(); i++) {
-			mv.visitInsn(DUP); // Duplicate array reference
-
-			mv.visitLdcInsn(i); // Push index
-
-			arguments.get(i).accept(mv); // Push argument value
-
-			// If argument is a primitive, box it (e.g., int -> Integer)
+	    // If argument is a primitive, box it (e.g., int -> Integer)
 //            boxIfPrimitive(mv, arguments.get(i));
 
-			mv.visitInsn(AASTORE); // Store argument into array
-		}
+	    mv.visitInsn(AASTORE); // Store argument into array
 	}
+    }
 
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		// TODO Auto-generated method stub
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+	visitor.visit(this, lpcType);
+    }
 
-	}
-
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+	visitor.visit(this);
+    }
 }

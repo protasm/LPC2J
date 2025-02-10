@@ -6,30 +6,30 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 
 public class CmdParse extends Command {
-	@Override
-	public boolean execute(Console console, String... args) {
-		System.out.println("Parse");
+    @Override
+    public boolean execute(Console console, String... args) {
+	System.out.println("Parse");
 
-		if (args.length < 1) {
-			System.out.println("Error: No file specified.");
+	if (args.length < 1) {
+	    System.out.println("Error: No file specified.");
 
-			return false;
-		}
-
-		FSSourceFile sf = console.parse(args[0]);
-
-		if (sf == null)
-			return false;
-
-		ASTObject astObject = sf.astObject();
-
-		astObject.accept(new PrintVisitor());
-
-		return false;
+	    return false;
 	}
 
-	@Override
-	public String toString() {
-		return "Parse <source file>";
-	}
+	FSSourceFile sf = console.parse(args[0]);
+
+	if (sf == null)
+	    return false;
+
+	ASTObject astObject = sf.astObject();
+
+	astObject.accept(new PrintVisitor());
+
+	return false;
+    }
+
+    @Override
+    public String toString() {
+	return "Parse <source file>";
+    }
 }

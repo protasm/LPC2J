@@ -9,136 +9,136 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class FSSourceFile {
-	private final String relPath;
+    private final String relPath;
 
-	private final String source;
-	private Tokens tokens;
-	private ASTObject astObject;
-	private byte[] bytes;
-	private Object lpcObject;
+    private final String source;
+    private Tokens tokens;
+    private ASTObject astObject;
+    private byte[] bytes;
+    private Object lpcObject;
 
-	public FSSourceFile(String basePath, String relPath) throws IllegalArgumentException, IOException {
-		if (!relPath.endsWith(".lpc"))
-			throw new IllegalArgumentException("Source file name must end with '.lpc' extension.");
+    public FSSourceFile(String basePath, String relPath) throws IllegalArgumentException, IOException {
+	if (!relPath.endsWith(".lpc"))
+	    throw new IllegalArgumentException("Source file name must end with '.lpc' extension.");
 
-		this.relPath = relPath;
+	this.relPath = relPath;
 
-		source = Files.readString(Path.of(basePath, relPath));
+	source = Files.readString(Path.of(basePath, relPath));
 
-		tokens = null;
-		astObject = null;
-		bytes = null;
-		lpcObject = null;
+	tokens = null;
+	astObject = null;
+	bytes = null;
+	lpcObject = null;
+    }
+
+    public String relPath() {
+	return relPath;
+    }
+
+    public String source() {
+	return source;
+    }
+
+    public Tokens tokens() {
+	return tokens;
+    }
+
+    public void setTokens(Tokens tokens) {
+	this.tokens = tokens;
+    }
+
+    public ASTObject astObject() {
+	return astObject;
+    }
+
+    public void setASTObject(ASTObject astObject) {
+	this.astObject = astObject;
+    }
+
+    public byte[] bytes() {
+	return bytes;
+    }
+
+    public void setBytes(byte[] bytes) {
+	this.bytes = bytes;
+    }
+
+    public Object lpcObject() {
+	return lpcObject;
+    }
+
+    public void setLPCObject(Object lpcObject) {
+	this.lpcObject = lpcObject;
+    }
+
+    public void write(String basePath) {
+	if (bytes == null) {
+	    System.out.println("Write failed: no source file bytes to write.");
+
+	    return;
 	}
 
-	public String relPath() {
-		return relPath;
+	String str = stripExtension(relPath) + ".class";
+	Path fullPath = Path.of(basePath, str);
+
+	try {
+	    Files.write(fullPath, bytes);
+	} catch (IOException e) {
+	    System.out.println("Failed to write file: " + str + ".");
+
+	    return;
 	}
 
-	public String source() {
-		return source;
-	}
+	System.out.println("File written to: " + str + ".");
+    }
 
-	public Tokens tokens() {
-		return tokens;
-	}
+    public String slashName() {
+	// trim file extension, if any
+	String str = stripExtension(relPath);
 
-	public void setTokens(Tokens tokens) {
-		this.tokens = tokens;
-	}
+	// trim leading slash, if any
+	str = trimLeadingSlash(str);
 
-	public ASTObject astObject() {
-		return astObject;
-	}
+	return str;
+    }
 
-	public void setASTObject(ASTObject astObject) {
-		this.astObject = astObject;
-	}
+    public String dotName() {
+	String str = slashName();
 
-	public byte[] bytes() {
-		return bytes;
-	}
+	// replace infix slashes with dots
+	str = str.replace("/", ".").replace("\\", ".");
 
-	public void setBytes(byte[] bytes) {
-		this.bytes = bytes;
-	}
+	return str;
+    }
 
-	public Object lpcObject() {
-		return lpcObject;
-	}
+    public String classPath() {
+	return relPath.replace(".lpc", ".class");
+    }
 
-	public void setLPCObject(Object lpcObject) {
-		this.lpcObject = lpcObject;
-	}
+    private String stripExtension(String fileName) {
+	int dotIndex = fileName.lastIndexOf('.');
 
-	public void write(String basePath) {
-		if (bytes == null) {
-			System.out.println("Write failed: no source file bytes to write.");
+	if (dotIndex > 0) // Ensure dot is not the first character
+	    return fileName.substring(0, dotIndex);
 
-			return;
-		}
+	return fileName; // Return original if no extension
+    }
 
-		String str = stripExtension(relPath) + ".class";
-		Path fullPath = Path.of(basePath, str);
+    private String trimLeadingSlash(String str) {
+	if (str.startsWith("/") || str.startsWith("\\"))
+	    return str.substring(1, str.length());
+	else
+	    return str;
+    }
 
-		try {
-			Files.write(fullPath, bytes);
-		} catch (IOException e) {
-			System.out.println("Failed to write file: " + str + ".");
+    @Override
+    public String toString() {
+	StringJoiner sj = new StringJoiner("\n");
 
-			return;
-		}
+	sj.add(String.format("relPath=%s", relPath));
+	sj.add(String.format("slashName=%s", slashName()));
+	sj.add(String.format("dotName=%s", dotName()));
 
-		System.out.println("File written to: " + str + ".");
-	}
-
-	public String slashName() {
-		// trim file extension, if any
-		String str = stripExtension(relPath);
-
-		// trim leading slash, if any
-		str = trimLeadingSlash(str);
-
-		return str;
-	}
-
-	public String dotName() {
-		String str = slashName();
-
-		// replace infix slashes with dots
-		str = str.replace("/", ".").replace("\\", ".");
-
-		return str;
-	}
-
-	public String classPath() {
-		return relPath.replace(".lpc", ".class");
-	}
-
-	private String stripExtension(String fileName) {
-		int dotIndex = fileName.lastIndexOf('.');
-
-		if (dotIndex > 0) // Ensure dot is not the first character
-			return fileName.substring(0, dotIndex);
-
-		return fileName; // Return original if no extension
-	}
-
-	private String trimLeadingSlash(String str) {
-		if (str.startsWith("/") || str.startsWith("\\"))
-			return str.substring(1, str.length());
-		else
-			return str;
-	}
-
-	@Override
-	public String toString() {
-		StringJoiner sj = new StringJoiner("\n");
-
-		sj.add(String.format("relPath=%s", relPath));
-		sj.add(String.format("slashName=%s", slashName()));
-		sj.add(String.format("dotName=%s", dotName()));
-
-		return sj.toString();
-	}
+	return sj.toString();
+    }
 }

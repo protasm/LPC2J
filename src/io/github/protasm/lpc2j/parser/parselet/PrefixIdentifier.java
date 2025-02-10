@@ -1,9 +1,9 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import io.github.protasm.lpc2j.parser.Local;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
@@ -22,7 +22,7 @@ public class PrefixIdentifier implements PrefixParselet {
 		int line = parser.currLine();
 		String identifier = parser.tokens().previous().lexeme();
 
-		Local local = parser.locals().get(identifier);
+		ASTLocal local = parser.locals().get(identifier);
 
 		// Local?
 		if (local != null)

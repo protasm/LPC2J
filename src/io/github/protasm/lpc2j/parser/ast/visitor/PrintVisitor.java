@@ -4,6 +4,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTFields;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -73,8 +74,14 @@ public class PrintVisitor implements PrintVisitorIntfc {
 
 		indentLvl++;
 
-		for (ASTField field : fields)
+		int count = 0;
+
+		for (ASTField field : fields) {
 			field.accept(this);
+
+			if (++count < fields.size())
+				System.out.println();
+		}
 
 		indentLvl--;
 	}
@@ -97,6 +104,8 @@ public class PrintVisitor implements PrintVisitorIntfc {
 
 	@Override
 	public void visit(ASTMethods methods) {
+		System.out.println();
+
 		if (methods.size() == 0) {
 			doOutput("[No Methods]");
 
@@ -107,8 +116,14 @@ public class PrintVisitor implements PrintVisitorIntfc {
 
 		indentLvl++;
 
-		for (ASTMethod method : methods)
+		int count = 0;
+
+		for (ASTMethod method : methods) {
 			method.accept(this);
+
+			if (++count < methods.size())
+				System.out.println();
+		}
 
 		indentLvl--;
 	}
@@ -137,14 +152,8 @@ public class PrintVisitor implements PrintVisitorIntfc {
 			return;
 		}
 
-		doOutput("[PARAMS]");
-
-		indentLvl++;
-
 		for (ASTParameter param : parameters)
 			param.accept(this);
-
-		indentLvl--;
 	}
 
 	@Override
@@ -183,6 +192,17 @@ public class PrintVisitor implements PrintVisitorIntfc {
 		argument.expression().accept(this);
 
 		indentLvl--;
+	}
+
+	@Override
+	public void visit(ASTLocal local) {
+		doOutput(
+				String.format(
+						"%s[%s, slot=%d, depth=%d]",
+						local.className(),
+						local.symbol(),
+						local.slot(),
+						local.scopeDepth()));
 	}
 
 	@Override
@@ -246,29 +266,50 @@ public class PrintVisitor implements PrintVisitorIntfc {
 	@Override
 	public void visit(ASTExprLiteralInteger expr) {
 		doOutput(
-				String.format("%s(%s)",
+				String.format(
+						"%s[%s]",
 						expr.className(),
 						expr.value()));
 	}
 
 	@Override
 	public void visit(ASTExprLiteralString expr) {
-		doOutput("TODO literal string");
+		doOutput(
+				String.format(
+						"%s[\"%s\"],",
+						expr.className(),
+						expr.value()));
 	}
 
 	@Override
 	public void visit(ASTExprLiteralTrue expr) {
-		doOutput("TODO literal true");
+		doOutput(
+				String.format(
+						"%s[\"%s\"],",
+						expr.className()));
 	}
 
 	@Override
 	public void visit(ASTExprLocalAccess expr) {
-		doOutput("TODO local access");
+		doOutput(expr.className());
+
+		indentLvl++;
+
+		expr.local().accept(this);
+
+		indentLvl--;
 	}
 
 	@Override
 	public void visit(ASTExprLocalStore expr) {
-		doOutput("TODO local store");
+//		doOutput(expr.className());
+//		
+//		indentLvl++;
+//		
+//		expr.local().accept(this);
+//		expr.value().accept(this);
+//		
+//		indentLvl--;
 	}
 
 	@Override
@@ -288,6 +329,8 @@ public class PrintVisitor implements PrintVisitorIntfc {
 
 	@Override
 	public void visit(ASTStmtBlock stmt) {
+		System.out.println();
+
 		doOutput(stmt.className());
 
 		indentLvl++;
@@ -310,7 +353,7 @@ public class PrintVisitor implements PrintVisitorIntfc {
 
 		indentLvl++;
 
-		stmt.accept(this);
+		stmt.expression().accept(this);
 
 		indentLvl--;
 	}

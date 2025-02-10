@@ -175,7 +175,7 @@ public class Parser {
 			Symbol symbol = new Symbol(typeToken, nameToken);
 
 			ASTParameter param = new ASTParameter(currLine(), symbol);
-			Local local = new Local(symbol);
+			ASTLocal local = new ASTLocal(currLine(), symbol);
 
 			params.add(param);
 
@@ -214,7 +214,7 @@ public class Parser {
 
 		while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
 			if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
-				Local local = local();
+				ASTLocal local = local();
 
 				locals.add(local, true); // sets slot # and depth
 
@@ -238,7 +238,7 @@ public class Parser {
 		return new ASTStmtBlock(currLine(), statements);
 	}
 
-	private Local local() {
+	private ASTLocal local() {
 		Token<LPCType> typeToken = tokens.previous();
 		Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
 		Symbol symbol = new Symbol(typeToken, nameToken);
@@ -246,7 +246,7 @@ public class Parser {
 		if (locals.hasCollision(symbol.name()))
 			throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
 
-		return new Local(symbol);
+		return new ASTLocal(currLine(), symbol);
 	}
 
 	public ASTStatement statement() {

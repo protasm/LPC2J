@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
 import io.github.protasm.lpc2j.parser.LPCType;
-import io.github.protasm.lpc2j.parser.Local;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
@@ -9,15 +9,15 @@ import org.objectweb.asm.MethodVisitor;
 import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprLocalAccess extends ASTExpression {
-	private final Local local;
+	private final ASTLocal local;
 
-	public ASTExprLocalAccess(int line, Local local) {
+	public ASTExprLocalAccess(int line, ASTLocal local) {
 		super(line);
 
 		this.local = local;
 	}
 
-	public Local local() {
+	public ASTLocal local() {
 		return local;
 	}
 

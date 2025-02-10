@@ -3,8 +3,10 @@ package io.github.protasm.lpc2j.parser;
 import java.util.ListIterator;
 import java.util.Stack;
 
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+
 public class Locals {
-	private Stack<Local> locals;
+	private Stack<ASTLocal> locals;
 	private int workingScopeDepth;
 
 	public Locals() {
@@ -12,19 +14,19 @@ public class Locals {
 		workingScopeDepth = 1;
 
 		// Locals slot 0 reserved for "this"
-		Local local = new Local(new Symbol(LPCType.LPCOBJECT, "this"));
+		ASTLocal local = new ASTLocal(0, new Symbol(LPCType.LPCOBJECT, "this"));
 
 		local.setScopeDepth(0);
 
 		locals.push(local);
 	}
 
-	public Stack<Local> locals() {
+	public Stack<ASTLocal> locals() {
 		return locals;
 	}
 
 	public boolean hasCollision(String name) {
-		Local local = get(name);
+		ASTLocal local = get(name);
 
 		if (local != null)
 			if (local.scopeDepth() == workingScopeDepth)
@@ -33,11 +35,11 @@ public class Locals {
 		return false;
 	}
 
-	public Local get(String name) {
-		ListIterator<Local> localsItr = locals.listIterator(locals.size());
+	public ASTLocal get(String name) {
+		ListIterator<ASTLocal> localsItr = locals.listIterator(locals.size());
 
 		while (localsItr.hasPrevious()) {
-			Local local = localsItr.previous();
+			ASTLocal local = localsItr.previous();
 
 			if (local.symbol().name().equals(name))
 				if (local.scopeDepth() == -1) // "sentinel" value
@@ -49,7 +51,7 @@ public class Locals {
 		return null;
 	}
 
-	public void add(Local local, boolean markInitialized) {
+	public void add(ASTLocal local, boolean markInitialized) {
 		locals.push(local);
 
 		local.setSlot(locals.size() - 1);

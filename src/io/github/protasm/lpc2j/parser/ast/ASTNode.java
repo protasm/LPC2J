@@ -22,8 +22,6 @@ public abstract class ASTNode {
 	}
 
 	public abstract void accept(MethodVisitor visitor);
-
 	public abstract void accept(TypeInferenceVisitor visitor, LPCType lpcType);
-
 	public abstract void accept(PrintVisitor visitor);
 }

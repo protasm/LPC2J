@@ -1,64 +1,71 @@
 package io.github.protasm.lpc2j.parser.ast;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
+
 import static org.objectweb.asm.Opcodes.*;
 
-public class ASTArguments extends ASTNode {
-    private final List<ASTArgument> arguments;
+public class ASTArguments extends ASTNode implements Iterable<ASTArgument> {
+	private final List<ASTArgument> arguments;
 
-    public ASTArguments(int line) {
-	super(line);
+	public ASTArguments(int line) {
+		super(line);
 
-	this.arguments = new ArrayList<>();
-    }
+		this.arguments = new ArrayList<>();
+	}
 
-    public void add(ASTArgument argument) {
-	arguments.add(argument);
-    }
+	public void add(ASTArgument argument) {
+		arguments.add(argument);
+	}
 
-    public ASTArgument get(int i) {
-	return arguments.get(i);
-    }
+	public ASTArgument get(int i) {
+		return arguments.get(i);
+	}
 
-    public int size() {
-	return arguments.size();
-    }
+	public int size() {
+		return arguments.size();
+	}
 
-    @Override
-    public void accept(MethodVisitor mv) {
-	mv.visitLdcInsn(arguments.size()); // Push array length
+	@Override
+	public Iterator<ASTArgument> iterator() {
+		return arguments.iterator();
+	}
 
-	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
+	@Override
+	public void accept(MethodVisitor mv) {
+		mv.visitLdcInsn(arguments.size()); // Push array length
 
-	for (int i = 0; i < arguments.size(); i++) {
-	    mv.visitInsn(DUP); // Duplicate array reference
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
 
-	    mv.visitLdcInsn(i); // Push index
+		for (int i = 0; i < arguments.size(); i++) {
+			mv.visitInsn(DUP); // Duplicate array reference
 
-	    arguments.get(i).accept(mv); // Push argument value
+			mv.visitLdcInsn(i); // Push index
 
-	    // If argument is a primitive, box it (e.g., int -> Integer)
+			arguments.get(i).accept(mv); // Push argument value
+
+			// If argument is a primitive, box it (e.g., int -> Integer)
 //            boxIfPrimitive(mv, arguments.get(i));
 
-	    mv.visitInsn(AASTORE); // Store argument into array
+			mv.visitInsn(AASTORE); // Store argument into array
+		}
 	}
-    }
 
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	if (arguments.size() == 0)
-	    return String.format("%s[No Arguments]", ASTNode.indent());
+	}
 
-	for (ASTArgument arg : arguments)
-	    sj.add(String.format("%s", arg));
-
-	return sj.toString();
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

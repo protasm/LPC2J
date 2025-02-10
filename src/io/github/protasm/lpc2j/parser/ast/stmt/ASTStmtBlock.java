@@ -1,54 +1,40 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
 import java.util.List;
-import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
 
 import io.github.protasm.lpc2j.parser.LPCType;
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
 public class ASTStmtBlock extends ASTStatement {
-    private final List<ASTStatement> statements;
+	private final List<ASTStatement> statements;
 
-    public ASTStmtBlock(int line, List<ASTStatement> statements) {
-	super(line);
+	public ASTStmtBlock(int line, List<ASTStatement> statements) {
+		super(line);
 
-	this.statements = statements;
-    }
+		this.statements = statements;
+	}
 
-    public List<ASTStatement> statements() {
-	return statements;
-    }
-    
-    @Override
-    public void typeInference(LPCType lpcType) {
-	for (ASTStatement stmt : statements)
-	    stmt.typeInference(lpcType);
-    }
+	public List<ASTStatement> statements() {
+		return statements;
+	}
 
-    @Override
-    public void accept(MethodVisitor mv) {
-	for (ASTStatement statement : statements)
-	    statement.accept(mv);
-    }
+	@Override
+	public void accept(MethodVisitor mv) {
+		for (ASTStatement statement : statements)
+			statement.accept(mv);
+	}
 
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	sj.add(String.format("%s%s", ASTNode.indent(), className()));
+	}
 
-	ASTNode.indentLvl++;
-
-	if (statements.size() == 0)
-	    sj.add(String.format("%s[No Statements]", ASTNode.indent()));
-
-	for (ASTStatement stmt : statements)
-	    sj.add(String.format("%s", stmt));
-
-	ASTNode.indentLvl--;
-
-	return sj.toString();
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

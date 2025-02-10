@@ -1,65 +1,58 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import java.util.StringJoiner;
-
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
 public class ASTStmtReturn extends ASTStatement {
-    private final ASTExpression value; // return value, if any
+	private final ASTExpression value; // return value, if any
 
-    public ASTStmtReturn(int line, ASTExpression value) {
-	super(line);
+	public ASTStmtReturn(int line, ASTExpression value) {
+		super(line);
 
-	this.value = value;
-    }
-
-    public ASTExpression value() {
-	return value;
-    }
-
-    @Override
-    public void accept(MethodVisitor mv) {
-	if (value == null) {
-	    mv.visitInsn(Opcodes.RETURN);
-
-	    return;
+		this.value = value;
 	}
 
-	value.accept(mv);
-
-	switch (value.lpcType()) {
-	case LPCINT:
-	    mv.visitInsn(Opcodes.IRETURN);
-	    break;
-	case LPCMIXED:
-	case LPCSTRING:
-	case LPCOBJECT:
-	    mv.visitInsn(Opcodes.ARETURN);
-	    break;
-	default:
-	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
+	public ASTExpression value() {
+		return value;
 	}
-    }
 
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
+	@Override
+	public void accept(MethodVisitor mv) {
+		if (value == null) {
+			mv.visitInsn(Opcodes.RETURN);
 
-	sj.add(String.format("%s%s", ASTNode.indent(), className()));
+			return;
+		}
 
-	ASTNode.indentLvl++;
+		value.accept(mv);
 
-	if (value != null)
-	    sj.add(String.format("%s", value));
-	else
-	    sj.add(String.format("%s[No Return Value]", ASTNode.indent()));
+		switch (value.lpcType()) {
+		case LPCINT:
+			mv.visitInsn(Opcodes.IRETURN);
+		break;
+		case LPCMIXED:
+		case LPCSTRING:
+		case LPCOBJECT:
+			mv.visitInsn(Opcodes.ARETURN);
+		break;
+		default:
+			throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
+		}
+	}
 
-	ASTNode.indentLvl--;
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	return sj.toString();
-    }
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

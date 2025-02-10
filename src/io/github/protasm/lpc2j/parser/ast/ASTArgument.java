@@ -1,41 +1,38 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import java.util.StringJoiner;
-
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
 public class ASTArgument extends ASTNode {
-    private final ASTExpression expression;
+	private final ASTExpression expression;
 
-    public ASTArgument(int line, ASTExpression expr) {
-	super(line);
+	public ASTArgument(int line, ASTExpression expr) {
+		super(line);
 
-	this.expression = expr;
-    }
+		this.expression = expr;
+	}
 
-    public ASTExpression expression() {
-	return expression;
-    }
+	public ASTExpression expression() {
+		return expression;
+	}
 
-    @Override
-    public void accept(MethodVisitor mv) {
-	expression.accept(mv);
-    }
+	@Override
+	public void accept(MethodVisitor mv) {
+		expression.accept(mv);
+	}
 
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	sj.add(String.format("%s%s", ASTNode.indent(), className()));
+	}
 
-	ASTNode.indentLvl++;
-
-	sj.add(String.format("%s", expression));
-
-	ASTNode.indentLvl--;
-
-	return sj.toString();
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

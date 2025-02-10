@@ -1,32 +1,43 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import org.objectweb.asm.MethodVisitor;
+
 import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.Symbol;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
 public class ASTParameter extends ASTNode {
-    private final Symbol symbol;
+	private final Symbol symbol;
 
-    public ASTParameter(int line, Symbol symbol) {
-	super(line);
+	public ASTParameter(int line, Symbol symbol) {
+		super(line);
 
-	this.symbol = symbol;
-    }
+		this.symbol = symbol;
+	}
 
-    public Symbol symbol() {
-	return symbol;
-    }
+	public Symbol symbol() {
+		return symbol;
+	}
 
-    public String descriptor() {
-	return symbol.descriptor();
-    }
+	public String descriptor() {
+		return symbol.descriptor();
+	}
 
-    @Override
-    public void typeInference(LPCType lpcType) {
-	
-    }
+	@Override
+	public void accept(MethodVisitor visitor) {
+		// TODO Auto-generated method stub
 
-    @Override
-    public String toString() {
-	return String.format("%s%s(%s)", ASTNode.indent(), className(), symbol);
-    }
+	}
+
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

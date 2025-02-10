@@ -1,52 +1,55 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
+
+import org.objectweb.asm.MethodVisitor;
+
+import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
 public class ASTMethods extends ASTNode implements Iterable<ASTMethod> {
-    private Map<String, ASTMethod> methods;
+	private Map<String, ASTMethod> methods;
 
-    public ASTMethods(int line) {
-	super(line);
+	public ASTMethods(int line) {
+		super(line);
 
-	methods = new HashMap<>();
-    }
+		methods = new HashMap<>();
+	}
 
-    public List<ASTMethod> methods() {
-	return new ArrayList<>(methods.values());
-    }
+	public void put(String name, ASTMethod method) {
+		methods.put(name, method);
+	}
 
-    public void put(String name, ASTMethod method) {
-	methods.put(name, method);
-    }
+	public ASTMethod get(String name) {
+		return methods.get(name);
+	}
 
-    public ASTMethod get(String name) {
-	return methods.get(name);
-    }
+	public int size() {
+		return methods.size();
+	}
 
-    public int size() {
-	return methods.size();
-    }
+	@Override
+	public Iterator<ASTMethod> iterator() {
+		return methods.values().iterator();
+	}
 
-    @Override
-    public Iterator<ASTMethod> iterator() {
-	return methods.values().iterator();
-    }
+	@Override
+	public void accept(MethodVisitor visitor) {
+		// TODO Auto-generated method stub
 
-    @Override
-    public String toString() {
-	if (methods.size() == 0)
-	    return String.format("%s[No Methods]", ASTNode.indent());
-	
-	StringJoiner sj = new StringJoiner("\n");
+	}
 
-	for (ASTMethod method : methods.values())
-	    sj.add(String.format("%s", method));
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	return sj.toString();
-    }
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

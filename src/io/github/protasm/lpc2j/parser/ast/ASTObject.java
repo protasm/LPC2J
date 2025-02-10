@@ -1,73 +1,59 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import java.util.StringJoiner;
-
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
+
 public class ASTObject extends ASTNode {
-    private String parentName;
-    private final String name;
-    private final ASTFields fields;
-    private final ASTMethods methods;
+	private String parentName;
+	private final String name;
+	private final ASTFields fields;
+	private final ASTMethods methods;
 
-    public ASTObject(int line, String name) {
-	super(line);
+	public ASTObject(int line, String name) {
+		super(line);
 
-	this.name = name;
+		this.name = name;
 
-	parentName = null;
-	fields = new ASTFields(line);
-	methods = new ASTMethods(line);
-    }
+		parentName = null;
+		fields = new ASTFields(line);
+		methods = new ASTMethods(line);
+	}
 
-    public String parentName() {
-	return parentName;
-    }
+	public String parentName() {
+		return parentName;
+	}
 
-    public void setParentName(String parentName) {
-	this.parentName = parentName;
-    }
+	public void setParentName(String parentName) {
+		this.parentName = parentName;
+	}
 
-    public String name() {
-	return name;
-    }
+	public String name() {
+		return name;
+	}
 
-    public ASTFields fields() {
-	return fields;
-    }
+	public ASTFields fields() {
+		return fields;
+	}
 
-    public ASTMethods methods() {
-	return methods;
-    }
-    
-    @Override
-    public void accept(MethodVisitor mv) {
-	return;
-    }
-    
-    @Override
-    public void accept(ASTNodeVisitor nv) {
-	
-    }
+	public ASTMethods methods() {
+		return methods;
+	}
 
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
+	@Override
+	public void accept(MethodVisitor mv) {
+	}
 
-	if (parentName != null)
-	    sj.add(String.format("%s(%s inherits %s)", className(), name, parentName));
-	else
-	    sj.add(String.format("%s(%s)", className(), name));
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
 
-	ASTNode.indentLvl++;
+	}
 
-	sj.add(String.format("%s", fields));
-	sj.add(String.format("%s", methods));
-
-	ASTNode.indentLvl--;
-
-	sj.add("End Object");
-
-	return sj.toString();
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

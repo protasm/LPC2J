@@ -1,51 +1,60 @@
 package io.github.protasm.lpc2j.parser.ast;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.StringJoiner;
 
-public class ASTParameters extends ASTNode {
-    private final List<ASTParameter> parameters;
+import org.objectweb.asm.MethodVisitor;
 
-    public ASTParameters(int line) {
-	super(line);
+import io.github.protasm.lpc2j.parser.LPCType;
+import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 
-	this.parameters = new ArrayList<>();
-    }
+public class ASTParameters extends ASTNode implements Iterable<ASTParameter> {
+	private final List<ASTParameter> parameters;
 
-    public void add(ASTParameter parameter) {
-	parameters.add(parameter);
-    }
-    
-    public int size() {
-	return parameters.size();
-    }
+	public ASTParameters(int line) {
+		super(line);
 
-    public String descriptor() {
-	StringBuilder sb = new StringBuilder();
+		this.parameters = new ArrayList<>();
+	}
 
-	for (ASTParameter param : parameters)
-	    sb.append(param.descriptor());
+	public void add(ASTParameter parameter) {
+		parameters.add(parameter);
+	}
 
-	return "(" + sb.toString().trim() + ")";
-    }
+	public int size() {
+		return parameters.size();
+	}
 
-    @Override
-    public String toString() {
-	if (parameters.size() == 0)
-	    return String.format("%s[No Parameters]", ASTNode.indent());
+	public String descriptor() {
+		StringBuilder sb = new StringBuilder();
 
-	StringJoiner sj = new StringJoiner("\n");
-	
-	sj.add(String.format("%s[PARAMS]", ASTNode.indent()));
-	
-	ASTNode.indentLvl++;
+		for (ASTParameter param : parameters)
+			sb.append(param.descriptor());
 
-	for (ASTParameter param : parameters)
-	    sj.add(String.format("%s", param));
-	
-	ASTNode.indentLvl--;
+		return "(" + sb.toString().trim() + ")";
+	}
 
-	return sj.toString();
-    }
+	@Override
+	public Iterator<ASTParameter> iterator() {
+		return parameters.iterator();
+	}
+
+	@Override
+	public void accept(MethodVisitor visitor) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

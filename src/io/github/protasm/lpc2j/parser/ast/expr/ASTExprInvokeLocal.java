@@ -11,17 +11,23 @@ import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTNode;
 
-public class ASTExprLocalInvoke extends ASTExpression {
+public class ASTExprInvokeLocal extends ASTExpression {
+    private LPCType lpcType;
     private final Integer slot;
     private final String methodName;
     private final ASTArguments args;
 
-    public ASTExprLocalInvoke(int line, int slot, String methodName, ASTArguments args) {
+    public ASTExprInvokeLocal(int line, int slot, String methodName, ASTArguments args) {
 	super(line);
 
+	this.lpcType = null; // set in a subsequent pass
 	this.slot = slot;
 	this.methodName = methodName;
 	this.args = args;
+    }
+
+    public void setLPCType(LPCType lpcType) {
+	this.lpcType = lpcType;
     }
 
     public Integer slot() {
@@ -38,11 +44,16 @@ public class ASTExprLocalInvoke extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
-	return LPCType.LPCMIXED;
+	return lpcType;
+    }
+    
+    @Override
+    public void typeInference(LPCType lpcType) {
+	this.lpcType = lpcType;
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	// 1. Load the target object from its local variable slot.
 	mv.visitVarInsn(ALOAD, slot);
 
@@ -87,7 +98,7 @@ public class ASTExprLocalInvoke extends ASTExpression {
 	mv.visitVarInsn(ALOAD, slot);
 
 	// 7. Generate code to push the Object[] containing the actual argument values.
-	args.toBytecode(mv);
+	args.accept(mv);
 
 	// 8. Invoke Method.invoke(Object, Object[]); the result (an Object) is left on
 	// the stack.

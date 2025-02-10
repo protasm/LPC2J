@@ -36,18 +36,18 @@ public class ASTStmtIfThenElse extends ASTStatement {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	Label elseLabel = new Label();
 	Label endLabel = new Label();
 
 	// Generate bytecode for condition
-	condition.toBytecode(mv);
+	condition.accept(mv);
 
 	// If condition is false, jump to else (or end if no else)
 	mv.visitJumpInsn(IFEQ, elseBranch != null ? elseLabel : endLabel);
 
 	// Generate bytecode for then-branch
-	thenBranch.toBytecode(mv);
+	thenBranch.accept(mv);
 
 	// Skip else-branch (if it exists)
 	if (elseBranch != null) {
@@ -55,7 +55,7 @@ public class ASTStmtIfThenElse extends ASTStatement {
 
 	    mv.visitLabel(elseLabel);
 
-	    elseBranch.toBytecode(mv);
+	    elseBranch.accept(mv);
 	}
 
 	// End label

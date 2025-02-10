@@ -2,6 +2,8 @@ package io.github.protasm.lpc2j.parser.ast;
 
 import java.util.StringJoiner;
 
+import org.objectweb.asm.MethodVisitor;
+
 public class ASTObject extends ASTNode {
     private String parentName;
     private final String name;
@@ -37,6 +39,16 @@ public class ASTObject extends ASTNode {
     public ASTMethods methods() {
 	return methods;
     }
+    
+    @Override
+    public void accept(MethodVisitor mv) {
+	return;
+    }
+    
+    @Override
+    public void accept(ASTNodeVisitor nv) {
+	
+    }
 
     @Override
     public String toString() {
@@ -54,7 +66,7 @@ public class ASTObject extends ASTNode {
 
 	ASTNode.indentLvl--;
 
-	sj.add("End Object\n");
+	sj.add("End Object");
 
 	return sj.toString();
     }

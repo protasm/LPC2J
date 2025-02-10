@@ -29,7 +29,7 @@ public class ASTExprFieldAccess extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitVarInsn(ALOAD, 0);
 	mv.visitFieldInsn(GETFIELD, field.ownerName(), field.symbol().name(), field.descriptor());
     }

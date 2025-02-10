@@ -39,11 +39,11 @@ public class ASTMethods extends ASTNode implements Iterable<ASTMethod> {
 
     @Override
     public String toString() {
+	if (methods.size() == 0)
+	    return String.format("%s[No Methods]", ASTNode.indent());
+	
 	StringJoiner sj = new StringJoiner("\n");
 
-	if (methods.size() == 0)
-	    return String.format("%s[No Fields]", ASTNode.indent());
-	
 	for (ASTMethod method : methods.values())
 	    sj.add(String.format("%s", method));
 

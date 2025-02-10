@@ -35,10 +35,10 @@ public class ASTExprCall extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitVarInsn(Opcodes.ALOAD, 0);
 
-	arguments.toBytecode(mv);
+	arguments.accept(mv);
 
 	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.symbol().name(), method.descriptor(),
 		false);
@@ -56,7 +56,7 @@ public class ASTExprCall extends ASTExpression {
 
 	ASTNode.indentLvl++;
 
-	sj.add(String.format("%s", method));
+	sj.add(String.format("%s%s", ASTNode.indent(), method.symbol()));
 	sj.add(String.format("%s", arguments));
 
 	ASTNode.indentLvl--;

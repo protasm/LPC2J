@@ -35,10 +35,10 @@ public class ASTExprFieldStore extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitVarInsn(ALOAD, 0);
 
-	value.toBytecode(mv);
+	value.accept(mv);
 
 	mv.visitFieldInsn(PUTFIELD, field.ownerName(), field.symbol().name(), field.symbol().descriptor());
     }

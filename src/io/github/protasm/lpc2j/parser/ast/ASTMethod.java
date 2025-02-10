@@ -4,6 +4,7 @@ import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.Symbol;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 
@@ -50,10 +51,15 @@ public class ASTMethod extends ASTNode {
     public String descriptor() {
 	return parameters.descriptor() + symbol.descriptor();
     }
+    
+    @Override
+    public void typeInference(LPCType lpcType) {
+	body.typeInference(symbol.lpcType());
+    }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	body.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	body.accept(mv);
     }
 
     @Override
@@ -64,7 +70,7 @@ public class ASTMethod extends ASTNode {
 
 	ASTNode.indentLvl++;
 
-	sj.add(String.format("%s\n", parameters));
+	sj.add(String.format("%s", parameters));
 	sj.add(String.format("%s", body));
 
 	ASTNode.indentLvl--;

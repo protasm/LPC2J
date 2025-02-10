@@ -9,4 +9,5 @@ public abstract class ASTExpression extends ASTNode {
     }
 
     public abstract LPCType lpcType();
+    public abstract void typeInference(LPCType lpcType);
 }

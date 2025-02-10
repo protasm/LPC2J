@@ -16,19 +16,17 @@ public abstract class ASTNode {
     }
 
     public static String indent() {
-//	return String.valueOf(indentLvl).toString().repeat(indentLvl);
 	return indent("\u22A2");
     }
     
     public static String indent(String suffix) {
-	return " ".repeat(indentLvl) + suffix;
+	return "   ".repeat(indentLvl) + suffix;
     }
 
     protected String className() {
 	return getClass().getSimpleName();
     }
 
-    public void toBytecode(MethodVisitor mv) {
-	throw new UnsupportedOperationException("toBytecode() not implemented for " + className());
-    }
+    public abstract void accept(MethodVisitor mv);
+    public abstract void accept(ASTNodeVisitor nv);
 }

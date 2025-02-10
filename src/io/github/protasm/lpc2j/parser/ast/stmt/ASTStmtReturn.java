@@ -22,14 +22,14 @@ public class ASTStmtReturn extends ASTStatement {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	if (value == null) {
 	    mv.visitInsn(Opcodes.RETURN);
 
 	    return;
 	}
 
-	value.toBytecode(mv);
+	value.accept(mv);
 
 	switch (value.lpcType()) {
 	case LPCINT:

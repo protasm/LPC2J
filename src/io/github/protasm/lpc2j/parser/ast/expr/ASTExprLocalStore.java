@@ -35,8 +35,8 @@ public class ASTExprLocalStore extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	value.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	value.accept(mv);
 
 	switch (local.symbol().lpcType()) {
 	case LPCINT:

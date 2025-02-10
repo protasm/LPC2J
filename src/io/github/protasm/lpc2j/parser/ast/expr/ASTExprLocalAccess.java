@@ -28,7 +28,7 @@ public class ASTExprLocalAccess extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	switch (local.symbol().lpcType()) {
 	case LPCINT:
 	case LPCSTATUS:

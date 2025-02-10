@@ -52,6 +52,9 @@ public class Console {
 	inputScanner = new java.util.Scanner(System.in);
 
 	new CmdParse().execute(this, "obj/weapon/sword.lpc");
+	System.out.print("\n");
+	new CmdParse().execute(this, "obj/weapon/axe.lpc");
+	System.out.print("\n");
 	new CmdParse().execute(this, "obj/armor/armor.lpc");
     }
 

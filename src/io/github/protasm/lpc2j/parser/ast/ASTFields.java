@@ -39,13 +39,19 @@ public class ASTFields extends ASTNode implements Iterable<ASTField> {
 
     @Override
     public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
-
 	if (fields.size() == 0)
 	    return String.format("%s[No Fields]", ASTNode.indent());
 	    
+	StringJoiner sj = new StringJoiner("\n");
+	
+	sj.add(String.format("%s[FIELDS]", ASTNode.indent()));
+	
+	ASTNode.indentLvl++;
+
 	for (ASTField field : fields.values())
 	    sj.add(String.format("%s", field));
+
+	ASTNode.indentLvl--;
 
 	return sj.toString();
     }

@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.Symbol;
 
 public class ASTParameter extends ASTNode {
@@ -17,6 +18,11 @@ public class ASTParameter extends ASTNode {
 
     public String descriptor() {
 	return symbol.descriptor();
+    }
+
+    @Override
+    public void typeInference(LPCType lpcType) {
+	
     }
 
     @Override

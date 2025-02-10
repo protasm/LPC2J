@@ -17,7 +17,7 @@ public class ASTExprLiteralTrue extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitInsn(Opcodes.ICONST_1);
     }
 

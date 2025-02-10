@@ -4,6 +4,7 @@ import java.util.StringJoiner;
 
 import org.objectweb.asm.MethodVisitor;
 
+import io.github.protasm.lpc2j.parser.LPCType;
 import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 
@@ -19,10 +20,15 @@ public class ASTStmtExpression extends ASTStatement {
     public ASTExpression expression() {
 	return expression;
     }
+    
+    @Override
+    public void typeInference(LPCType lpcType) {
+	expression.typeInference(lpcType);
+    }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	expression.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	expression.accept(mv);
     }
 
     @Override

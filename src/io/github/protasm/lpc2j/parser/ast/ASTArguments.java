@@ -30,7 +30,7 @@ public class ASTArguments extends ASTNode {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitLdcInsn(arguments.size()); // Push array length
 
 	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
@@ -40,7 +40,7 @@ public class ASTArguments extends ASTNode {
 
 	    mv.visitLdcInsn(i); // Push index
 
-	    arguments.get(i).toBytecode(mv); // Push argument value
+	    arguments.get(i).accept(mv); // Push argument value
 
 	    // If argument is a primitive, box it (e.g., int -> Integer)
 //            boxIfPrimitive(mv, arguments.get(i));

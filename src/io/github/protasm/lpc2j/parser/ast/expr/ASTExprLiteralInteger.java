@@ -26,7 +26,7 @@ public class ASTExprLiteralInteger extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	if (value >= -1 && value <= 5)
 	    mv.visitInsn(Opcodes.ICONST_0 + value);
 	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)

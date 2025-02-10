@@ -20,8 +20,8 @@ public class ASTArgument extends ASTNode {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	expression.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	expression.accept(mv);
     }
 
     @Override

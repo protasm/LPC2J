@@ -63,9 +63,9 @@ public class ASTExprOpBinary extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	left.toBytecode(mv);
-	right.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	left.accept(mv);
+	right.accept(mv);
 
 	switch (operator) {
 	case BOP_ADD:

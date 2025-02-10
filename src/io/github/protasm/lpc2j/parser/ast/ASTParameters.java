@@ -32,13 +32,19 @@ public class ASTParameters extends ASTNode {
 
     @Override
     public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
-
 	if (parameters.size() == 0)
 	    return String.format("%s[No Parameters]", ASTNode.indent());
 
+	StringJoiner sj = new StringJoiner("\n");
+	
+	sj.add(String.format("%s[PARAMS]", ASTNode.indent()));
+	
+	ASTNode.indentLvl++;
+
 	for (ASTParameter param : parameters)
 	    sj.add(String.format("%s", param));
+	
+	ASTNode.indentLvl--;
 
 	return sj.toString();
     }

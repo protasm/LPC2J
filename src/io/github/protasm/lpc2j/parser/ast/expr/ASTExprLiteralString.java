@@ -25,7 +25,7 @@ public class ASTExprLiteralString extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
+    public void accept(MethodVisitor mv) {
 	mv.visitLdcInsn(value);
     }
 

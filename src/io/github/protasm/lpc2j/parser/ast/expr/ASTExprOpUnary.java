@@ -50,8 +50,8 @@ public class ASTExprOpUnary extends ASTExpression {
     }
 
     @Override
-    public void toBytecode(MethodVisitor mv) {
-	right.toBytecode(mv);
+    public void accept(MethodVisitor mv) {
+	right.accept(mv);
 
 	switch (operator) {
 	case UOP_NEGATE: // Unary minus (-)

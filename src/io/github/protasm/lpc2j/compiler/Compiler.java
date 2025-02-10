@@ -70,7 +70,7 @@ public class Compiler {
 	    if (field.initializer() != null) {
 		mv.visitVarInsn(ALOAD, 0); // Load 'this'
 
-		field.initializer().toBytecode(mv); // Generate bytecode for the initializer
+		field.initializer().accept(mv); // Generate bytecode for the initializer
 
 		mv.visitFieldInsn(PUTFIELD, astObject.name(), field.symbol().name(), field.descriptor());
 	    }
@@ -88,7 +88,7 @@ public class Compiler {
 
 	    mv.visitCode();
 
-	    method.toBytecode(mv);
+	    method.accept(mv);
 
 	    mv.visitMaxs(0, 0); // Automatically calculated by ASM
 	    mv.visitEnd();

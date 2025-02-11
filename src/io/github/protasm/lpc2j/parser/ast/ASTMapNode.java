@@ -15,7 +15,7 @@ public abstract class ASTMapNode<T> extends ASTNode implements Iterable<T> {
 
     public ASTMapNode(int line, Map<String, T> nodes) {
 	super(line);
-	
+
 	this.nodes = nodes;
     }
 

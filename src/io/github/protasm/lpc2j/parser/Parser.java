@@ -52,7 +52,7 @@ public class Parser {
 	tokens.reset();
 
 	definitions(); // pass 2
-	
+
 	typeInference(); // pass 3
 
 	return currObj;
@@ -71,7 +71,7 @@ public class Parser {
 	while (!tokens.isAtEnd())
 	    property(true);
     }
-    
+
     private void typeInference() {
 	currObj.accept(new TypeInferenceVisitor(), LPCType.LPCNULL);
     }

@@ -12,10 +12,10 @@ public abstract class ASTListNode<T> extends ASTNode implements Iterable<T> {
 
 	nodes = new ArrayList<>();
     }
-    
+
     public ASTListNode(int line, List<T> nodes) {
 	super(line);
-	
+
 	this.nodes = nodes;
     }
 

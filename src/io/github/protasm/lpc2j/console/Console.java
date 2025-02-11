@@ -51,11 +51,11 @@ public class Console {
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
 
-	new CmdCompile().execute(this, "obj/weapon/sword.lpc");
+	new CmdLoad().execute(this, "obj/weapon/sword.lpc");
 	System.out.print("\n");
-	new CmdCompile().execute(this, "obj/weapon/axe.lpc");
+	new CmdLoad().execute(this, "obj/weapon/axe.lpc");
 	System.out.print("\n");
-	new CmdCompile().execute(this, "obj/armor/armor.lpc");
+	new CmdLoad().execute(this, "obj/armor/armor.lpc");
     }
 
     public Map<String, Object> objects() {

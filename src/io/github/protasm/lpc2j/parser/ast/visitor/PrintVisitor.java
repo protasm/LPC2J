@@ -344,8 +344,9 @@ public class PrintVisitor implements ASTVisitor {
     public void visit(ASTParameters parameters) {
 	if (parameters.size() == 0)
 	    doOutput("[No Parameters]");
-	else for (ASTParameter param : parameters)
-	    param.accept(this);
+	else
+	    for (ASTParameter param : parameters)
+		param.accept(this);
 
 	System.out.println();
     }

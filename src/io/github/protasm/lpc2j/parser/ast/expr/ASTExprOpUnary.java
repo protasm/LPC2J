@@ -44,7 +44,7 @@ public class ASTExprOpUnary extends ASTExpression {
 	    else
 		throw new IllegalStateException("Logical '!' operator requires a boolean operand.");
 	}
-	
+
 	return null; // unreachable
     }
 

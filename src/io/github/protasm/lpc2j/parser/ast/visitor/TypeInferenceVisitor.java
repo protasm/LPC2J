@@ -34,13 +34,13 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTArgument argument, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     @Override
     public void visit(ASTArguments arguments, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     @Override
@@ -54,7 +54,7 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTExprFieldStore expr, LPCType lpcType) {
 	lpcType = expr.lpcType(); // pass down type of assignment target
-	
+
 	expr.field().accept(this, lpcType);
 	expr.value().accept(this, lpcType);
     }
@@ -87,7 +87,7 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTExprLocalStore expr, LPCType lpcType) {
 	lpcType = expr.lpcType(); // pass down type of assignment target
-	
+
 	expr.local().accept(this, lpcType);
 	expr.value().accept(this, lpcType);
     }
@@ -111,7 +111,7 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTFields fields, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     @Override
@@ -121,7 +121,7 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTMethod method, LPCType lpcType) {
 	lpcType = method.symbol().lpcType(); // pass down method return type
-	
+
 	method.body().accept(this, lpcType);
     }
 
@@ -143,19 +143,19 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     @Override
     public void visit(ASTParameters parameters, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     @Override
     public void visit(ASTStmtBlock stmt, LPCType lpcType) {
-	for(ASTStatement statement : stmt)
+	for (ASTStatement statement : stmt)
 	    statement.accept(this, lpcType);
     }
 
     @Override
     public void visit(ASTStmtExpression stmt, LPCType lpcType) {
 	lpcType = null; // pass down null where expression value is ignored
-	
+
 	stmt.expression().accept(this, lpcType);
     }
 
@@ -163,7 +163,7 @@ public class TypeInferenceVisitor implements ASTTypeVisitor {
     public void visit(ASTStmtIfThenElse stmt, LPCType lpcType) {
 	stmt.condition().accept(this, lpcType);
 	stmt.thenBranch().accept(this, lpcType);
-	
+
 	if (stmt.elseBranch() != null)
 	    stmt.elseBranch().accept(this, lpcType);
     }

@@ -31,20 +31,20 @@ public class ASTArguments extends ASTListNode<ASTArgument> {
 	    switch (jType) {
 	    case JINT:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JFLOAT:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JBOOLEAN:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JSTRING:
 		mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
-		break;
+	    break;
 	    default:
 		// For LPCMIXED or other types, default to Object.
 		mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
-		break;
+	    break;
 	    }
 
 	    mv.visitInsn(AASTORE);

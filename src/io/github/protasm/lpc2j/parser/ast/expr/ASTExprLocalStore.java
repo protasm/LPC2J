@@ -41,11 +41,11 @@ public class ASTExprLocalStore extends ASTExpression {
 	case LPCINT:
 	case LPCSTATUS:
 	    mv.visitVarInsn(ISTORE, local.slot());
-	    break;
+	break;
 	case LPCSTRING:
 	case LPCOBJECT:
 	    mv.visitVarInsn(ASTORE, local.slot());
-	    break;
+	break;
 	default:
 	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}

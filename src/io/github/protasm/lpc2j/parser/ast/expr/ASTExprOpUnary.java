@@ -55,7 +55,7 @@ public class ASTExprOpUnary extends ASTExpression {
 	switch (operator) {
 	case UOP_NEGATE: // Unary minus (-)
 	    mv.visitInsn(INEG);
-	    break;
+	break;
 	case UOP_NOT: // Logical NOT (!)
 	    Label trueLabel = new Label();
 	    Label endLabel = new Label();
@@ -74,7 +74,7 @@ public class ASTExprOpUnary extends ASTExpression {
 	    // End
 	    mv.visitLabel(endLabel);
 
-	    break;
+	break;
 	}
     }
 

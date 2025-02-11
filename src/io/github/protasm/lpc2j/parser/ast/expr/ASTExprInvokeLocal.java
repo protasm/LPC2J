@@ -99,7 +99,7 @@ public class ASTExprInvokeLocal extends ASTExpression {
 			"intValue",
 			"()I",
 			false);
-		break;
+	    break;
 	    case JFLOAT:
 		// Cast to Float and unbox to float.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
@@ -109,7 +109,7 @@ public class ASTExprInvokeLocal extends ASTExpression {
 			"floatValue",
 			"()F",
 			false);
-		break;
+	    break;
 	    case JBOOLEAN:
 		// Cast to Boolean and unbox to boolean.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
@@ -119,15 +119,15 @@ public class ASTExprInvokeLocal extends ASTExpression {
 			"booleanValue",
 			"()Z",
 			false);
-		break;
+	    break;
 	    case JSTRING:
 		// Cast to String.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-		break;
+	    break;
 	    default:
-		// For LPCMIXED or other types, leave the result as Object,
-		// or add an appropriate cast if necessary.
-		break;
+	    // For LPCMIXED or other types, leave the result as Object,
+	    // or add an appropriate cast if necessary.
+	    break;
 	    }
 	}
     }

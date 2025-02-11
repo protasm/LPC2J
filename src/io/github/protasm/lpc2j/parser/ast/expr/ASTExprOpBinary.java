@@ -72,7 +72,7 @@ public class ASTExprOpBinary extends ASTExpression {
 	case BOP_MULT:
 	case BOP_DIV:
 	    mv.visitInsn(operator.opcode());
-	    break;
+	break;
 	case BOP_GT:
 	case BOP_GE:
 	case BOP_LT:
@@ -94,7 +94,7 @@ public class ASTExprOpBinary extends ASTExpression {
 
 	    // End label
 	    mv.visitLabel(labelEnd);
-	    break;
+	break;
 	default:
 	    throw new UnsupportedOperationException("Unsupported operator: " + operator);
 	}

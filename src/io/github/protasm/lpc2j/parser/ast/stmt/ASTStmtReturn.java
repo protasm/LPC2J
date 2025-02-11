@@ -34,12 +34,12 @@ public class ASTStmtReturn extends ASTStatement {
 	switch (value.lpcType()) {
 	case LPCINT:
 	    mv.visitInsn(Opcodes.IRETURN);
-	    break;
+	break;
 	case LPCMIXED:
 	case LPCSTRING:
 	case LPCOBJECT:
 	    mv.visitInsn(Opcodes.ARETURN);
-	    break;
+	break;
 	default:
 	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
 	}

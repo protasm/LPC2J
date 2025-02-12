@@ -1,14 +1,10 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import org.objectweb.asm.MethodVisitor;
-
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
-
-import org.objectweb.asm.Label;
-import static org.objectweb.asm.Opcodes.*;
 
 public class ASTStmtIfThenElse extends ASTStatement {
     private final ASTExpression condition;
@@ -36,30 +32,8 @@ public class ASTStmtIfThenElse extends ASTStatement {
     }
 
     @Override
-    public void accept(MethodVisitor mv) {
-	Label elseLabel = new Label();
-	Label endLabel = new Label();
-
-	// Generate bytecode for condition
-	condition.accept(mv);
-
-	// If condition is false, jump to else (or end if no else)
-	mv.visitJumpInsn(IFEQ, elseBranch != null ? elseLabel : endLabel);
-
-	// Generate bytecode for then-branch
-	thenBranch.accept(mv);
-
-	// Skip else-branch (if it exists)
-	if (elseBranch != null) {
-	    mv.visitJumpInsn(GOTO, endLabel);
-
-	    mv.visitLabel(elseLabel);
-
-	    elseBranch.accept(mv);
-	}
-
-	// End label
-	mv.visitLabel(endLabel);
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

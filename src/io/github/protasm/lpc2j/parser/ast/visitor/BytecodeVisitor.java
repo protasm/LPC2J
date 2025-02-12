@@ -1,9 +1,15 @@
 package io.github.protasm.lpc2j.parser.ast.visitor;
 
+import static org.objectweb.asm.Opcodes.AASTORE;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.Opcodes.ANEWARRAY;
+import static org.objectweb.asm.Opcodes.DUP;
+import static org.objectweb.asm.Opcodes.GETSTATIC;
+import static org.objectweb.asm.Opcodes.GOTO;
+import static org.objectweb.asm.Opcodes.IFEQ;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
@@ -11,8 +17,10 @@ import static org.objectweb.asm.Opcodes.V23;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
@@ -37,15 +45,19 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class BytecodeVisitor {
     private String defaultParentName;
     private ClassWriter cw;
+    private MethodVisitor mv; // current method
     private ASTObject object; // current object
 
     public BytecodeVisitor(String defaultParentName) {
@@ -124,8 +136,19 @@ public class BytecodeVisitor {
     }
 
     public void visit(ASTArguments arguments) {
-	// TODO Auto-generated method stub
+	mv.visitLdcInsn(arguments.size()); // Push array length
 
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
+
+	for (int i = 0; i < arguments.size(); i++) {
+	    mv.visitInsn(DUP); // Duplicate array reference
+
+	    mv.visitLdcInsn(i); // Push index
+
+	    arguments.nodes().get(i).accept(this); // Push argument value
+
+	    mv.visitInsn(AASTORE); // Store argument into array
+	}
     }
 
     public void visit(ASTExprCall expr) {
@@ -213,17 +236,15 @@ public class BytecodeVisitor {
 
     public void visit(ASTLocal local) {
 	// TODO Auto-generated method stub
-
     }
 
     public void visit(ASTMethod method) {
-	// TODO Auto-generated method stub
-
+	method.body().accept(this);
     }
 
     public void visit(ASTMethods methods) {
 	for (ASTMethod method : methods) {
-	    MethodVisitor mv = cw.visitMethod(
+	    mv = cw.visitMethod( // current method
 		    ACC_PUBLIC,
 		    method.symbol().name(),
 		    method.descriptor(),
@@ -231,7 +252,7 @@ public class BytecodeVisitor {
 
 	    mv.visitCode();
 
-	    method.accept(mv);
+	    method.accept(this);
 
 	    mv.visitMaxs(0, 0); // Automatically calculated by ASM
 	    mv.visitEnd();
@@ -263,33 +284,101 @@ public class BytecodeVisitor {
 	object.methods().accept(this);
     }
 
-    public void visit(ASTParameter parameter) {
-	// TODO Auto-generated method stub
-
-    }
-
-    public void visit(ASTParameters parameters) {
-	// TODO Auto-generated method stub
-
-    }
-
     public void visit(ASTStmtBlock stmt) {
-	// TODO Auto-generated method stub
-
+	for (ASTStatement statement : stmt)
+	    statement.accept(this);
     }
 
     public void visit(ASTStmtExpression stmt) {
-	// TODO Auto-generated method stub
-
+	stmt.accept(this);
     }
 
     public void visit(ASTStmtIfThenElse stmt) {
-	// TODO Auto-generated method stub
+	Label elseLabel = new Label();
+	Label endLabel = new Label();
+	ASTExpression condition = stmt.condition();
+	ASTStatement thenBranch = stmt.thenBranch();
+	ASTStatement elseBranch = stmt.elseBranch();
 
+	// Generate bytecode for condition
+	condition.accept(this);
+
+	// If condition is false, jump to else (or end if no else)
+	mv.visitJumpInsn(IFEQ, elseBranch != null ? elseLabel : endLabel);
+
+	// Generate bytecode for then-branch
+	thenBranch.accept(this);
+
+	// Skip else-branch (if it exists)
+	if (elseBranch != null) {
+	    mv.visitJumpInsn(GOTO, endLabel);
+
+	    mv.visitLabel(elseLabel);
+
+	    elseBranch.accept(this);
+	}
+
+	// End label
+	mv.visitLabel(endLabel);
     }
 
     public void visit(ASTStmtReturn stmt) {
-	// TODO Auto-generated method stub
+	ASTExpression returnValue = stmt.returnValue();
+	
+	if (returnValue == null) {
+	    mv.visitInsn(Opcodes.RETURN);
 
+	    return;
+	}
+
+	returnValue.accept(this);
+
+	switch (returnValue.lpcType()) {
+	case LPCINT:
+	    mv.visitInsn(Opcodes.IRETURN);
+	break;
+	case LPCMIXED:
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitInsn(Opcodes.ARETURN);
+	break;
+	default:
+	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
+	}
+    }
+    
+    public void paramTypes(ASTArguments args) {
+	mv.visitLdcInsn(args.size());
+	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+
+	for (int i = 0; i < args.size(); i++) {
+	    mv.visitInsn(DUP); // Duplicate array reference.
+	    mv.visitLdcInsn(i); // Push array index.
+
+	    // Get the LPC type for the i-th argument.
+	    ASTExpression expr = args.nodes().get(i).expression();
+	    JType jType = expr.lpcType().jType();
+
+	    switch (jType) {
+	    case JINT:
+		mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
+	    break;
+	    case JFLOAT:
+		mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
+	    break;
+	    case JBOOLEAN:
+		mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
+	    break;
+	    case JSTRING:
+		mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
+	    break;
+	    default:
+		// For LPCMIXED or other types, default to Object.
+		mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
+	    break;
+	    }
+
+	    mv.visitInsn(AASTORE);
+	}
     }
 }

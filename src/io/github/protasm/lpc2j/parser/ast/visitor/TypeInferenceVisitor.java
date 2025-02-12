@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.visitor;
 
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -67,7 +68,12 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTStmtReturn stmt, LPCType lpcType) {
-	if (stmt.value() != null)
-	    stmt.value().accept(this, lpcType);
+	if (stmt.returnValue() != null)
+	    stmt.returnValue().accept(this, lpcType);
+    }
+
+    public void visit(ASTArguments astArguments, LPCType lpcType) {
+	// TODO Auto-generated method stub
+	
     }
 }

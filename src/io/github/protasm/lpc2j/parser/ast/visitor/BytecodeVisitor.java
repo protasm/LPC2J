@@ -343,7 +343,7 @@ public class BytecodeVisitor {
 	    mv.visitInsn(Opcodes.ARETURN);
 	break;
 	default:
-	    throw new UnsupportedOperationException("Unsupported return value type: " + value.lpcType());
+	    throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
 	}
     }
     

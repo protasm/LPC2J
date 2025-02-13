@@ -1,16 +1,12 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import org.objectweb.asm.MethodVisitor;
-
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 import static io.github.protasm.lpc2j.parser.type.LPCType.*;
-import static org.objectweb.asm.Opcodes.*;
-
-import org.objectweb.asm.Label;
 
 public class ASTExprOpBinary extends ASTExpression {
     private final ASTExpression left;
@@ -62,42 +58,8 @@ public class ASTExprOpBinary extends ASTExpression {
     }
 
     @Override
-    public void accept(MethodVisitor mv) {
-	left.accept(mv);
-	right.accept(mv);
-
-	switch (operator) {
-	case BOP_ADD:
-	case BOP_SUB:
-	case BOP_MULT:
-	case BOP_DIV:
-	    mv.visitInsn(operator.opcode());
-	break;
-	case BOP_GT:
-	case BOP_GE:
-	case BOP_LT:
-	case BOP_LE:
-	case BOP_EQ:
-	    Label labelTrue = new Label();
-	    Label labelEnd = new Label();
-
-	    // Compare left vs right
-	    mv.visitJumpInsn(operator.opcode(), labelTrue);
-
-	    // False case: Push 0 (false)
-	    mv.visitInsn(ICONST_0);
-	    mv.visitJumpInsn(GOTO, labelEnd);
-
-	    // True case: Push 1 (true)
-	    mv.visitLabel(labelTrue);
-	    mv.visitInsn(ICONST_1);
-
-	    // End label
-	    mv.visitLabel(labelEnd);
-	break;
-	default:
-	    throw new UnsupportedOperationException("Unsupported operator: " + operator);
-	}
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

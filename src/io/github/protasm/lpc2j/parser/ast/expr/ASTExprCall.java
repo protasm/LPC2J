@@ -1,10 +1,8 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -34,17 +32,8 @@ public class ASTExprCall extends ASTExpression {
     }
 
     @Override
-    public void accept(MethodVisitor mv) {
-	mv.visitVarInsn(Opcodes.ALOAD, 0);
-
-	arguments.accept(mv);
-
-	mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.symbol().name(), method.descriptor(),
-		false);
-
-	// Pop if the method returns a value but it's unused
-//		if (!method.lpcReturnType().equals("V"))
-//			mv.visitInsn(Opcodes.POP);
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

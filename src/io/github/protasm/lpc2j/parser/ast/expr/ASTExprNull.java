@@ -1,7 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import org.objectweb.asm.MethodVisitor;
-
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -17,8 +16,8 @@ public class ASTExprNull extends ASTExpression {
     }
 
     @Override
-    public void accept(MethodVisitor visitor) {
-	// TODO Auto-generated method stub
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

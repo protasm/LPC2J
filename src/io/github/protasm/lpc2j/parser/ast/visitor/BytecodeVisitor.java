@@ -6,11 +6,20 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ANEWARRAY;
+import static org.objectweb.asm.Opcodes.ASTORE;
+import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.DUP;
+import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.GETSTATIC;
 import static org.objectweb.asm.Opcodes.GOTO;
+import static org.objectweb.asm.Opcodes.ICONST_0;
+import static org.objectweb.asm.Opcodes.ICONST_1;
 import static org.objectweb.asm.Opcodes.IFEQ;
+import static org.objectweb.asm.Opcodes.ILOAD;
+import static org.objectweb.asm.Opcodes.INEG;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
+import static org.objectweb.asm.Opcodes.ISTORE;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V23;
@@ -51,61 +60,20 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 public class BytecodeVisitor {
     private String defaultParentName;
     private ClassWriter cw;
     private MethodVisitor mv; // current method
-    private ASTObject object; // current object
 
     public BytecodeVisitor(String defaultParentName) {
 	this.defaultParentName = defaultParentName;
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-    }
-
-    private void constructor(ASTObject object, String parentName) {
-	MethodVisitor mv = cw.visitMethod(
-		ACC_PUBLIC,
-		"<init>",
-		"()V",
-		null, null);
-
-	mv.visitCode();
-
-	// Call super constructor
-	mv.visitVarInsn(ALOAD, 0);
-	mv.visitMethodInsn(
-		INVOKESPECIAL,
-		parentName,
-		"<init>",
-		"()V",
-		false);
-
-	// Initialize fields
-	for (ASTField field : object.fields())
-	    if (field.initializer() != null) {
-		mv.visitVarInsn(ALOAD, 0); // Load 'this'
-
-		field.initializer().accept(this);
-
-		mv.visitFieldInsn(
-			PUTFIELD,
-			object.name(),
-			field.symbol().name(),
-			field.descriptor());
-	    }
-
-	mv.visitInsn(RETURN);
-
-	mv.visitMaxs(0, 0); // Automatically calculated by ASM
-	mv.visitEnd();
-    }
-
-    public byte[] bytes() {
-	return cw.toByteArray();
     }
 
     public void visit(ASTArgument argument, MethodVisitor mv) {
@@ -152,68 +120,278 @@ public class BytecodeVisitor {
     }
 
     public void visit(ASTExprCall expr) {
-	// TODO Auto-generated method stub
+	ASTMethod method = expr.method();
+	ASTArguments arguments = expr.arguments();
 
+	mv.visitVarInsn(Opcodes.ALOAD, 0);
+
+	arguments.accept(this);
+
+	mv.visitMethodInsn(
+		Opcodes.INVOKEVIRTUAL, 
+		method.ownerName(), 
+		method.symbol().name(), 
+		method.descriptor(),
+		false);
+
+	// Pop if the method returns a value but it's unused
+//		if (!method.lpcReturnType().equals("V"))
+//			mv.visitInsn(Opcodes.POP);
     }
 
     public void visit(ASTExprFieldAccess expr) {
-	// TODO Auto-generated method stub
-
+	ASTField field = expr.field();
+	
+	mv.visitVarInsn(ALOAD, 0);
+	mv.visitFieldInsn(
+		GETFIELD, 
+		field.ownerName(), 
+		field.symbol().name(), 
+		field.descriptor());
     }
 
     public void visit(ASTExprFieldStore expr) {
-	// TODO Auto-generated method stub
+	ASTField field = expr.field();
+	ASTExpression value = expr.value();
+	
+	mv.visitVarInsn(ALOAD, 0);
 
+	value.accept(this);
+
+	mv.visitFieldInsn(
+		PUTFIELD, 
+		field.ownerName(), 
+		field.symbol().name(), 
+		field.symbol().descriptor());
     }
 
     public void visit(ASTExprInvokeLocal expr) {
-	// TODO Auto-generated method stub
+	int slot = expr.slot();
+	String methodName = expr.methodName();
+	ASTArguments args = expr.args();
+	LPCType lpcType = expr.lpcType();
 
+	// Step 1: Load the target object from its local variable slot.
+	mv.visitVarInsn(ALOAD, slot);
+
+	// Step 2: Call getClass() on the target object.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Object",
+		"getClass",
+		"()Ljava/lang/Class;",
+		false);
+
+	// Step 3: Load the method name.
+	mv.visitLdcInsn(methodName);
+
+	// Step 4: Load the method parameter types (Class[]).
+	paramTypes(args);
+
+	// Step 5: Invoke Class.getMethod(String, Class[]) to get the Method object.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Class",
+		"getMethod",
+		"(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
+		false);
+
+	// Step 6: Load the target object again (for the invoke call).
+	mv.visitVarInsn(ALOAD, slot);
+
+	// Step 7: Load the actual argument values (Object[]).
+	args.accept(this);
+
+	// Step 8: Invoke Method.invoke(Object, Object[]), returning Object.
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/reflect/Method",
+		"invoke",
+		"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+		false);
+
+	// Step 9: Unbox/cast return value.
+	if (lpcType != null) {
+	    switch (lpcType.jType()) {
+	    case JINT:
+		// Cast to Integer and unbox to int.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Integer",
+			"intValue",
+			"()I",
+			false);
+	    break;
+	    case JFLOAT:
+		// Cast to Float and unbox to float.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Float",
+			"floatValue",
+			"()F",
+			false);
+	    break;
+	    case JBOOLEAN:
+		// Cast to Boolean and unbox to boolean.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Boolean",
+			"booleanValue",
+			"()Z",
+			false);
+	    break;
+	    case JSTRING:
+		// Cast to String.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+	    break;
+	    default:
+	    // For LPCMIXED or other types, leave the result as Object,
+	    // or add an appropriate cast if necessary.
+	    break;
+	    }
+	}
     }
 
     public void visit(ASTExprLiteralFalse expr) {
-	// TODO Auto-generated method stub
-
+	mv.visitInsn(Opcodes.ICONST_0);
     }
 
     public void visit(ASTExprLiteralInteger expr) {
-	// TODO Auto-generated method stub
-
+	Integer value = expr.value();
+	
+	if (value >= -1 && value <= 5)
+	    mv.visitInsn(Opcodes.ICONST_0 + value);
+	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
+	    mv.visitIntInsn(Opcodes.BIPUSH, value);
+	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
+	    mv.visitIntInsn(Opcodes.SIPUSH, value);
+	else
+	    mv.visitLdcInsn(value);
     }
 
     public void visit(ASTExprLiteralString expr) {
-	// TODO Auto-generated method stub
-
+	mv.visitLdcInsn(expr.value());
     }
 
     public void visit(ASTExprLiteralTrue expr) {
-	// TODO Auto-generated method stub
-
+	mv.visitInsn(Opcodes.ICONST_1);
     }
 
     public void visit(ASTExprLocalAccess expr) {
-	// TODO Auto-generated method stub
-
+	ASTLocal local = expr.local();
+	
+	switch (local.symbol().lpcType()) {
+	case LPCINT:
+	case LPCSTATUS:
+	    mv.visitVarInsn(ILOAD, local.slot());
+	break;
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitVarInsn(ALOAD, local.slot());
+	break;
+	default:
+	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
+	}
     }
 
     public void visit(ASTExprLocalStore expr) {
-	// TODO Auto-generated method stub
+	ASTLocal local = expr.local();
+	ASTExpression value = expr.value();
 
+	value.accept(this);
+
+	switch (local.symbol().lpcType()) {
+	case LPCINT:
+	case LPCSTATUS:
+	    mv.visitVarInsn(ISTORE, local.slot());
+	break;
+	case LPCSTRING:
+	case LPCOBJECT:
+	    mv.visitVarInsn(ASTORE, local.slot());
+	break;
+	default:
+	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
+	}
     }
 
     public void visit(ASTExprNull expr) {
-	// TODO Auto-generated method stub
-
     }
 
     public void visit(ASTExprOpBinary expr) {
-	// TODO Auto-generated method stub
+	ASTExpression left = expr.left();
+	ASTExpression right = expr.right();
+	BinaryOpType operator = expr.operator();
+	
+	left.accept(this);
+	right.accept(this);
 
+	switch (operator) {
+	case BOP_ADD:
+	case BOP_SUB:
+	case BOP_MULT:
+	case BOP_DIV:
+	    mv.visitInsn(operator.opcode());
+	break;
+	case BOP_GT:
+	case BOP_GE:
+	case BOP_LT:
+	case BOP_LE:
+	case BOP_EQ:
+	    Label labelTrue = new Label();
+	    Label labelEnd = new Label();
+
+	    // Compare left vs right
+	    mv.visitJumpInsn(operator.opcode(), labelTrue);
+
+	    // False case: Push 0 (false)
+	    mv.visitInsn(ICONST_0);
+	    mv.visitJumpInsn(GOTO, labelEnd);
+
+	    // True case: Push 1 (true)
+	    mv.visitLabel(labelTrue);
+	    mv.visitInsn(ICONST_1);
+
+	    // End label
+	    mv.visitLabel(labelEnd);
+	break;
+	default:
+	    throw new UnsupportedOperationException("Unsupported operator: " + operator);
+	}
     }
 
     public void visit(ASTExprOpUnary expr) {
-	// TODO Auto-generated method stub
+	ASTExpression right = expr.right();
+	UnaryOpType operator = expr.operator();
+	
+	right.accept(this);
 
+	switch (operator) {
+	case UOP_NEGATE: // Unary minus (-)
+	    mv.visitInsn(INEG);
+	break;
+	case UOP_NOT: // Logical NOT (!)
+	    Label trueLabel = new Label();
+	    Label endLabel = new Label();
+
+	    // Jump if operand is false (0)
+	    mv.visitJumpInsn(IFEQ, trueLabel);
+
+	    // Operand is true, push 0 (false)
+	    mv.visitInsn(ICONST_0);
+	    mv.visitJumpInsn(GOTO, endLabel);
+
+	    // Operand is false, push 1 (true)
+	    mv.visitLabel(trueLabel);
+	    mv.visitInsn(ICONST_1);
+
+	    // End
+	    mv.visitLabel(endLabel);
+
+	break;
+	}
     }
 
     public void visit(ASTField field) {
@@ -260,8 +438,6 @@ public class BytecodeVisitor {
     }
 
     public void visit(ASTObject object) {
-	this.object = object;
-
 	String parentName;
 
 	if (object.parentName() != null)
@@ -290,7 +466,7 @@ public class BytecodeVisitor {
     }
 
     public void visit(ASTStmtExpression stmt) {
-	stmt.accept(this);
+	stmt.expression().accept(this);
     }
 
     public void visit(ASTStmtIfThenElse stmt) {
@@ -347,7 +523,49 @@ public class BytecodeVisitor {
 	}
     }
     
-    public void paramTypes(ASTArguments args) {
+    private void constructor(ASTObject object, String parentName) {
+	mv = cw.visitMethod( // current method
+		ACC_PUBLIC,
+		"<init>",
+		"()V",
+		null, null);
+
+	mv.visitCode();
+
+	// Call super constructor
+	mv.visitVarInsn(ALOAD, 0);
+	mv.visitMethodInsn(
+		INVOKESPECIAL,
+		parentName,
+		"<init>",
+		"()V",
+		false);
+
+	// Initialize fields
+	for (ASTField field : object.fields())
+	    if (field.initializer() != null) {
+		mv.visitVarInsn(ALOAD, 0); // Load 'this'
+
+		field.initializer().accept(this);
+
+		mv.visitFieldInsn(
+			PUTFIELD,
+			object.name(),
+			field.symbol().name(),
+			field.descriptor());
+	    }
+
+	mv.visitInsn(RETURN);
+
+	mv.visitMaxs(0, 0); // Automatically calculated by ASM
+	mv.visitEnd();
+    }
+
+    public byte[] bytes() {
+	return cw.toByteArray();
+    }
+
+    private void paramTypes(ASTArguments args) {
 	mv.visitLdcInsn(args.size());
 	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
 
@@ -380,5 +598,20 @@ public class BytecodeVisitor {
 
 	    mv.visitInsn(AASTORE);
 	}
+    }
+
+    public void visit(ASTArgument astArgument) {
+	// TODO Auto-generated method stub
+	
+    }
+
+    public void visit(ASTParameter astParameter) {
+	// TODO Auto-generated method stub
+	
+    }
+
+    public void visit(ASTParameters astParameters) {
+	// TODO Auto-generated method stub
+	
     }
 }

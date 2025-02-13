@@ -1,8 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -27,15 +25,8 @@ public class ASTExprLiteralInteger extends ASTExpression {
     }
 
     @Override
-    public void accept(MethodVisitor mv) {
-	if (value >= -1 && value <= 5)
-	    mv.visitInsn(Opcodes.ICONST_0 + value);
-	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
-	    mv.visitIntInsn(Opcodes.BIPUSH, value);
-	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
-	    mv.visitIntInsn(Opcodes.SIPUSH, value);
-	else
-	    mv.visitLdcInsn(value);
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

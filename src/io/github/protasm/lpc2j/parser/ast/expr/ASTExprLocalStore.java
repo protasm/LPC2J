@@ -1,13 +1,10 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import org.objectweb.asm.MethodVisitor;
-
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
-
-import static org.objectweb.asm.Opcodes.*;
 
 public class ASTExprLocalStore extends ASTExpression {
     private ASTLocal local;
@@ -34,21 +31,8 @@ public class ASTExprLocalStore extends ASTExpression {
     }
 
     @Override
-    public void accept(MethodVisitor mv) {
-	value.accept(mv);
-
-	switch (local.symbol().lpcType()) {
-	case LPCINT:
-	case LPCSTATUS:
-	    mv.visitVarInsn(ISTORE, local.slot());
-	break;
-	case LPCSTRING:
-	case LPCOBJECT:
-	    mv.visitVarInsn(ASTORE, local.slot());
-	break;
-	default:
-	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
-	}
+    public void accept(BytecodeVisitor visitor) {
+	visitor.visit(this);
     }
 
     @Override

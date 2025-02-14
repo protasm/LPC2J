@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.parser.ast.stmt;
 import java.util.Iterator;
 import java.util.List;
 
-import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
+import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -27,7 +27,7 @@ public class ASTStmtBlock extends ASTStatement implements Iterable<ASTStatement>
     }
 
     @Override
-    public void accept(BytecodeVisitor visitor) {
+    public void accept(Compiler visitor) {
 	visitor.visit(this);
     }
 

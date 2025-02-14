@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
+import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -20,7 +20,7 @@ public class ASTStmtReturn extends ASTStatement {
     }
 
     @Override
-    public void accept(BytecodeVisitor visitor) {
+    public void accept(Compiler visitor) {
 	visitor.visit(this);
     }
 

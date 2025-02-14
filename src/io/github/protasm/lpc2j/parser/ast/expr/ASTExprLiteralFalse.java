@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
+import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -16,7 +16,7 @@ public class ASTExprLiteralFalse extends ASTExpression {
     }
 
     @Override
-    public void accept(BytecodeVisitor visitor) {
+    public void accept(Compiler visitor) {
 	visitor.visit(this);
     }
 

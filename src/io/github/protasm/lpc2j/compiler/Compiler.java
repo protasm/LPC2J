@@ -175,92 +175,34 @@ public class Compiler {
     }
 
     public void visit(ASTExprInvokeLocal expr) {
-	LPCType lpcType = expr.lpcType();
-	int slot = expr.slot();
-	String methodName = expr.methodName();
 	ASTArguments args = expr.args();
 
 	// Load target object
-	mv.visitVarInsn(ALOAD, slot);
+	invokeLoadLocalObj(expr.slot());
 
 	// Call getClass() on target object
-	mv.visitMethodInsn(
-		INVOKEVIRTUAL,
-		"java/lang/Object",
-		"getClass",
-		"()Ljava/lang/Class;",
-		false);
+	invokeGetClass();
 
 	// Load method name
-	mv.visitLdcInsn(methodName);
+	mv.visitLdcInsn(expr.methodName());
 
 	// Load method parameter types (Class[])
-	paramTypes(args);
+	invokeParamTypes(args);
 
 	// Invoke Class.getMethod(String, Class[]) to get Method object
-	mv.visitMethodInsn(
-		INVOKEVIRTUAL,
-		"java/lang/Class",
-		"getMethod",
-		"(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
-		false);
+	invokeGetMethod();
 
-	// Load target object again (for invoke call)
-	mv.visitVarInsn(ALOAD, slot);
+	// Reload target object (for invoke call)
+	invokeLoadLocalObj(expr.slot());
 
 	// Load actual argument values (Object[])
 	args.accept(this);
 
 	// Invoke Method.invoke(Object, Object[]), returning Object
-	mv.visitMethodInsn(
-		INVOKEVIRTUAL,
-		"java/lang/reflect/Method",
-		"invoke",
-		"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
-		false);
+	invokeMethodInvoke();
 
 	// Unbox/cast return value
-	if (lpcType != null)
-	    switch (lpcType.jType()) {
-	    case JINT:
-		// Cast to Integer and unbox to int.
-		mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-		mv.visitMethodInsn(
-			INVOKEVIRTUAL,
-			"java/lang/Integer",
-			"intValue",
-			"()I",
-			false);
-	    break;
-	    case JFLOAT:
-		// Cast to Float and unbox to float.
-		mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
-		mv.visitMethodInsn(
-			INVOKEVIRTUAL,
-			"java/lang/Float",
-			"floatValue",
-			"()F",
-			false);
-	    break;
-	    case JBOOLEAN:
-		// Cast to Boolean and unbox to boolean.
-		mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-		mv.visitMethodInsn(
-			INVOKEVIRTUAL,
-			"java/lang/Boolean",
-			"booleanValue",
-			"()Z",
-			false);
-	    break;
-	    case JSTRING:
-		// Cast to String.
-		mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-	    break;
-	    default:
-	    // For LPCMIXED or other types, leave the result as Object,
-	    // or add an appropriate cast if necessary.
-	    break;
-	    }
+	invokeReturnValue(expr.lpcType());
     }
 
     public void visit(ASTExprLiteralFalse expr) {
@@ -573,7 +515,7 @@ public class Compiler {
 	return cw.toByteArray();
     }
 
-    private void paramTypes(ASTArguments args) {
+    private void invokeParamTypes(ASTArguments args) {
 	mv.visitLdcInsn(args.size());
 	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
 
@@ -608,6 +550,81 @@ public class Compiler {
 	}
     }
 
+    private void invokeLoadLocalObj(int slot) {
+	mv.visitVarInsn(ALOAD, slot);
+    }
+
+    private void invokeGetClass() {
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Object",
+		"getClass",
+		"()Ljava/lang/Class;",
+		false);
+    }
+    
+    private void invokeGetMethod() {
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/Class",
+		"getMethod",
+		"(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
+		false);
+    }
+
+    private void invokeMethodInvoke() {
+	mv.visitMethodInsn(
+		INVOKEVIRTUAL,
+		"java/lang/reflect/Method",
+		"invoke",
+		"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+		false);
+    }
+    
+    private void invokeReturnValue(LPCType lpcType) {
+	if (lpcType != null)
+	    switch (lpcType.jType()) {
+	    case JINT:
+		// Cast to Integer and unbox to int.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Integer",
+			"intValue",
+			"()I",
+			false);
+	    break;
+	    case JFLOAT:
+		// Cast to Float and unbox to float.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Float",
+			"floatValue",
+			"()F",
+			false);
+	    break;
+	    case JBOOLEAN:
+		// Cast to Boolean and unbox to boolean.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+		mv.visitMethodInsn(
+			INVOKEVIRTUAL,
+			"java/lang/Boolean",
+			"booleanValue",
+			"()Z",
+			false);
+	    break;
+	    case JSTRING:
+		// Cast to String.
+		mv.visitTypeInsn(CHECKCAST, "java/lang/String");
+	    break;
+	    default:
+	    // For LPCMIXED or other types, leave the result as Object,
+	    // or add an appropriate cast if necessary.
+	    break;
+	    }
+    }
+    
     public void visit(ASTParameter param) {
 	// TODO Auto-generated method stub
     }

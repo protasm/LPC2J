@@ -89,81 +89,81 @@ public class TypeInferenceVisitor {
 
     public void visit(ASTArguments astArguments, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprFieldAccess astExprFieldAccess, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprCall astExprCall, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprLiteralFalse astExprLiteralFalse, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprLiteralInteger astExprLiteralInteger, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprLiteralString astExprLiteralString, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprLiteralTrue astExprLiteralTrue, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprLocalAccess astExprLocalAccess, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprNull astExprNull, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprOpBinary astExprOpBinary, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTExprOpUnary astExprOpUnary, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTArgument astArgument, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTField astField, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTFields astFields, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTParameter astParameter, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTParameters astParameters, LPCType lpcType) {
 	// TODO Auto-generated method stub
-	
+
     }
 }

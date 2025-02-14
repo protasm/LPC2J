@@ -4,7 +4,7 @@ public class ScannableSource {
     private static final char EOL = '\n';
     private static final char NULL_CHAR = '\0';
 
-    private String source;
+    private final String source;
 
     private int head, tail, line;
 
@@ -30,7 +30,7 @@ public class ScannableSource {
     }
 
     public boolean advanceTo(char c) {
-	while (peek() != c && !atEnd())
+	while ((peek() != c) && !atEnd())
 	    advance();
 
 	return !atEnd();
@@ -88,7 +88,7 @@ public class ScannableSource {
     }
 
     public char peekNext() {
-	if (head + 1 >= source.length())
+	if ((head + 1) >= source.length())
 	    return NULL_CHAR;
 
 	return source.charAt(head + 1);

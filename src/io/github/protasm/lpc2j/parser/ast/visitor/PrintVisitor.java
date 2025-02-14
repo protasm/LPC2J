@@ -44,7 +44,6 @@ public class PrintVisitor {
 			str));
     }
 
-    
     public void visit(ASTArgument argument) {
 	doOutput(argument.className());
 
@@ -55,7 +54,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTArguments arguments) {
 	if (arguments.size() == 0) {
 	    doOutput("[No Arguments]");
@@ -73,7 +71,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprCall expr) {
 	doOutput(
 		String.format(
@@ -88,7 +85,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprFieldAccess expr) {
 	doOutput(expr.className());
 
@@ -99,7 +95,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprFieldStore expr) {
 	doOutput(expr.className());
 
@@ -111,7 +106,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprInvokeLocal expr) {
 	doOutput(
 		String.format(
@@ -128,12 +122,10 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprLiteralFalse expr) {
 	doOutput(expr.className());
     }
 
-    
     public void visit(ASTExprLiteralInteger expr) {
 	doOutput(
 		String.format(
@@ -142,7 +134,6 @@ public class PrintVisitor {
 			expr.value()));
     }
 
-    
     public void visit(ASTExprLiteralString expr) {
 	doOutput(
 		String.format(
@@ -151,12 +142,10 @@ public class PrintVisitor {
 			expr.value()));
     }
 
-    
     public void visit(ASTExprLiteralTrue expr) {
 	doOutput(expr.className());
     }
 
-    
     public void visit(ASTExprLocalAccess expr) {
 	doOutput(expr.className());
 
@@ -167,7 +156,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprLocalStore expr) {
 	doOutput(expr.className());
 
@@ -179,12 +167,10 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprNull expr) {
 	doOutput(expr.className());
     }
 
-    
     public void visit(ASTExprOpBinary expr) {
 	doOutput(
 		String.format(
@@ -200,7 +186,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTExprOpUnary expr) {
 	doOutput(
 		String.format(
@@ -215,7 +200,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTField field) {
 	doOutput(
 		String.format(
@@ -231,7 +215,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTFields fields) {
 	if (fields.size() == 0) {
 	    doOutput("[No Fields]");
@@ -254,7 +237,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTLocal local) {
 	doOutput(
 		String.format(
@@ -265,7 +247,6 @@ public class PrintVisitor {
 			local.scopeDepth()));
     }
 
-    
     public void visit(ASTMethod method) {
 	doOutput(
 		String.format(
@@ -281,7 +262,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTMethods methods) {
 	if (methods.size() == 0) {
 	    doOutput("[No Methods]");
@@ -305,7 +285,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTObject object) {
 	if (object.parentName() != null)
 	    doOutput(
@@ -331,7 +310,6 @@ public class PrintVisitor {
 	doOutput("End Object");
     }
 
-    
     public void visit(ASTParameter parameter) {
 	doOutput(
 		String.format(
@@ -340,7 +318,6 @@ public class PrintVisitor {
 			parameter.symbol()));
     }
 
-    
     public void visit(ASTParameters parameters) {
 	if (parameters.size() == 0)
 	    doOutput("[No Parameters]");
@@ -351,7 +328,6 @@ public class PrintVisitor {
 	System.out.println();
     }
 
-    
     public void visit(ASTStmtBlock stmt) {
 	doOutput(
 		String.format(
@@ -373,7 +349,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTStmtExpression stmt) {
 	doOutput(stmt.className());
 
@@ -384,7 +359,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTStmtIfThenElse stmt) {
 	doOutput(stmt.className());
 
@@ -412,7 +386,6 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    
     public void visit(ASTStmtReturn stmt) {
 	doOutput(stmt.className());
 

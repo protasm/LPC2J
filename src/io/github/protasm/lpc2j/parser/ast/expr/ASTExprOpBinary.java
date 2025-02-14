@@ -1,12 +1,14 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCINT;
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCSTATUS;
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCSTRING;
+
 import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
-
-import static io.github.protasm.lpc2j.parser.type.LPCType.*;
 
 public class ASTExprOpBinary extends ASTExpression {
     private final ASTExpression left;
@@ -54,7 +56,7 @@ public class ASTExprOpBinary extends ASTExpression {
     }
 
     private boolean matchTypes(LPCType lType, LPCType rType) {
-	return left.lpcType() == lType && right.lpcType() == rType;
+	return (left.lpcType() == lType) && (right.lpcType() == rType);
     }
 
     @Override

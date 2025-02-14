@@ -12,13 +12,14 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_ERROR;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_FALSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_FLOAT_LITERAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_FOR;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IF;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_INHERIT;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_INT_LITERAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACE;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACKET;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
@@ -28,12 +29,11 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS_MINUS;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_NIL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FLOAT_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INT_LITERAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_PLUS;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RETURN;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACE;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACKET;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_PAREN;
@@ -160,7 +160,7 @@ public class Scanner {
 
 	    if (token != null)
 		tokens.add(token);
-	} while (token == null || token.tType() != T_EOF);
+	} while ((token == null) || (token.tType() != T_EOF));
 
 	return tokens;
     }
@@ -294,7 +294,7 @@ public class Scanner {
 	while (isDigit(ss.peek()))
 	    ss.advance();
 
-	if (ss.peek() == '.' && isDigit(ss.peekNext())) {
+	if ((ss.peek() == '.') && isDigit(ss.peekNext())) {
 	    isFloat = true;
 
 	    ss.advance();
@@ -325,7 +325,7 @@ public class Scanner {
     }
 
     private boolean isAlpha(char c) {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || (c == '_');
     }
 
     private boolean isAlphaNumeric(char c) {
@@ -333,7 +333,7 @@ public class Scanner {
     }
 
     private boolean isDigit(char c) {
-	return c >= '0' && c <= '9';
+	return (c >= '0') && (c <= '9');
     }
 
     private Token<String> unexpectedChar(char c) {

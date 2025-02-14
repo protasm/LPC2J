@@ -8,8 +8,8 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprCall extends ASTExpression {
-    private ASTMethod method;
-    private ASTArguments arguments;
+    private final ASTMethod method;
+    private final ASTArguments arguments;
 
     public ASTExprCall(int line, ASTMethod method, ASTArguments arguments) {
 	super(line);

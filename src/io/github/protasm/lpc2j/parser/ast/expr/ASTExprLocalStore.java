@@ -7,8 +7,8 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprLocalStore extends ASTExpression {
-    private ASTLocal local;
-    private ASTExpression value;
+    private final ASTLocal local;
+    private final ASTExpression value;
 
     public ASTExprLocalStore(int line, ASTLocal local, ASTExpression value) {
 	super(line);

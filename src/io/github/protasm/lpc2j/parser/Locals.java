@@ -8,7 +8,7 @@ import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class Locals {
-    private Stack<ASTLocal> locals;
+    private final Stack<ASTLocal> locals;
     private int workingScopeDepth;
 
     public Locals() {

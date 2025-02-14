@@ -1,19 +1,43 @@
 package io.github.protasm.lpc2j.parser;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.*;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_COMMA;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_ELSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_IF;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_INHERIT;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RETURN;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_SEMICOLON;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_STRING_LITERAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.github.protasm.lpc2j.parser.ast.*;
-import io.github.protasm.lpc2j.parser.ast.expr.*;
+import io.github.protasm.lpc2j.parser.ast.ASTArgument;
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
+import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+import io.github.protasm.lpc2j.parser.ast.ASTMethod;
+import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.parser.ast.ASTParameter;
+import io.github.protasm.lpc2j.parser.ast.ASTParameters;
+import io.github.protasm.lpc2j.parser.ast.Symbol;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
-import io.github.protasm.lpc2j.parser.parselet.*;
+import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
+import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.Tokens;

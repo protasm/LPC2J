@@ -1,6 +1,14 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static io.github.protasm.lpc2j.parser.type.BinaryOpType.*;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_DIV;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_EQ;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GE;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GT;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_LE;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_LT;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_MULT;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_SUB;
 
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.ParseRule;

@@ -10,7 +10,18 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.console.cmd.*;
+import io.github.protasm.lpc2j.console.cmd.CmdCall;
+import io.github.protasm.lpc2j.console.cmd.CmdCompile;
+import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
+import io.github.protasm.lpc2j.console.cmd.CmdDirList;
+import io.github.protasm.lpc2j.console.cmd.CmdDirShow;
+import io.github.protasm.lpc2j.console.cmd.CmdHelp;
+import io.github.protasm.lpc2j.console.cmd.CmdListObjects;
+import io.github.protasm.lpc2j.console.cmd.CmdLoad;
+import io.github.protasm.lpc2j.console.cmd.CmdParse;
+import io.github.protasm.lpc2j.console.cmd.CmdQuit;
+import io.github.protasm.lpc2j.console.cmd.CmdScan;
+import io.github.protasm.lpc2j.console.cmd.Command;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -19,7 +30,7 @@ import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
     private final String basePath;
-    private Map<String, Object> objects;
+    private final Map<String, Object> objects;
     private final java.util.Scanner inputScanner;
 
     private static Map<String, Command> commands = new TreeMap<>();
@@ -113,7 +124,7 @@ public class Console {
 	try {
 	    // Assume a no-arg constructor
 	    Constructor<?> constructor = clazz.getConstructor();
-	    Object instance = (Object) constructor.newInstance();
+	    Object instance = constructor.newInstance();
 
 	    sf.setLPCObject(instance);
 

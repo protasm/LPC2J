@@ -4,9 +4,9 @@ import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 
 public class ParseRule {
-    private PrefixParselet prefix;
-    private InfixParselet infix;
-    private int precedence;
+    private final PrefixParselet prefix;
+    private final InfixParselet infix;
+    private final int precedence;
 
     public ParseRule(PrefixParselet prefix, InfixParselet infix, int precedence) {
 	this.prefix = prefix;

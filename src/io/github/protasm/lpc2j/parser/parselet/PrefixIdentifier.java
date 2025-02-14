@@ -1,10 +1,15 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
+import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
+
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -12,9 +17,6 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.scanner.Token;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
-
-import static io.github.protasm.lpc2j.scanner.TokenType.*;
 
 public class PrefixIdentifier implements PrefixParselet {
     @Override
@@ -43,10 +45,10 @@ public class PrefixIdentifier implements PrefixParselet {
 	// Field?
 	if (field != null)
 	    // Invoke?
-	    if (parser.tokens().match(T_RIGHT_ARROW)) {
+	    if (parser.tokens().match(T_RIGHT_ARROW))
 		return null; // TODO
-		// Assign?
-	    } else if (canAssign && parser.tokens().match(T_EQUAL))
+	    // Assign?
+	    else if (canAssign && parser.tokens().match(T_EQUAL))
 		return new ASTExprFieldStore(line, field, parser.expression());
 	    // Retrieve.
 	    else

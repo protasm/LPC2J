@@ -9,7 +9,7 @@ import java.util.StringJoiner;
 import io.github.protasm.lpc2j.parser.ParseException;
 
 public class Tokens {
-    private List<Token<?>> tokens;
+    private final List<Token<?>> tokens;
     private int currIdx = 0;
 
     public Tokens() {
@@ -89,7 +89,7 @@ public class Tokens {
     }
 
     public boolean isAtEnd() {
-	return currIdx >= tokens.size() || current().tType() == T_EOF;
+	return (currIdx >= tokens.size()) || (current().tType() == T_EOF);
     }
 
     @Override

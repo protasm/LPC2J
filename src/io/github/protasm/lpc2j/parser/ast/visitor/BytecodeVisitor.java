@@ -66,8 +66,8 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 public class BytecodeVisitor {
-    private String defaultParentName;
-    private ClassWriter cw;
+    private final String defaultParentName;
+    private final ClassWriter cw;
     private MethodVisitor mv; // current method
 
     public BytecodeVisitor(String defaultParentName) {
@@ -128,9 +128,9 @@ public class BytecodeVisitor {
 	arguments.accept(this);
 
 	mv.visitMethodInsn(
-		Opcodes.INVOKEVIRTUAL, 
-		method.ownerName(), 
-		method.symbol().name(), 
+		Opcodes.INVOKEVIRTUAL,
+		method.ownerName(),
+		method.symbol().name(),
 		method.descriptor(),
 		false);
 
@@ -141,27 +141,27 @@ public class BytecodeVisitor {
 
     public void visit(ASTExprFieldAccess expr) {
 	ASTField field = expr.field();
-	
+
 	mv.visitVarInsn(ALOAD, 0);
 	mv.visitFieldInsn(
-		GETFIELD, 
-		field.ownerName(), 
-		field.symbol().name(), 
+		GETFIELD,
+		field.ownerName(),
+		field.symbol().name(),
 		field.descriptor());
     }
 
     public void visit(ASTExprFieldStore expr) {
 	ASTField field = expr.field();
 	ASTExpression value = expr.value();
-	
+
 	mv.visitVarInsn(ALOAD, 0);
 
 	value.accept(this);
 
 	mv.visitFieldInsn(
-		PUTFIELD, 
-		field.ownerName(), 
-		field.symbol().name(), 
+		PUTFIELD,
+		field.ownerName(),
+		field.symbol().name(),
 		field.symbol().descriptor());
     }
 
@@ -211,7 +211,7 @@ public class BytecodeVisitor {
 		false);
 
 	// Step 9: Unbox/cast return value.
-	if (lpcType != null) {
+	if (lpcType != null)
 	    switch (lpcType.jType()) {
 	    case JINT:
 		// Cast to Integer and unbox to int.
@@ -252,7 +252,6 @@ public class BytecodeVisitor {
 	    // or add an appropriate cast if necessary.
 	    break;
 	    }
-	}
     }
 
     public void visit(ASTExprLiteralFalse expr) {
@@ -261,12 +260,12 @@ public class BytecodeVisitor {
 
     public void visit(ASTExprLiteralInteger expr) {
 	Integer value = expr.value();
-	
-	if (value >= -1 && value <= 5)
+
+	if ((value >= -1) && (value <= 5))
 	    mv.visitInsn(Opcodes.ICONST_0 + value);
-	else if (value >= Byte.MIN_VALUE && value <= Byte.MAX_VALUE)
+	else if ((value >= Byte.MIN_VALUE) && (value <= Byte.MAX_VALUE))
 	    mv.visitIntInsn(Opcodes.BIPUSH, value);
-	else if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
+	else if ((value >= Short.MIN_VALUE) && (value <= Short.MAX_VALUE))
 	    mv.visitIntInsn(Opcodes.SIPUSH, value);
 	else
 	    mv.visitLdcInsn(value);
@@ -282,7 +281,7 @@ public class BytecodeVisitor {
 
     public void visit(ASTExprLocalAccess expr) {
 	ASTLocal local = expr.local();
-	
+
 	switch (local.symbol().lpcType()) {
 	case LPCINT:
 	case LPCSTATUS:
@@ -324,7 +323,7 @@ public class BytecodeVisitor {
 	ASTExpression left = expr.left();
 	ASTExpression right = expr.right();
 	BinaryOpType operator = expr.operator();
-	
+
 	left.accept(this);
 	right.accept(this);
 
@@ -365,7 +364,7 @@ public class BytecodeVisitor {
     public void visit(ASTExprOpUnary expr) {
 	ASTExpression right = expr.right();
 	UnaryOpType operator = expr.operator();
-	
+
 	right.accept(this);
 
 	switch (operator) {
@@ -500,7 +499,7 @@ public class BytecodeVisitor {
 
     public void visit(ASTStmtReturn stmt) {
 	ASTExpression returnValue = stmt.returnValue();
-	
+
 	if (returnValue == null) {
 	    mv.visitInsn(Opcodes.RETURN);
 
@@ -522,7 +521,7 @@ public class BytecodeVisitor {
 	    throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
 	}
     }
-    
+
     private void constructor(ASTObject object, String parentName) {
 	mv = cw.visitMethod( // current method
 		ACC_PUBLIC,
@@ -602,16 +601,16 @@ public class BytecodeVisitor {
 
     public void visit(ASTArgument astArgument) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTParameter astParameter) {
 	// TODO Auto-generated method stub
-	
+
     }
 
     public void visit(ASTParameters astParameters) {
 	// TODO Auto-generated method stub
-	
+
     }
 }

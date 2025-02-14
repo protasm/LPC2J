@@ -1,12 +1,13 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCINT;
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCSTATUS;
+
 import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
-
-import static io.github.protasm.lpc2j.parser.type.LPCType.*;
 
 public class ASTExprOpUnary extends ASTExpression {
     private final ASTExpression right;

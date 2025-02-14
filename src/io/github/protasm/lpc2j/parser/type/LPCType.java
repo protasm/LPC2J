@@ -1,6 +1,12 @@
 package io.github.protasm.lpc2j.parser.type;
 
-import static io.github.protasm.lpc2j.parser.type.JType.*;
+import static io.github.protasm.lpc2j.parser.type.JType.JBOOLEAN;
+import static io.github.protasm.lpc2j.parser.type.JType.JFLOAT;
+import static io.github.protasm.lpc2j.parser.type.JType.JINT;
+import static io.github.protasm.lpc2j.parser.type.JType.JNULL;
+import static io.github.protasm.lpc2j.parser.type.JType.JOBJECT;
+import static io.github.protasm.lpc2j.parser.type.JType.JSTRING;
+import static io.github.protasm.lpc2j.parser.type.JType.JVOID;
 
 public enum LPCType {
     LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(JOBJECT), LPCNULL(JNULL), LPCOBJECT(JOBJECT),

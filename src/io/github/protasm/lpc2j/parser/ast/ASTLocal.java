@@ -1,7 +1,5 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import org.objectweb.asm.MethodVisitor;
-
 import io.github.protasm.lpc2j.parser.ast.visitor.BytecodeVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;

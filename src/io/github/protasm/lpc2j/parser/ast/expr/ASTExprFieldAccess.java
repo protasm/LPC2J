@@ -7,7 +7,7 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprFieldAccess extends ASTExpression {
-    private ASTField field;
+    private final ASTField field;
 
     public ASTExprFieldAccess(int line, ASTField field) {
 	super(line);

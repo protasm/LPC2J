@@ -1,14 +1,39 @@
 package io.github.protasm.lpc2j.parser;
 
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_COMPARISON;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_EQUALITY;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_FACTOR;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_NONE;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_TERM;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL_EQUAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_FALSE;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_FLOAT_LITERAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_INT_LITERAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_LESS;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_SLASH;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_STAR;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_STRING_LITERAL;
+import static io.github.protasm.lpc2j.scanner.TokenType.T_TRUE;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import io.github.protasm.lpc2j.parser.parselet.*;
+import io.github.protasm.lpc2j.parser.parselet.InfixBinaryOp;
+import io.github.protasm.lpc2j.parser.parselet.PrefixIdentifier;
+import io.github.protasm.lpc2j.parser.parselet.PrefixLParen;
+import io.github.protasm.lpc2j.parser.parselet.PrefixLiteral;
+import io.github.protasm.lpc2j.parser.parselet.PrefixNumber;
+import io.github.protasm.lpc2j.parser.parselet.PrefixString;
+import io.github.protasm.lpc2j.parser.parselet.PrefixUnaryOp;
 import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.TokenType;
-
-import static io.github.protasm.lpc2j.scanner.TokenType.*;
-import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.*;
 
 public class PrattParser {
     public static final class Precedence {

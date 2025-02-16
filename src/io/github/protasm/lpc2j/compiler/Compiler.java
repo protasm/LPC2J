@@ -85,10 +85,10 @@ public class Compiler {
 	return this.bytes();
     }
 
-    public void visit(ASTArgument argument) {
-	argument.expression().accept(this);
+    public void visit(ASTArgument arg) {
+	arg.expression().accept(this);
 
-	LPCType type = argument.expression().lpcType();
+	LPCType type = arg.expression().lpcType();
 
 	if (type == null) // Without type information, assume no boxing is needed.
 	    return;
@@ -112,17 +112,17 @@ public class Compiler {
 	}
     }
 
-    public void visit(ASTArguments arguments) {
-	mv.visitLdcInsn(arguments.size()); // Push array length
+    public void visit(ASTArguments args) {
+	pushInt(args.size()); // Push array length
 
 	mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
 
-	for (int i = 0; i < arguments.size(); i++) {
+	for (int i = 0; i < args.size(); i++) {
 	    mv.visitInsn(DUP); // Duplicate array reference
 
-	    mv.visitLdcInsn(i); // Push index
+	    pushInt(i); // Push index
 
-	    arguments.nodes().get(i).accept(this); // Push argument value
+	    args.nodes().get(i).accept(this); // Push argument value
 
 	    mv.visitInsn(AASTORE); // Store argument into array
 	}
@@ -212,14 +212,7 @@ public class Compiler {
     public void visit(ASTExprLiteralInteger expr) {
 	Integer value = expr.value();
 
-	if ((value >= -1) && (value <= 5))
-	    mv.visitInsn(Opcodes.ICONST_0 + value);
-	else if ((value >= Byte.MIN_VALUE) && (value <= Byte.MAX_VALUE))
-	    mv.visitIntInsn(Opcodes.BIPUSH, value);
-	else if ((value >= Short.MIN_VALUE) && (value <= Short.MAX_VALUE))
-	    mv.visitIntInsn(Opcodes.SIPUSH, value);
-	else
-	    mv.visitLdcInsn(value);
+	pushInt(value);
     }
 
     public void visit(ASTExprLiteralString expr) {
@@ -516,12 +509,14 @@ public class Compiler {
     }
 
     private void invokeParamTypes(ASTArguments args) {
-	mv.visitLdcInsn(args.size());
+	pushInt(args.size());
+
 	mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
 
 	for (int i = 0; i < args.size(); i++) {
 	    mv.visitInsn(DUP); // Duplicate array reference.
-	    mv.visitLdcInsn(i); // Push array index.
+
+	    pushInt(i); // Push array index.
 
 	    // Get the LPC type for the i-th argument.
 	    ASTExpression expr = args.nodes().get(i).expression();
@@ -623,6 +618,17 @@ public class Compiler {
 	    // or add an appropriate cast if necessary.
 	    break;
 	    }
+    }
+
+    private void pushInt(int value) {
+	if ((value >= -1) && (value <= 5))
+	    mv.visitInsn(Opcodes.ICONST_0 + value);
+	else if ((value >= Byte.MIN_VALUE) && (value <= Byte.MAX_VALUE))
+	    mv.visitIntInsn(Opcodes.BIPUSH, value);
+	else if ((value >= Short.MIN_VALUE) && (value <= Short.MAX_VALUE))
+	    mv.visitIntInsn(Opcodes.SIPUSH, value);
+	else
+	    mv.visitLdcInsn(value);
     }
 
     public void visit(ASTParameter param) {

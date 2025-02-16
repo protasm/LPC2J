@@ -54,10 +54,10 @@ public class Console {
 	commands.put("p", new CmdParse());
 	commands.put("parse", new CmdParse());
 	commands.put("pwd", new CmdDirShow());
+	commands.put("q", new CmdQuit());
+	commands.put("quit", new CmdQuit());
 	commands.put("s", new CmdScan());
 	commands.put("scan", new CmdScan());
-	commands.put("x", new CmdQuit());
-	commands.put("exit", new CmdQuit());
     }
 
     public Console(String baseDir) {

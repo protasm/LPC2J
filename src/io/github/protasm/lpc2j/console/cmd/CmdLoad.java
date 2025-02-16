@@ -11,19 +11,19 @@ public class CmdLoad extends Command {
 	if (args.length < 1) {
 	    System.out.println("Error: No file specified.");
 
-	    return false;
+	    return true;
 	}
 
 	FSSourceFile sf = console.load(args[0]);
 
 	if (sf == null)
-	    return false;
+	    return true;
 
 	console.objects().put(sf.dotName(), sf.lpcObject());
 
 	System.out.println(sf.dotName() + " loaded.");
 
-	return false;
+	return true;
     }
 
     @Override

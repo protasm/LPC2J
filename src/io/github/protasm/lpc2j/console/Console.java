@@ -15,6 +15,7 @@ import io.github.protasm.lpc2j.console.cmd.CmdCompile;
 import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
 import io.github.protasm.lpc2j.console.cmd.CmdDirList;
 import io.github.protasm.lpc2j.console.cmd.CmdDirShow;
+import io.github.protasm.lpc2j.console.cmd.CmdFileCat;
 import io.github.protasm.lpc2j.console.cmd.CmdHelp;
 import io.github.protasm.lpc2j.console.cmd.CmdListObjects;
 import io.github.protasm.lpc2j.console.cmd.CmdLoad;
@@ -29,7 +30,9 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
-    private final String basePath;
+    private final String baseDir;
+    private String pwd;
+
     private final Map<String, Object> objects;
     private final java.util.Scanner inputScanner;
 
@@ -37,6 +40,7 @@ public class Console {
 
     static {
 	commands.put("c", new CmdCompile());
+	commands.put("cat", new CmdFileCat());
 	commands.put("compile", new CmdCompile());
 	commands.put("call", new CmdCall());
 	commands.put("cd", new CmdDirChange());
@@ -56,8 +60,9 @@ public class Console {
 	commands.put("exit", new CmdQuit());
     }
 
-    public Console(String basePath) {
-	this.basePath = basePath;
+    public Console(String baseDir) {
+	this.baseDir = baseDir;
+	this.pwd = "/";
 
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
@@ -77,9 +82,21 @@ public class Console {
 	return commands;
     }
 
+    public String baseDir() {
+	return baseDir;
+    }
+
+    public String pwd() {
+	return pwd;
+    }
+
+    public void setPWD(String pwd) {
+	this.pwd = pwd;
+    }
+
     public void repl() {
 	while (true) {
-	    System.out.print("> ");
+	    System.out.print(pwd() + " % ");
 
 	    String line = inputScanner.nextLine().trim();
 
@@ -93,9 +110,7 @@ public class Console {
 		Command cmd = Console.commands.get(command);
 		parts = (parts.length > 1) ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
 
-		boolean finished = cmd.execute(this, parts);
-
-		if (finished)
+		if (!cmd.execute(this, parts))
 		    break;
 	    } else {
 		System.out.println("Unrecognized command: '" + command + "'.");
@@ -178,7 +193,7 @@ public class Console {
 		.compile(sf.astObject());
 
 	sf.setBytes(bytes);
-	sf.write(basePath);
+	sf.write(baseDir);
 
 	return sf;
     }
@@ -199,7 +214,7 @@ public class Console {
 
     public FSSourceFile scan(String filePath) {
 	try {
-	    FSSourceFile sf = new FSSourceFile(basePath, filePath);
+	    FSSourceFile sf = new FSSourceFile(baseDir, filePath);
 
 	    Tokens tokens = new Scanner()
 		    .scan(sf.source());

@@ -7,7 +7,7 @@ public class CmdHelp extends Command {
     public boolean execute(Console console, String... args) {
 	Console.commands().forEach((key, value) -> System.out.println(key + "\t-> " + value));
 
-	return false;
+	return true;
     }
 
     @Override

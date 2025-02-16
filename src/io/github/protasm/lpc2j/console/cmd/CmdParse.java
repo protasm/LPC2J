@@ -13,19 +13,19 @@ public class CmdParse extends Command {
 	if (args.length < 1) {
 	    System.out.println("Error: No file specified.");
 
-	    return false;
+	    return true;
 	}
 
 	FSSourceFile sf = console.parse(args[0]);
 
 	if (sf == null)
-	    return false;
+	    return true;
 
 	ASTObject astObject = sf.astObject();
 
 	astObject.accept(new PrintVisitor());
 
-	return false;
+	return true;
     }
 
     @Override

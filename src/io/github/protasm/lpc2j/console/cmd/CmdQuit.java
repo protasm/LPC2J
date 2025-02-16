@@ -7,7 +7,7 @@ public class CmdQuit extends Command {
     public boolean execute(Console console, String... args) {
 	System.out.println("Goodbye.");
 
-	return true;
+	return false;
     }
 
     @Override

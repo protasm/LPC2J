@@ -10,12 +10,12 @@ public class CmdCompile extends Command {
 	if (args.length < 1) {
 	    System.out.println("Error: No file specified.");
 
-	    return false;
+	    return true;
 	}
 
 	console.compile(args[0]);
 
-	return false;
+	return true;
     }
 
     @Override

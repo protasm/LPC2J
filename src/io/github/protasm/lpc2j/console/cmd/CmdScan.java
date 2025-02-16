@@ -12,20 +12,20 @@ public class CmdScan extends Command {
 	if (args.length < 1) {
 	    System.out.println("Error: No file specified.");
 
-	    return false;
+	    return true;
 	}
 
 	FSSourceFile sf = console.scan(args[0]);
 
 	if (sf == null)
-	    return false;
+	    return true;
 
 	Tokens tokens = sf.tokens();
 
 	if (tokens != null)
 	    System.out.println(tokens);
 
-	return false;
+	return true;
     }
 
     @Override

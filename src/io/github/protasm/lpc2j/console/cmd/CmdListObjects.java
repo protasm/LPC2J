@@ -6,9 +6,10 @@ public class CmdListObjects extends Command {
     @Override
     public boolean execute(Console console, String... args) {
 	System.out.println("List Objects");
+
 	System.out.println(console.objects().keySet());
 
-	return false;
+	return true;
     }
 
     @Override

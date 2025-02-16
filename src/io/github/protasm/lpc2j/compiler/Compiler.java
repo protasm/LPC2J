@@ -562,7 +562,7 @@ public class Compiler {
 		"()Ljava/lang/Class;",
 		false);
     }
-    
+
     private void invokeGetMethod() {
 	mv.visitMethodInsn(
 		INVOKEVIRTUAL,
@@ -580,7 +580,7 @@ public class Compiler {
 		"(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
 		false);
     }
-    
+
     private void invokeReturnValue(LPCType lpcType) {
 	if (lpcType != null)
 	    switch (lpcType.jType()) {
@@ -624,7 +624,7 @@ public class Compiler {
 	    break;
 	    }
     }
-    
+
     public void visit(ASTParameter param) {
 	// TODO Auto-generated method stub
     }

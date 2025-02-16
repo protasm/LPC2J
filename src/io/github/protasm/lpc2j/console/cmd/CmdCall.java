@@ -10,7 +10,7 @@ public class CmdCall extends Command {
 	if (args.length < 2) {
 	    System.out.println("Usage:  call <object> <method> [<args>]");
 
-	    return false;
+	    return true;
 	}
 
 	String[] strArgs = Arrays.copyOfRange(args, 2, args.length);
@@ -18,7 +18,7 @@ public class CmdCall extends Command {
 
 	console.call(args[0], args[1], objArgs);
 
-	return false;
+	return true;
     }
 
     private Object[] inferArgTypes(Console console, String[] strArgs) {

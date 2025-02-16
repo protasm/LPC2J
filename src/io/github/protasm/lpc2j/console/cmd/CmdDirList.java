@@ -25,8 +25,8 @@ public class CmdDirList extends Command {
 
     private File targetDir(Console console, String... args) {
 	File dir = args.length > 0
-		? new File(console.baseDir(), new File(console.pwd(), args[0]).toString())
-		: new File(console.baseDir(), console.pwd());
+		? new File(console.vPath().baseDir(), new File(console.vPath().currVirtualDir(), args[0]).toString())
+		: new File(console.vPath().baseDir(), console.vPath().currVirtualDir());
 
 	if (!dir.exists() || !dir.isDirectory()) {
 	    System.out.println("ls: No such directory: " + (args.length > 0 ? args[0] : ""));
@@ -38,7 +38,8 @@ public class CmdDirList extends Command {
     }
 
     private File[] validFiles(File dir) {
-	File[] files = dir.listFiles((file) -> file.isDirectory() || file.getName().endsWith(".lpc"));
+	File[] files = dir.listFiles(
+		(file) -> file.isDirectory() || file.getName().endsWith(".lpc") || file.getName().endsWith(".c"));
 
 	if (files == null)
 	    System.out.println("ls: Unable to list directory");

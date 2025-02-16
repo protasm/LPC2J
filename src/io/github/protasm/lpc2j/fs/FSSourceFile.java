@@ -3,13 +3,12 @@ package io.github.protasm.lpc2j.fs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.StringJoiner;
 
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class FSSourceFile {
-    private final String relPath;
+    private final Path filePath;
 
     private final String source;
     private Tokens tokens;
@@ -17,13 +16,13 @@ public class FSSourceFile {
     private byte[] bytes;
     private Object lpcObject;
 
-    public FSSourceFile(String basePath, String relPath) throws IllegalArgumentException, IOException {
-	if (!relPath.endsWith(".lpc"))
+    public FSSourceFile(Path filePath) throws IllegalArgumentException, IOException {
+	if (!validExtension(filePath))
 	    throw new IllegalArgumentException("Source file name must end with '.lpc' extension.");
 
-	this.relPath = relPath;
+	this.filePath = filePath;
 
-	source = Files.readString(Path.of(basePath, relPath));
+	source = Files.readString(filePath);
 
 	tokens = null;
 	astObject = null;
@@ -31,8 +30,12 @@ public class FSSourceFile {
 	lpcObject = null;
     }
 
-    public String relPath() {
-	return relPath;
+    private boolean validExtension(Path filePath) {
+	return (filePath.toString().endsWith(".lpc") || filePath.toString().endsWith(".c"));
+    }
+
+    public Path filePath() {
+	return filePath;
     }
 
     public String source() {
@@ -71,14 +74,14 @@ public class FSSourceFile {
 	this.lpcObject = lpcObject;
     }
 
-    public void write(String basePath) {
+    public void write() {
 	if (bytes == null) {
 	    System.out.println("Write failed: no source file bytes to write.");
 
 	    return;
 	}
 
-	String str = stripExtension(relPath) + ".class";
+	String str = stripExtension(filePath) + ".class";
 	Path fullPath = Path.of(basePath, str);
 
 	try {
@@ -111,17 +114,26 @@ public class FSSourceFile {
 	return str;
     }
 
-    public String classPath() {
-	return relPath.replace(".lpc", ".class");
-    }
+    /**
+     * Converts a file path ending with ".lpc" or ".c" to a path ending with
+     * ".class".
+     *
+     * @param filePath the original file path
+     * @return a new Path with the ".class" extension
+     * @throws IllegalArgumentException if the file does not end with ".lpc" or ".c"
+     */
+    private Path classPath() {
+	String fileName = filePath.getFileName().toString();
+	String className;
 
-    private String stripExtension(String fileName) {
-	int dotIndex = fileName.lastIndexOf('.');
+	if (fileName.endsWith(".lpc"))
+	    className = fileName.substring(0, fileName.length() - 4) + ".class";
+	else if (fileName.endsWith(".c"))
+	    className = fileName.substring(0, fileName.length() - 2) + ".class";
+	else
+	    throw new IllegalArgumentException("File must end with '.lpc' or '.c': " + fileName);
 
-	if (dotIndex > 0) // Ensure dot is not the first character
-	    return fileName.substring(0, dotIndex);
-
-	return fileName; // Return original if no extension
+	return filePath.getParent().resolve(className);
     }
 
     private String trimLeadingSlash(String str) {
@@ -129,16 +141,5 @@ public class FSSourceFile {
 	    return str.substring(1, str.length());
 	else
 	    return str;
-    }
-
-    @Override
-    public String toString() {
-	StringJoiner sj = new StringJoiner("\n");
-
-	sj.add(String.format("relPath=%s", relPath));
-	sj.add(String.format("slashName=%s", slashName()));
-	sj.add(String.format("dotName=%s", dotName()));
-
-	return sj.toString();
     }
 }

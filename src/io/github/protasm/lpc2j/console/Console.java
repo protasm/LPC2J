@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,14 +25,15 @@ import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
+import io.github.protasm.lpc2j.fs.FSVirtualPath;
+import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
-    private final String baseDir;
-    private String pwd;
+    private final FSVirtualPath vPath;
 
     private final Map<String, Object> objects;
     private final java.util.Scanner inputScanner;
@@ -61,17 +63,16 @@ public class Console {
     }
 
     public Console(String baseDir) {
-	this.baseDir = baseDir;
-	this.pwd = "/";
+	this.vPath = new FSVirtualPath(baseDir);
 
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
 
-	new CmdLoad().execute(this, "obj/weapon/sword.lpc");
-	System.out.print("\n");
-	new CmdLoad().execute(this, "obj/weapon/axe.lpc");
-	System.out.print("\n");
-	new CmdLoad().execute(this, "obj/armor/armor.lpc");
+//	new CmdLoad().execute(this, "obj/weapon/sword.lpc");
+//	System.out.print("\n");
+//	new CmdLoad().execute(this, "obj/weapon/axe.lpc");
+//	System.out.print("\n");
+//	new CmdLoad().execute(this, "obj/armor/armor.lpc");
     }
 
     public Map<String, Object> objects() {
@@ -82,21 +83,13 @@ public class Console {
 	return commands;
     }
 
-    public String baseDir() {
-	return baseDir;
-    }
-
-    public String pwd() {
-	return pwd;
-    }
-
-    public void setPWD(String pwd) {
-	this.pwd = pwd;
+    public FSVirtualPath vPath() {
+	return vPath;
     }
 
     public void repl() {
 	while (true) {
-	    System.out.print(pwd() + " % ");
+	    System.out.print(vPath.currVirtualDir() + " % ");
 
 	    String line = inputScanner.nextLine().trim();
 
@@ -193,7 +186,7 @@ public class Console {
 		.compile(sf.astObject());
 
 	sf.setBytes(bytes);
-	sf.write(baseDir);
+	sf.write(vPath.baseDir());
 
 	return sf;
     }
@@ -204,17 +197,25 @@ public class Console {
 	if (sf == null)
 	    return null;
 
-	ASTObject astObject = new Parser()
-		.parse(sf.slashName(), sf.tokens());
+	try {
+	    ASTObject astObject = new Parser()
+		    .parse(sf.slashName(), sf.tokens());
 
-	sf.setASTObject(astObject);
+	    sf.setASTObject(astObject);
 
-	return sf;
+	    return sf;
+	} catch (ParseException e) {
+	    System.out.println(e.toString());
+
+	    return null;
+	}
     }
 
-    public FSSourceFile scan(String filePath) {
+    public FSSourceFile scan(String arg) {
 	try {
-	    FSSourceFile sf = new FSSourceFile(baseDir, filePath);
+	    Path filePath = vPath.resolveFilePath(arg);
+
+	    FSSourceFile sf = new FSSourceFile(filePath);
 
 	    Tokens tokens = new Scanner()
 		    .scan(sf.source());
@@ -227,7 +228,7 @@ public class Console {
 
 	    return null;
 	} catch (IOException e) {
-	    System.out.println("Could not read file '" + filePath + "'.");
+	    System.out.println("Could not read file '" + arg + "'.");
 
 	    return null;
 	}

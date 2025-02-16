@@ -15,7 +15,11 @@ public class CmdFileCat extends Command {
 	    return true;
 	}
 
-	File file = new File(console.baseDir(), new File(console.pwd(), args[0]).getPath());
+	File file = new File(
+		console.vPath().baseDir(),
+		new File(
+			console.vPath().currVirtualDir(),
+			args[0]).getPath());
 
 	if (!file.exists() || !file.isFile() || !file.getName().endsWith(".lpc")) {
 	    System.out.println("cat: Invalid file: " + args[0]);

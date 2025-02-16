@@ -5,7 +5,7 @@ import io.github.protasm.lpc2j.console.Console;
 public class CmdDirShow extends Command {
     @Override
     public boolean execute(Console console, String... args) {
-	System.out.println(console.pwd());
+	System.out.println(console.vPath().currVirtualDir());
 
 	return true;
     }

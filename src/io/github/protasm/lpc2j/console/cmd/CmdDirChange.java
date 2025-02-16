@@ -14,8 +14,14 @@ public class CmdDirChange extends Command {
 	}
 
 	try {
-	    File base = new File(console.baseDir());
-	    File newPath = new File(console.baseDir(), new File(console.pwd(), args[0]).toString()).getCanonicalFile();
+	    File base = new File(console.vPath().baseDir());
+	    File newPath = new File(
+		    console.vPath().baseDir(),
+		    new File(
+			    console.vPath().currVirtualDir(),
+			    args[0])
+			    .toString())
+		    .getCanonicalFile();
 
 	    if (!newPath.exists() || !newPath.isDirectory()) {
 		System.out.println("No such directory: " + args[0]);
@@ -29,7 +35,7 @@ public class CmdDirChange extends Command {
 		return true;
 	    }
 
-	    console.setPWD(newPath.getCanonicalPath().substring(base.getCanonicalPath().length()));
+	    console.vPath().changeDir(newPath.getCanonicalPath().substring(base.getCanonicalPath().length()));
 	} catch (Exception e) {
 	    System.out.println("Error changing directory.");
 	}

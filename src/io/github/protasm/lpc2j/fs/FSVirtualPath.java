@@ -5,16 +5,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class FSVirtualPath {
-    private final Path basePath;
+    private final FSBasePath basePath;
     private final Path vPath;
 
     public FSVirtualPath(String basePathStr, String vPathStr) {
-	Path base = Paths.get(basePathStr).toAbsolutePath().normalize();
-
-	if (!Files.exists(base) || !Files.isDirectory(base))
-	    throw new IllegalArgumentException("Invalid base path: " + basePathStr);
-
-	this.basePath = base;
+	basePath = new FSBasePath(basePathStr);
 
 	Path parsedVPath = Paths.get(vPathStr).normalize();
 	Path combined;
@@ -37,11 +32,24 @@ public class FSVirtualPath {
 		    "The combined path (basePath + vPath) must be a valid directory: " + combined);
     }
 
-    public Path fullPath() {
-	return basePath.resolve(vPath).normalize();
-    }
-
     public Path vPath() {
 	return vPath;
+    }
+
+    private class FSBasePath {
+	private final Path basePath;
+
+	public FSBasePath(String basePathStr) {
+	    Path base = Paths.get(basePathStr).toAbsolutePath().normalize();
+
+	    if (!Files.exists(base) || !Files.isDirectory(base))
+		throw new IllegalArgumentException("Invalid base path: " + basePathStr);
+
+	    this.basePath = base;
+	}
+
+	public Path basePath() {
+	    return basePath;
+	}
     }
 }

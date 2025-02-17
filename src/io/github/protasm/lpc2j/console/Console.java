@@ -1,6 +1,5 @@
 package io.github.protasm.lpc2j.console;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -10,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.console.cmd.CmdCall;
 import io.github.protasm.lpc2j.console.cmd.CmdCompile;
 import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
@@ -24,16 +22,12 @@ import io.github.protasm.lpc2j.console.cmd.CmdParse;
 import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
+import io.github.protasm.lpc2j.fs.FSBasePath;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
-import io.github.protasm.lpc2j.fs.FSVirtualPath;
-import io.github.protasm.lpc2j.parser.ParseException;
-import io.github.protasm.lpc2j.parser.Parser;
-import io.github.protasm.lpc2j.parser.ast.ASTObject;
-import io.github.protasm.lpc2j.scanner.Scanner;
-import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
-    private final FSVirtualPath vPath;
+    private final FSBasePath basePath;
+    private Path vPath;
 
     private final Map<String, Object> objects;
     private final java.util.Scanner inputScanner;
@@ -62,8 +56,9 @@ public class Console {
 	commands.put("scan", new CmdScan());
     }
 
-    public Console(String baseDir) {
-	this.vPath = new FSVirtualPath(baseDir);
+    public Console(String basePathStr) {
+	basePath = new FSBasePath(basePathStr);
+	vPath = Path.of("/");
 
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
@@ -75,6 +70,32 @@ public class Console {
 //	new CmdLoad().execute(this, "obj/armor/armor.lpc");
     }
 
+    public FSBasePath basePath() {
+	return basePath;
+    }
+
+    public Path vPath() {
+	return vPath;
+    }
+
+    public void setVPath(Path vPath) {
+	this.vPath = vPath.normalize();
+    }
+
+    public String pwd() {
+	if (vPath.getNameCount() == 0)
+	    return "/";
+
+	return "/" + vPath.toString();
+    }
+
+    public String pwdShort() {
+	if (vPath.getNameCount() == 0)
+	    return "/";
+
+	return vPath.getFileName().toString();
+    }
+
     public Map<String, Object> objects() {
 	return objects;
     }
@@ -83,13 +104,9 @@ public class Console {
 	return commands;
     }
 
-    public FSVirtualPath vPath() {
-	return vPath;
-    }
-
     public void repl() {
 	while (true) {
-	    System.out.print(vPath.currVirtualDir() + " % ");
+	    System.out.print(pwdShort() + " % ");
 
 	    String line = inputScanner.nextLine().trim();
 
@@ -137,13 +154,12 @@ public class Console {
 	    sf.setLPCObject(instance);
 
 	    return sf;
-	} catch (NoSuchMethodException e) {
-	    return null;
-	} catch (InvocationTargetException e) {
-	    return null;
-	} catch (IllegalAccessException e) {
-	    return null;
-	} catch (InstantiationException e) {
+	} catch (NoSuchMethodException
+		| InvocationTargetException
+		| IllegalAccessException
+		| InstantiationException e) {
+	    System.out.println(e.toString());
+
 	    return null;
 	}
     }
@@ -169,68 +185,63 @@ public class Console {
 		    break;
 		}
 	} catch (InvocationTargetException e) {
-	    Throwable actualException = e.getCause();
-	    actualException.printStackTrace();
-	} catch (Exception e) {
-	    System.out.println("Error: " + e.getMessage());
-	}
-    }
-
-    public FSSourceFile compile(String filePath) {
-	FSSourceFile sf = parse(filePath);
-
-	if (sf == null)
-	    return null;
-
-	byte[] bytes = new Compiler("java/lang/Object")
-		.compile(sf.astObject());
-
-	sf.setBytes(bytes);
-	sf.write(vPath.baseDir());
-
-	return sf;
-    }
-
-    public FSSourceFile parse(String filePath) {
-	FSSourceFile sf = scan(filePath);
-
-	if (sf == null)
-	    return null;
-
-	try {
-	    ASTObject astObject = new Parser()
-		    .parse(sf.slashName(), sf.tokens());
-
-	    sf.setASTObject(astObject);
-
-	    return sf;
-	} catch (ParseException e) {
 	    System.out.println(e.toString());
-
-	    return null;
+	} catch (IllegalAccessException e) {
+	    System.out.println(e.toString());
 	}
     }
 
-    public FSSourceFile scan(String arg) {
-	try {
-	    Path filePath = vPath.resolveFilePath(arg);
+    public FSSourceFile compile(String fileName) {
+//	FSSourceFile sf = parse(fileName);
+//
+//	if (sf == null)
+	return null;
 
-	    FSSourceFile sf = new FSSourceFile(filePath);
+//	Compiler compiler = new Compiler("java/lang/Object");
+//	byte[] bytes = compiler.compile(sf.astObject());
+//
+//	sf.setBytes(bytes);
+//	basePath.write(sf);
+//
+//	return sf;
+    }
 
-	    Tokens tokens = new Scanner()
-		    .scan(sf.source());
+    public FSSourceFile parse(String fileName) {
+//	FSSourceFile sf = scan(fileName);
+//
+//	if (sf == null)
+//	    return null;
+//
+//	try {
+//	    Parser parser = new Parser();
+//	    ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
+//
+//	    sf.setASTObject(astObject);
+//
+//	    return sf;
+//	} catch (ParseException e) {
+//	    System.out.println(e.toString());
 
-	    sf.setTokens(tokens);
+	return null;
+//	}
+    }
 
-	    return sf;
-	} catch (IllegalArgumentException e) {
-	    System.out.println(e.getLocalizedMessage());
+    public FSSourceFile scan(String dir, String fileName) {
+//	try {
+//	    FSSourceFile sf = new FSSourceFile(dir, fileName);
+//
+//	    basePath.read(sf);
+//
+//	    Scanner scanner = new Scanner();
+//	    Tokens tokens = scanner.scan(sf.source());
+//
+//	    sf.setTokens(tokens);
+//
+//	    return sf;
+//	} catch (IllegalArgumentException e) {
+//	    System.out.println(e.toString());
 
-	    return null;
-	} catch (IOException e) {
-	    System.out.println("Could not read file '" + arg + "'.");
-
-	    return null;
-	}
+	return null;
+//	}
     }
 }

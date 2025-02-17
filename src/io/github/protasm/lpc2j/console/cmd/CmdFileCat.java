@@ -23,8 +23,8 @@ public class CmdFileCat extends Command {
 
 	    File file = new File(filePath.toString());
 
-	    if (!file.exists() || !file.isFile() || !file.getName().endsWith(".lpc")) {
-		System.out.println("cat: Invalid file: " + args[0]);
+	    if (!file.exists()) {
+		System.out.println("File does not exist: " + args[0]);
 
 		return true;
 	    }

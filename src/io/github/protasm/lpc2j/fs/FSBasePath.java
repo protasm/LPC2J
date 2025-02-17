@@ -24,7 +24,7 @@ public class FSBasePath {
 
     public Path resolve(Path vPath) {
 	if (vPath == null)
-	    throw new InvalidPathException("null", "Invalid path");
+	    throw new InvalidPathException("null", "Null path");
 
 	// Concatenate basePath and vPath, normalize the result
 	Path concat = Paths.get(basePath.toString(), vPath.toString());
@@ -34,7 +34,7 @@ public class FSBasePath {
 	    return Path.of("/");
 
 	// Ensure the resolved path is still within basePath and is a directory
-	if (!normalized.startsWith(basePath) || !Files.isDirectory(normalized))
+	if (!normalized.startsWith(basePath) || !Files.exists(normalized))
 	    throw new InvalidPathException(vPath.toString(), "Invalid path");
 
 	// Return the portion of the path after basePath

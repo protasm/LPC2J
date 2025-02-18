@@ -22,27 +22,59 @@ public class FSBasePath {
 	return basePath;
     }
 
-    public Path resolve(Path vPath) {
-	if (vPath == null)
-	    throw new InvalidPathException("null", "Null path");
-
-	// Concatenate basePath and vPath, normalize the result
-	Path concat = Paths.get(basePath.toString(), vPath.toString());
-	Path normalized = concat.normalize();
-
-	if (normalized.compareTo(basePath) == 0) // same
+    public Path dirAt(String vPath) {
+	if ((vPath == null) || vPath.isBlank())
 	    return Path.of("/");
 
-	// Ensure the resolved path is still within basePath and is a directory
-	if (!normalized.startsWith(basePath) || !Files.exists(normalized))
-	    throw new InvalidPathException(vPath.toString(), "Invalid path");
+	try {
+	    // Concatenate basePath and vPath, normalize the result
+	    Path concat = Paths.get(basePath.toString(), vPath);
+	    Path normalized = concat.normalize();
 
-	// Return the portion of the path after basePath
-	return basePath.relativize(normalized);
+	    if (normalized.compareTo(basePath) == 0) // same
+		return Path.of("/");
+
+	    // Ensure the resolved path is still within basePath
+	    // and is an existing directory
+	    if (!normalized.startsWith(basePath)
+		    || !Files.exists(normalized)
+		    || !Files.isDirectory(normalized))
+		return null;
+
+	    // Return the portion of the path after basePath
+	    return basePath.relativize(normalized);
+	} catch (InvalidPathException e) {
+	    return null;
+	}
     }
 
-    public File[] filesIn(Path vPath) {
-	Path resolved = resolve(vPath);
+    public File fileAt(String vPath) {
+	if ((vPath == null) || vPath.isBlank())
+	    return null;
+
+	try {
+	    // Concatenate basePath and vPath, normalize the result
+	    Path concat = Paths.get(basePath.toString(), vPath);
+	    Path normalized = concat.normalize();
+
+	    // Ensure the resolved path is still within basePath
+	    // and is an existing directory
+	    if (!normalized.startsWith(basePath)
+		    || !Files.exists(normalized)
+		    || Files.isDirectory(normalized))
+		return null;
+	    
+	    return new File(normalized.toString());
+	} catch (InvalidPathException e) {
+	    return null;
+	}
+    }
+
+    public File[] filesIn(String vPath) {
+	Path resolved = dirAt(vPath);
+
+	if (resolved == null)
+	    return null;
 
 	// If resolved is "/", use basePath directly
 	File dir = resolved.equals(Path.of("/"))

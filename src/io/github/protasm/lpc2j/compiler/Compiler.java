@@ -98,17 +98,17 @@ public class Compiler {
 	case JINT: // Integer.valueOf(int)
 	    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf",
 		    "(I)Ljava/lang/Integer;", false);
-	    break;
+	break;
 	case JFLOAT: // Float.valueOf(float)
 	    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "valueOf",
 		    "(F)Ljava/lang/Float;", false);
-	    break;
+	break;
 	case JBOOLEAN: // Boolean.valueOf(boolean)
 	    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf",
 		    "(Z)Ljava/lang/Boolean;", false);
-	    break;
+	break;
 	default: // For non-primitive types (or types that don't need boxing).
-	    break;
+	break;
 	}
     }
 
@@ -230,11 +230,11 @@ public class Compiler {
 	case LPCINT:
 	case LPCSTATUS:
 	    mv.visitVarInsn(ILOAD, local.slot());
-	    break;
+	break;
 	case LPCSTRING:
 	case LPCOBJECT:
 	    mv.visitVarInsn(ALOAD, local.slot());
-	    break;
+	break;
 	default:
 	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}
@@ -250,11 +250,11 @@ public class Compiler {
 	case LPCINT:
 	case LPCSTATUS:
 	    mv.visitVarInsn(ISTORE, local.slot());
-	    break;
+	break;
 	case LPCSTRING:
 	case LPCOBJECT:
 	    mv.visitVarInsn(ASTORE, local.slot());
-	    break;
+	break;
 	default:
 	    throw new IllegalStateException("Unsupported type: " + local.symbol().lpcType());
 	}
@@ -277,7 +277,7 @@ public class Compiler {
 	case BOP_MULT:
 	case BOP_DIV:
 	    mv.visitInsn(operator.opcode());
-	    break;
+	break;
 	case BOP_GT:
 	case BOP_GE:
 	case BOP_LT:
@@ -299,7 +299,7 @@ public class Compiler {
 
 	    // End label
 	    mv.visitLabel(labelEnd);
-	    break;
+	break;
 	default:
 	    throw new UnsupportedOperationException("Unsupported operator: " + operator);
 	}
@@ -314,7 +314,7 @@ public class Compiler {
 	switch (operator) {
 	case UOP_NEGATE: // Unary minus (-)
 	    mv.visitInsn(INEG);
-	    break;
+	break;
 	case UOP_NOT: // Logical NOT (!)
 	    Label trueLabel = new Label();
 	    Label endLabel = new Label();
@@ -333,7 +333,7 @@ public class Compiler {
 	    // End
 	    mv.visitLabel(endLabel);
 
-	    break;
+	break;
 	}
     }
 
@@ -455,12 +455,12 @@ public class Compiler {
 	switch (returnValue.lpcType()) {
 	case LPCINT:
 	    mv.visitInsn(Opcodes.IRETURN);
-	    break;
+	break;
 	case LPCMIXED:
 	case LPCSTRING:
 	case LPCOBJECT:
 	    mv.visitInsn(Opcodes.ARETURN);
-	    break;
+	break;
 	default:
 	    throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
 	}
@@ -525,20 +525,20 @@ public class Compiler {
 	    switch (jType) {
 	    case JINT:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Integer", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JFLOAT:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Float", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JBOOLEAN:
 		mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
-		break;
+	    break;
 	    case JSTRING:
 		mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
-		break;
+	    break;
 	    default:
 		// For LPCMIXED or other types, default to Object.
 		mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
-		break;
+	    break;
 	    }
 
 	    mv.visitInsn(AASTORE);
@@ -588,7 +588,7 @@ public class Compiler {
 			"intValue",
 			"()I",
 			false);
-		break;
+	    break;
 	    case JFLOAT:
 		// Cast to Float and unbox to float.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
@@ -598,7 +598,7 @@ public class Compiler {
 			"floatValue",
 			"()F",
 			false);
-		break;
+	    break;
 	    case JBOOLEAN:
 		// Cast to Boolean and unbox to boolean.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
@@ -608,15 +608,15 @@ public class Compiler {
 			"booleanValue",
 			"()Z",
 			false);
-		break;
+	    break;
 	    case JSTRING:
 		// Cast to String.
 		mv.visitTypeInsn(CHECKCAST, "java/lang/String");
-		break;
+	    break;
 	    default:
-		// For LPCMIXED or other types, leave the result as Object,
-		// or add an appropriate cast if necessary.
-		break;
+	    // For LPCMIXED or other types, leave the result as Object,
+	    // or add an appropriate cast if necessary.
+	    break;
 	    }
     }
 

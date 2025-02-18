@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import io.github.protasm.lpc2j.console.Console;
@@ -17,22 +18,29 @@ public class CmdDirList extends Command {
 
 	try {
 	    if (args.length == 0)
-		files = basePath.filesIn(console.vPath());
+		files = basePath.filesIn(console.vPath().toString());
 	    else {
-		Path path = Path.of(args[0]);
-		Path resolved = basePath.resolve(path);
+		Path argPath = Path.of(args[0]);
 
-		files = basePath.filesIn(resolved);
+		// handle relative path argument
+		if (!argPath.isAbsolute() && (console.vPath() != null))
+		    argPath = Paths.get(console.vPath().toString(), args[0]);
+
+		files = basePath.filesIn(argPath.toString());
+	    }
+
+	    if (files == null) {
+		System.out.println("Invalid path: " + args[0]);
+
+		return true;
 	    }
 
 	    files = validFiles(files);
 
-	    if (files.length == 0)
-		return true;
-
-	    printFiles(files);
+	    if (files.length > 0)
+		printFiles(files);
 	} catch (InvalidPathException e) {
-	    System.out.println(e);
+	    System.out.println("Invalid path: " + args[0]);
 	}
 
 	return true;

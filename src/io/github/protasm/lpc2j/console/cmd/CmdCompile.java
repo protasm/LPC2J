@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import io.github.protasm.lpc2j.console.Console;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 
 public class CmdCompile extends Command {
     @Override
@@ -13,7 +14,13 @@ public class CmdCompile extends Command {
 	    return true;
 	}
 
-	console.compile(args[0]);
+	String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	FSSourceFile sf = console.compile(vPathStr);
+
+	if (sf == null)
+	    return true;
+
+	System.out.println("Success!  Compiled to " + sf.dotName());
 
 	return true;
     }

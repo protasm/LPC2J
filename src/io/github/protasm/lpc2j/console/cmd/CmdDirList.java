@@ -3,8 +3,6 @@ package io.github.protasm.lpc2j.console.cmd;
 import java.io.File;
 import java.io.FileFilter;
 import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 import io.github.protasm.lpc2j.console.Console;
@@ -20,13 +18,8 @@ public class CmdDirList extends Command {
 	    if (args.length == 0)
 		files = basePath.filesIn(console.vPath().toString());
 	    else {
-		Path argPath = Path.of(args[0]);
-
-		// handle relative path argument
-		if (!argPath.isAbsolute() && (console.vPath() != null))
-		    argPath = Paths.get(console.vPath().toString(), args[0]);
-
-		files = basePath.filesIn(argPath.toString());
+		String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+		files = basePath.filesIn(vPathStr);
 	    }
 
 	    if (files == null) {

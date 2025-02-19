@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.console.cmd.CmdCall;
 import io.github.protasm.lpc2j.console.cmd.CmdCompile;
 import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
@@ -24,6 +25,11 @@ import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
 import io.github.protasm.lpc2j.fs.FSBasePath;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
+import io.github.protasm.lpc2j.parser.ParseException;
+import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.scanner.Scanner;
+import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
     private final FSBasePath basePath;
@@ -132,8 +138,8 @@ public class Console {
 	inputScanner.close();
     }
 
-    public FSSourceFile load(String filePath) {
-	FSSourceFile sf = compile(filePath);
+    public FSSourceFile load(String vPathStr) {
+	FSSourceFile sf = compile(vPathStr);
 
 	if (sf == null)
 	    return null;
@@ -191,57 +197,75 @@ public class Console {
 	}
     }
 
-    public FSSourceFile compile(String fileName) {
-//	FSSourceFile sf = parse(fileName);
-//
-//	if (sf == null)
-	return null;
+    public FSSourceFile compile(String vPathStr) {
+	FSSourceFile sf = parse(vPathStr);
 
-//	Compiler compiler = new Compiler("java/lang/Object");
-//	byte[] bytes = compiler.compile(sf.astObject());
-//
-//	sf.setBytes(bytes);
-//	basePath.write(sf);
-//
-//	return sf;
+	if (sf == null)
+	    return null;
+
+	try {
+	    Compiler compiler = new Compiler("java/lang/Object");
+	    byte[] bytes = compiler.compile(sf.astObject());
+
+	    sf.setBytes(bytes);
+
+	    boolean success = basePath.write(sf);
+
+	    if (!success)
+		throw new IllegalArgumentException();
+
+	    return sf;
+	} catch (IllegalArgumentException e) {
+	    System.out.println("Error compiling file: " + vPathStr);
+
+	    return null;
+	}
     }
 
-    public FSSourceFile parse(String fileName) {
-//	FSSourceFile sf = scan(fileName);
-//
-//	if (sf == null)
-//	    return null;
-//
-//	try {
-//	    Parser parser = new Parser();
-//	    ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
-//
-//	    sf.setASTObject(astObject);
-//
-//	    return sf;
-//	} catch (ParseException e) {
-//	    System.out.println(e.toString());
+    public FSSourceFile parse(String vPathStr) {
+	FSSourceFile sf = scan(vPathStr);
 
-	return null;
-//	}
+	if (sf == null)
+	    return null;
+
+	try {
+	    Parser parser = new Parser();
+	    ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
+
+	    sf.setASTObject(astObject);
+
+	    return sf;
+	} catch (ParseException | IllegalArgumentException e) {
+	    System.out.println("Error parsing file: " + vPathStr);
+
+	    return null;
+	}
     }
 
-    public FSSourceFile scan(String dir, String fileName) {
-//	try {
-//	    FSSourceFile sf = new FSSourceFile(dir, fileName);
-//
-//	    basePath.read(sf);
-//
-//	    Scanner scanner = new Scanner();
-//	    Tokens tokens = scanner.scan(sf.source());
-//
-//	    sf.setTokens(tokens);
-//
-//	    return sf;
-//	} catch (IllegalArgumentException e) {
-//	    System.out.println(e.toString());
+    public FSSourceFile scan(String vPathStr) {
+	try {
+	    Path resolved = basePath.fileAt(vPathStr);
 
-	return null;
-//	}
+	    if (resolved == null)
+		throw new IllegalArgumentException();
+
+	    FSSourceFile sf = new FSSourceFile(resolved);
+
+	    boolean success = basePath.read(sf);
+
+	    if (!success)
+		throw new IllegalArgumentException();
+
+	    Scanner scanner = new Scanner();
+	    Tokens tokens = scanner.scan(sf.source());
+
+	    sf.setTokens(tokens);
+
+	    return sf;
+	} catch (IllegalArgumentException e) {
+	    System.out.println("Error scanning file: " + vPathStr);
+
+	    return null;
+	}
     }
 }

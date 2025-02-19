@@ -15,7 +15,8 @@ public class CmdParse extends Command {
 	    return true;
 	}
 
-	FSSourceFile sf = console.parse(args[0]);
+	String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	FSSourceFile sf = console.parse(vPathStr);
 
 	if (sf == null)
 	    return true;

@@ -15,7 +15,8 @@ public class CmdScan extends Command {
 	    return true;
 	}
 
-	FSSourceFile sf = console.scan(args[0]);
+	String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	FSSourceFile sf = console.scan(vPathStr);
 
 	if (sf == null)
 	    return true;

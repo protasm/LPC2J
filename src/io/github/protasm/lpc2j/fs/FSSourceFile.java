@@ -1,11 +1,13 @@
 package io.github.protasm.lpc2j.fs;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class FSSourceFile {
-    private final String vPath;
-    private final String fileName;
+    private final Path vPath;
 
     private String source;
     private Tokens tokens;
@@ -13,32 +15,38 @@ public class FSSourceFile {
     private byte[] bytes;
     private Object lpcObject;
 
-    public FSSourceFile(String vPath, String fileName) {
-	this.vPath = vPath;
-	this.fileName = fileName;
-
-	if (!validExtension(fileName))
+    public FSSourceFile(Path vPath) {
+	if (!validExtension(vPath))
 	    throw new IllegalArgumentException("Invalid source file name.");
+
+	this.vPath = vPath;
     }
 
-    public String vPath() {
+    public Path vPath() {
 	return vPath;
     }
 
-    public String fileName() {
-	return fileName;
-    }
-
     public String prefix() {
-	int idx = fileName.lastIndexOf('.');
+	String name = vPath.getFileName().toString();
 
-	return fileName.substring(0, idx);
+	int idx = name.lastIndexOf('.');
+
+	return name.substring(0, idx);
     }
 
     public String extension() {
-	int idx = fileName.lastIndexOf('.');
+	String name = vPath.getFileName().toString();
 
-	return fileName.substring(idx + 1);
+	int idx = name.lastIndexOf('.');
+
+	return name.substring(idx + 1);
+    }
+
+    public Path classPath() {
+	return Paths
+		.get(
+			vPath.getParent().toString(),
+			prefix() + ".class");
     }
 
     public String source() {
@@ -82,24 +90,23 @@ public class FSSourceFile {
     }
 
     public String slashName() {
-	return trimLeadingSlash(vPath);
+	return Paths
+		.get(
+			vPath.getParent().toString(),
+			prefix())
+		.toString();
     }
 
     public String dotName() {
-	String str = slashName();
-
 	// replace infix slashes with dots
-	return str.replace("/", ".").replace("\\", ".");
+	return slashName()
+		.replace("/", ".")
+		.replace("\\", ".");
     }
 
-    private String trimLeadingSlash(String str) {
-	if (str.startsWith("/") || str.startsWith("\\"))
-	    return str.substring(1, str.length());
-	else
-	    return str;
-    }
+    private boolean validExtension(Path vPath) {
+	String name = vPath.getFileName().toString();
 
-    private boolean validExtension(String fileName) {
-	return (fileName.endsWith(".lpc") || fileName.endsWith(".c"));
+	return (name.endsWith(".lpc") || name.endsWith(".c"));
     }
 }

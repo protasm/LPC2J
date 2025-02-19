@@ -1,11 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import io.github.protasm.lpc2j.console.Console;
 import io.github.protasm.lpc2j.fs.FSBasePath;
@@ -22,25 +18,18 @@ public class CmdFileCat extends Command {
 	}
 
 	try {
-	    Path argPath = Path.of(args[0]);
+	    Path vPath = pathStrOfArg(console, args[0]);
+	    String contents = basePath.contentsOf(vPath.toString());
 
-	    // handle relative path argument
-	    if (!argPath.isAbsolute() && (console.vPath() != null))
-		argPath = Paths.get(console.vPath().toString(), args[0]);
-
-	    File file = basePath.fileAt(argPath.toString());
-
-	    if (file == null) {
+	    if (contents == null) {
 		System.out.println("Invalid file: " + args[0]);
 
 		return true;
 	    }
 
-	    try {
-		Files.lines(file.toPath()).forEach(System.out::println);
-	    } catch (IOException e) {
-		System.out.println("Error reading file: " + args[0]);
-	    }
+	    System.out.println(contents);
+
+	    return true;
 	} catch (InvalidPathException e) {
 	    System.out.println(e);
 	}

@@ -1,7 +1,6 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import io.github.protasm.lpc2j.console.Console;
 import io.github.protasm.lpc2j.fs.FSBasePath;
@@ -17,14 +16,8 @@ public class CmdDirChange extends Command {
 	    return true;
 	}
 
-	Path argPath = Path.of(args[0]);
-	Path newPath;
-
-	// handle relative path argument
-	if (!argPath.isAbsolute() && (console.vPath() != null))
-	    argPath = Paths.get(console.vPath().toString(), args[0]);
-
-	newPath = basePath.dirAt(argPath.toString());
+	String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	Path newPath = basePath.dirAt(vPathStr);
 
 	if (newPath != null)
 	    console.setVPath(newPath);

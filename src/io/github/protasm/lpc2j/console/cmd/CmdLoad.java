@@ -8,13 +8,14 @@ public class CmdLoad extends Command {
     public boolean execute(Console console, String... args) {
 	System.out.println("Load");
 
-	if (args.length < 1) {
+	if (args.length == 0) {
 	    System.out.println("Error: No file specified.");
 
 	    return true;
 	}
 
-	FSSourceFile sf = console.load(args[0]);
+	String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	FSSourceFile sf = console.load(vPathStr);
 
 	if (sf == null)
 	    return true;

@@ -58,7 +58,6 @@ import org.anarres.cpp.CppReader;
 import org.anarres.cpp.Preprocessor;
 import org.anarres.cpp.StringLexerSource;
 
-import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class Scanner {
@@ -71,6 +70,7 @@ public class Scanner {
     static {
 	lpcTypeWords = new HashMap<>() {
 	    private static final long serialVersionUID = 1L;
+
 	    {
 		put("int", LPCType.LPCINT);
 		put("float", LPCType.LPCFLOAT);
@@ -364,46 +364,5 @@ public class Scanner {
 	LPCType type = lpcTypeWords.get(lexeme);
 
 	return new Token<>(T_TYPE, lexeme, type, ss.line());
-    }
-
-    public static void main(String[] args) throws IOException {
-	if (args.length != 1) {
-	    System.err.println("Usage: java Scanner <file>");
-
-	    System.exit(1);
-	}
-
-	FSSourceFile sf = new FSSourceFile("/Users/jonathan/brainjar", args[0]);
-	Scanner scanner = new Scanner();
-
-	Tokens tokens = scanner.scan(sf.source());
-
-	// Print tokens grouped by lines
-	int currentLine = -1;
-	StringBuilder lineBuffer = new StringBuilder();
-
-	for (int i = 0; i < tokens.size(); i++) {
-	    Token<?> token = tokens.get(i);
-
-	    // Check if we're starting a new line
-	    if (token.line() != currentLine) {
-		// Print the buffered line if moving to a new line
-		if (lineBuffer.length() > 0) {
-		    System.out.println(lineBuffer.toString());
-
-		    lineBuffer.setLength(0); // Clear the buffer
-		}
-
-		// Update current line
-		currentLine = token.line();
-	    }
-
-	    // Append the token to the current line
-	    lineBuffer.append(token).append(" ");
-	}
-
-	// Print the final line if there's anything left in the buffer
-	if (lineBuffer.length() > 0)
-	    System.out.println(lineBuffer.toString());
     }
 }

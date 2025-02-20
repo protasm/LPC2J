@@ -158,7 +158,8 @@ public class Compiler {
 	for (ASTArgument arg : args.nodes())
 	    arg.accept(this);
 
-	mv.visitMethodInsn(Opcodes.INVOKESTATIC,
+	mv.visitMethodInsn(
+		Opcodes.INVOKESTATIC,
 		"io/github/protasm/lpc2j/parser/Gfuns",
 		gfun.getName(),
 		Type.getMethodDescriptor(gfun),

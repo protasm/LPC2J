@@ -1,10 +1,9 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import java.nio.file.InvalidPathException;
-import java.nio.file.Path;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.fs.FSBasePath;
+import io.github.protasm.lpc2j.console.fs.FSBasePath;
 
 public class CmdFileCat extends Command {
     @Override
@@ -18,8 +17,8 @@ public class CmdFileCat extends Command {
 	}
 
 	try {
-	    Path vPath = pathStrOfArg(console, args[0]);
-	    String contents = basePath.contentsOf(vPath.toString());
+	    String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+	    String contents = basePath.contentsOf(vPathStr);
 
 	    if (contents == null) {
 		System.out.println("Invalid file: " + args[0]);
@@ -28,10 +27,8 @@ public class CmdFileCat extends Command {
 	    }
 
 	    System.out.println(contents);
-
-	    return true;
 	} catch (InvalidPathException e) {
-	    System.out.println(e);
+	    System.out.println("Error displaying contents of file: " + args[0]);
 	}
 
 	return true;

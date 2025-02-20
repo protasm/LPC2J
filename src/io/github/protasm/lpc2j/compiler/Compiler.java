@@ -24,6 +24,8 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V23;
 
+import java.lang.reflect.Method;
+
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
@@ -42,6 +44,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -130,11 +133,11 @@ public class Compiler {
 
     public void visit(ASTExprCall expr) {
 	ASTMethod method = expr.method();
-	ASTArguments arguments = expr.arguments();
+	ASTArguments args = expr.arguments();
 
 	mv.visitVarInsn(Opcodes.ALOAD, 0);
 
-	arguments.accept(this);
+	args.accept(this);
 
 	mv.visitMethodInsn(
 		Opcodes.INVOKEVIRTUAL,
@@ -146,6 +149,20 @@ public class Compiler {
 	// Pop if the method returns a value but it's unused
 //		if (!method.lpcReturnType().equals("V"))
 //			mv.visitInsn(Opcodes.POP);
+    }
+
+    public void visit(ASTExprCallGfun expr) {
+	Method gfun = expr.gfun();
+	ASTArguments args = expr.arguments();
+
+	for (ASTArgument arg : args.nodes())
+	    arg.accept(this);
+
+	mv.visitMethodInsn(Opcodes.INVOKESTATIC,
+		"io/github/protasm/lpc2j/parser/Gfuns",
+		gfun.getName(),
+		Type.getMethodDescriptor(gfun),
+		false);
     }
 
     public void visit(ASTExprFieldAccess expr) {

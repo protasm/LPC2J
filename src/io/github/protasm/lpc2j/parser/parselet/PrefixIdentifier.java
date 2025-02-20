@@ -4,12 +4,17 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
 
+import java.lang.reflect.Method;
+
+import io.github.protasm.lpc2j.parser.Gfuns;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -54,12 +59,31 @@ public class PrefixIdentifier implements PrefixParselet {
 	    else
 		return new ASTExprFieldAccess(line, field);
 
+	// TODO: handle overloaded methods
 	ASTMethod method = parser.currObj().methods().get(identifier);
 
 	// Method of same object?
-	if (method != null)
+	if (method != null) {
+	    ASTArguments args = parser.arguments();
+
 	    // Call.
-	    return new ASTExprCall(line, method, parser.arguments());
+	    return new ASTExprCall(line, method, args);
+	}
+
+//	Gfuns gfuns = parser.gfuns();
+
+//	if (gfuns != null) {
+	// TODO: handle overloaded gfuns
+	Method gfun = Gfuns.getGfun(identifier);
+
+	// Global function?
+	if (gfun != null) {
+	    ASTArguments args = parser.arguments();
+
+	    // Call.
+	    return new ASTExprCallGfun(line, gfun, args);
+	}
+//	}
 
 	throw new ParseException("Unrecognized identifier '" + identifier + "'.");
     }

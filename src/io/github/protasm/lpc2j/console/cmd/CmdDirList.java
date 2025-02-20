@@ -4,9 +4,10 @@ import java.io.File;
 import java.io.FileFilter;
 import java.nio.file.InvalidPathException;
 import java.util.Arrays;
+import java.util.Comparator;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.fs.FSBasePath;
+import io.github.protasm.lpc2j.console.fs.FSBasePath;
 
 public class CmdDirList extends Command {
     @Override
@@ -50,10 +51,15 @@ public class CmdDirList extends Command {
     }
 
     private void printFiles(File[] files) {
-	Arrays.stream(files).map(
-		file -> file.isDirectory()
-			? file.getName() + "/"
-			: file.getName())
+	Comparator<File> fileComparator = Comparator
+		// Directories should come first: directories return false, files true.
+		.comparing((File f) -> !f.isDirectory())
+		// Within each group, sort alphabetically (case-insensitive)
+		.thenComparing(File::getName, String.CASE_INSENSITIVE_ORDER);
+
+	Arrays.stream(files)
+		.sorted(fileComparator)
+		.map(file -> file.isDirectory() ? file.getName() + "/" : file.getName())
 		.forEach(System.out::println);
     }
 

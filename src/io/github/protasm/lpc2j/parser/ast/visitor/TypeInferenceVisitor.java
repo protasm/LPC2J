@@ -10,6 +10,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -100,6 +101,10 @@ public class TypeInferenceVisitor {
     public void visit(ASTExprCall astExprCall, LPCType lpcType) {
 	// TODO Auto-generated method stub
 
+    }
+    
+    public void visit(ASTExprCallGfun astExprCallGfun, LPCType lpcTyp) {
+	
     }
 
     public void visit(ASTExprLiteralFalse astExprLiteralFalse, LPCType lpcType) {

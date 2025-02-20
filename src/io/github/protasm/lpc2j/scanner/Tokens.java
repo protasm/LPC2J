@@ -97,7 +97,7 @@ public class Tokens {
 	StringJoiner sj = new StringJoiner("\n");
 
 	for (Token<?> token : tokens)
-	    sj.add(String.format("%s\n", token));
+	    sj.add(String.format("%s", token));
 
 	return sj.toString();
     }

@@ -23,8 +23,8 @@ import io.github.protasm.lpc2j.console.cmd.CmdParse;
 import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
-import io.github.protasm.lpc2j.fs.FSBasePath;
-import io.github.protasm.lpc2j.fs.FSSourceFile;
+import io.github.protasm.lpc2j.console.fs.FSBasePath;
+import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -186,8 +186,6 @@ public class Console {
 		if (method.getName().equals(methodName)) { // && matchParameters(method.getParameterTypes(), argTypes))
 		    Object result = method.invoke(obj, callArgs);
 
-		    System.out.println("Method result: " + result);
-
 		    break;
 		}
 	} catch (InvocationTargetException e) {
@@ -237,6 +235,7 @@ public class Console {
 	    return sf;
 	} catch (ParseException | IllegalArgumentException e) {
 	    System.out.println("Error parsing file: " + vPathStr);
+	    System.out.println(e);
 
 	    return null;
 	}

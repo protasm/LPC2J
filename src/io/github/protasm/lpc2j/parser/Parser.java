@@ -46,6 +46,11 @@ public class Parser {
     private Tokens tokens;
     private ASTObject currObj;
     private Locals locals;
+//    private final Gfuns gfuns;
+
+//    public Parser(Gfuns gfuns) {
+//	this.gfuns = gfuns;
+//    }
 
     public Tokens tokens() {
 	return tokens;
@@ -58,6 +63,10 @@ public class Parser {
     public Locals locals() {
 	return locals;
     }
+
+//    public Gfuns gfuns() {
+//	return gfuns;
+//    }
 
     public int currLine() {
 	return tokens.current().line();

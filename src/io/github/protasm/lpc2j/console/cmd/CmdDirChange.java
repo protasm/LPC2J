@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.console.cmd;
 import java.nio.file.Path;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.console.fs.FSBasePath;
+import io.github.protasm.lpc2j.fs.FSBasePath;
 
 public class CmdDirChange extends Command {
     @Override

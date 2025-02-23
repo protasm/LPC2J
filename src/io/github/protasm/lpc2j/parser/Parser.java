@@ -48,7 +48,7 @@ public class Parser {
     private Tokens tokens;
     private ASTObject currObj;
     private Locals locals;
-    
+
     public Parser() {
 	this(null);
     }

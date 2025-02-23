@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j.console.fs;
+package io.github.protasm.lpc2j.fs;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j.console.fs;
+package io.github.protasm.lpc2j.fs;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

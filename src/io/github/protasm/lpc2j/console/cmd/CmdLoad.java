@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.console.fs.FSSourceFile;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 
 public class CmdLoad extends Command {
     @Override

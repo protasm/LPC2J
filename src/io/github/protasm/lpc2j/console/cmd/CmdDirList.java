@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.console.fs.FSBasePath;
+import io.github.protasm.lpc2j.fs.FSBasePath;
 
 public class CmdDirList extends Command {
     @Override

@@ -21,4 +21,21 @@ public enum LPCType {
     public JType jType() {
 	return jType;
     }
+
+    public static LPCType fromJavaType(Class<?> returnType) {
+	if (returnType == void.class)
+	    return LPCType.LPCVOID;
+	if (returnType == int.class)
+	    return LPCType.LPCINT;
+	if (returnType == float.class)
+	    return LPCType.LPCFLOAT;
+	if (returnType == boolean.class)
+	    return LPCType.LPCSTATUS;
+	if (returnType == String.class)
+	    return LPCType.LPCSTRING;
+	if (returnType == Object.class)
+	    return LPCType.LPCMIXED;
+
+	return LPCType.LPCMIXED; // Default for unknown types
+    }
 }

@@ -1,7 +1,7 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import io.github.protasm.lpc2j.console.Console;
-import io.github.protasm.lpc2j.console.fs.FSSourceFile;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 
 public class CmdParse extends Command {

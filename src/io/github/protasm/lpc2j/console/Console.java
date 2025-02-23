@@ -24,8 +24,8 @@ import io.github.protasm.lpc2j.console.cmd.CmdParse;
 import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
-import io.github.protasm.lpc2j.console.fs.FSBasePath;
-import io.github.protasm.lpc2j.console.fs.FSSourceFile;
+import io.github.protasm.lpc2j.fs.FSBasePath;
+import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -64,7 +64,7 @@ public class Console {
 	commands.put("s", new CmdScan());
 	commands.put("scan", new CmdScan());
     }
-    
+
     public Console(String basePathStr) {
 	this(basePathStr, null);
     }

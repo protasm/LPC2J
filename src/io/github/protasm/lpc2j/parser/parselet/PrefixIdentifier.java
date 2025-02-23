@@ -72,14 +72,17 @@ public class PrefixIdentifier implements PrefixParselet {
 
 	GfunsIntfc gfuns = parser.gfuns();
 
-	// Global function?
-	if ((gfuns != null) && gfuns.hasMethod(identifier)) {
-	    // TODO: handle overloaded gfuns
+	if (gfuns != null) {
 	    Method gfun = gfuns.getMethod(identifier);
-	    ASTArguments args = parser.arguments();
 
-	    // Call.
-	    return new ASTExprCallGfun(line, gfuns, gfun, args);
+	    // Global function?
+	    if (gfun != null) {
+		// TODO: handle overloaded gfuns
+		ASTArguments args = parser.arguments();
+
+		// Call.
+		return new ASTExprCallGfun(line, gfun, args);
+	    }
 	}
 
 	throw new ParseException("Unrecognized identifier '" + identifier + "'.");

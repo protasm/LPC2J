@@ -137,7 +137,7 @@ public class Compiler {
 
 	mv.visitVarInsn(Opcodes.ALOAD, 0);
 
-	// For non-static invocation, DO bundle arguments in an Object[] array
+	// For non-static invocation, bundle arguments in an Object[] array
 	args.accept(this);
 
 	mv.visitMethodInsn(
@@ -153,10 +153,11 @@ public class Compiler {
     }
 
     public void visit(ASTExprCallGfun expr) {
+	GfunsIntfc gfuns = expr.gfuns();
 	Method gfun = expr.gfun();
 	ASTArguments args = expr.arguments();
 
-	// For static invocation, DON'T bundle arguments in an Object[] array
+	// For STATIC invocation, DON'T bundle arguments in an Object[] array
 	for (ASTArgument arg : args.nodes())
 	    arg.accept(this);
 

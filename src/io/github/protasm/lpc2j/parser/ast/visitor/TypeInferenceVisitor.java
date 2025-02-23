@@ -102,9 +102,9 @@ public class TypeInferenceVisitor {
 	// TODO Auto-generated method stub
 
     }
-    
+
     public void visit(ASTExprCallGfun astExprCallGfun, LPCType lpcTyp) {
-	
+
     }
 
     public void visit(ASTExprLiteralFalse astExprLiteralFalse, LPCType lpcType) {

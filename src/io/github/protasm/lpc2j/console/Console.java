@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
+import io.github.protasm.lpc2j.compiler.GfunsIntfc;
 import io.github.protasm.lpc2j.console.cmd.CmdCall;
 import io.github.protasm.lpc2j.console.cmd.CmdCompile;
 import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
@@ -32,6 +33,8 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
+    private final GfunsIntfc gfuns;
+
     private final FSBasePath basePath;
     private Path vPath;
 
@@ -61,19 +64,19 @@ public class Console {
 	commands.put("s", new CmdScan());
 	commands.put("scan", new CmdScan());
     }
-
+    
     public Console(String basePathStr) {
+	this(basePathStr, null);
+    }
+
+    public Console(String basePathStr, GfunsIntfc gfuns) {
+	this.gfuns = gfuns;
+
 	basePath = new FSBasePath(basePathStr);
 	vPath = Path.of("/");
 
 	objects = new HashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
-
-//	new CmdLoad().execute(this, "obj/weapon/sword.lpc");
-//	System.out.print("\n");
-//	new CmdLoad().execute(this, "obj/weapon/axe.lpc");
-//	System.out.print("\n");
-//	new CmdLoad().execute(this, "obj/armor/armor.lpc");
     }
 
     public FSBasePath basePath() {

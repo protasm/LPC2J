@@ -19,6 +19,7 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.protasm.lpc2j.compiler.GfunsIntfc;
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
@@ -43,14 +44,22 @@ import io.github.protasm.lpc2j.scanner.Token;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Parser {
+    private final GfunsIntfc gfuns;
     private Tokens tokens;
     private ASTObject currObj;
     private Locals locals;
-//    private final Gfuns gfuns;
+    
+    public Parser() {
+	this(null);
+    }
 
-//    public Parser(Gfuns gfuns) {
-//	this.gfuns = gfuns;
-//    }
+    public Parser(GfunsIntfc gfuns) {
+	this.gfuns = gfuns;
+    }
+
+    public GfunsIntfc gfuns() {
+	return gfuns;
+    }
 
     public Tokens tokens() {
 	return tokens;
@@ -63,10 +72,6 @@ public class Parser {
     public Locals locals() {
 	return locals;
     }
-
-//    public Gfuns gfuns() {
-//	return gfuns;
-//    }
 
     public int currLine() {
 	return tokens.current().line();

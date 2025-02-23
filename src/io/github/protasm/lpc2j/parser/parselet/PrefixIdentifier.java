@@ -6,7 +6,7 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
 
 import java.lang.reflect.Method;
 
-import io.github.protasm.lpc2j.parser.Gfuns;
+import io.github.protasm.lpc2j.compiler.GfunsIntfc;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
@@ -70,20 +70,17 @@ public class PrefixIdentifier implements PrefixParselet {
 	    return new ASTExprCall(line, method, args);
 	}
 
-//	Gfuns gfuns = parser.gfuns();
-
-//	if (gfuns != null) {
-	// TODO: handle overloaded gfuns
-	Method gfun = Gfuns.getGfun(identifier);
+	GfunsIntfc gfuns = parser.gfuns();
 
 	// Global function?
-	if (gfun != null) {
+	if ((gfuns != null) && gfuns.hasMethod(identifier)) {
+	    // TODO: handle overloaded gfuns
+	    Method gfun = gfuns.getMethod(identifier);
 	    ASTArguments args = parser.arguments();
 
 	    // Call.
-	    return new ASTExprCallGfun(line, gfun, args);
+	    return new ASTExprCallGfun(line, gfuns, gfun, args);
 	}
-//	}
 
 	throw new ParseException("Unrecognized identifier '" + identifier + "'.");
     }

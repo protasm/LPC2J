@@ -43,10 +43,16 @@ public class FSSourceFile {
     }
 
     public Path classPath() {
-	return Paths
-		.get(
-			vPath.getParent().toString(),
-			prefix() + ".class");
+	Path parent = vPath.getParent();
+	
+	if (parent != null)
+	    return Paths.get(parent.toString(), prefix() + ".class");
+	else
+	    return Paths.get(prefix() + ".class");
+//	return Paths
+//		.get(
+//			vPath.getParent().toString(),
+//			prefix() + ".class");
     }
 
     public String source() {
@@ -90,11 +96,12 @@ public class FSSourceFile {
     }
 
     public String slashName() {
-	return Paths
-		.get(
-			vPath.getParent().toString(),
-			prefix())
-		.toString();
+	Path parent = vPath.getParent();
+	
+	if (parent != null)
+	    return Paths.get(parent.toString(), prefix()).toString();
+	else
+	    return Paths.get(prefix()).toString();
     }
 
     public String dotName() {

@@ -160,7 +160,7 @@ public class Compiler {
 	    mv.visitMethodInsn(
 	        Opcodes.INVOKESTATIC,
 	        "io/github/protasm/lpc2j/efun/EfunRegistry",
-	        "get",
+	        "lookup",
 	        "(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;",
 	        false
 	    );

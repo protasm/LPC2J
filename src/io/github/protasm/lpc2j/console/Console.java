@@ -66,8 +66,8 @@ public class Console {
 	inputScanner = new java.util.Scanner(System.in);
 	
 	// Register Efuns
-	EfunRegistry.set("foo", EfunFoo.INSTANCE);
-	EfunRegistry.set("write", EfunWrite.INSTANCE);
+	EfunRegistry.register("foo", EfunFoo.INSTANCE);
+	EfunRegistry.register("write", EfunWrite.INSTANCE);
     }
 
     public FSBasePath basePath() {

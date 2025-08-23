@@ -69,7 +69,7 @@ public class PrefixIdentifier implements PrefixParselet {
 	    return new ASTExprCallMethod(line, method, args);
 
 	// Efun?
-	Efun efun = EfunRegistry.get(identifier);
+	Efun efun = EfunRegistry.lookup(identifier);
 
 	if (efun != null) // Call
 	    return new ASTExprCallEfun(line, efun, args);

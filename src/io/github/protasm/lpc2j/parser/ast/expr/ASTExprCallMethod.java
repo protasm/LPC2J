@@ -7,24 +7,19 @@ import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
-public class ASTExprCall extends ASTExpression {
+public class ASTExprCallMethod extends ASTExpression {
     private final ASTMethod method;
     private final ASTArguments arguments;
 
-    public ASTExprCall(int line, ASTMethod method, ASTArguments arguments) {
+    public ASTExprCallMethod(int line, ASTMethod method, ASTArguments arguments) {
 	super(line);
 
 	this.method = method;
 	this.arguments = arguments;
     }
 
-    public ASTMethod method() {
-	return method;
-    }
-
-    public ASTArguments arguments() {
-	return arguments;
-    }
+    public ASTMethod method() { return method; }
+    public ASTArguments arguments() { return arguments; }
 
     @Override
     public LPCType lpcType() {

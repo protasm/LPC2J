@@ -4,17 +4,16 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
 
-import java.lang.reflect.Method;
-
-import io.github.protasm.lpc2j.compiler.GfunsIntfc;
+import io.github.protasm.lpc2j.efun.Efun;
+import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -29,9 +28,9 @@ public class PrefixIdentifier implements PrefixParselet {
 	int line = parser.currLine();
 	String identifier = parser.tokens().previous().lexeme();
 
+	// Local?
 	ASTLocal local = parser.locals().get(identifier);
 
-	// Local?
 	if (local != null)
 	    // Invoke?
 	    if (parser.tokens().match(T_RIGHT_ARROW)) {
@@ -45,9 +44,9 @@ public class PrefixIdentifier implements PrefixParselet {
 	    else
 		return new ASTExprLocalAccess(line, local);
 
+	// Field?
 	ASTField field = parser.currObj().fields().get(identifier);
 
-	// Field?
 	if (field != null)
 	    // Invoke?
 	    if (parser.tokens().match(T_RIGHT_ARROW))
@@ -59,31 +58,21 @@ public class PrefixIdentifier implements PrefixParselet {
 	    else
 		return new ASTExprFieldAccess(line, field);
 
+	// From here forward, expect method or function with arguments
+	ASTArguments args = parser.arguments();
+	
+	// Method of same object?
 	// TODO: handle overloaded methods
 	ASTMethod method = parser.currObj().methods().get(identifier);
 
-	// Method of same object?
-	if (method != null) {
-	    ASTArguments args = parser.arguments();
+	if (method != null) // Call
+	    return new ASTExprCallMethod(line, method, args);
 
-	    // Call.
-	    return new ASTExprCall(line, method, args);
-	}
+	// Efun?
+	Efun efun = EfunRegistry.get(identifier);
 
-	GfunsIntfc gfuns = parser.gfuns();
-
-	if (gfuns != null) {
-	    Method gfun = gfuns.getMethod(identifier);
-
-	    // Global function?
-	    if (gfun != null) {
-		// TODO: handle overloaded gfuns
-		ASTArguments args = parser.arguments();
-
-		// Call.
-		return new ASTExprCallGfun(line, gfun, args);
-	    }
-	}
+	if (efun != null) // Call
+	    return new ASTExprCallEfun(line, efun, args);
 
 	throw new ParseException("Unrecognized identifier '" + identifier + "'.");
     }

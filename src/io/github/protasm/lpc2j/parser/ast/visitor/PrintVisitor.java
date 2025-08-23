@@ -10,8 +10,8 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -72,12 +72,12 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    public void visit(ASTExprCallGfun expr) {
+    public void visit(ASTExprCallEfun expr) {
 	doOutput(
 		String.format(
 			"%s%s",
 			expr.className(),
-			expr.gfun().getName()));
+			expr.efun().symbol()));
 
 	indentLvl++;
 
@@ -86,7 +86,7 @@ public class PrintVisitor {
 	indentLvl--;
     }
 
-    public void visit(ASTExprCall expr) {
+    public void visit(ASTExprCallMethod expr) {
 	doOutput(
 		String.format(
 			"%s%s",

@@ -5,12 +5,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.compiler.GfunsIntfc;
 import io.github.protasm.lpc2j.console.cmd.CmdCall;
 import io.github.protasm.lpc2j.console.cmd.CmdCompile;
 import io.github.protasm.lpc2j.console.cmd.CmdDirChange;
@@ -18,12 +17,14 @@ import io.github.protasm.lpc2j.console.cmd.CmdDirList;
 import io.github.protasm.lpc2j.console.cmd.CmdDirShow;
 import io.github.protasm.lpc2j.console.cmd.CmdFileCat;
 import io.github.protasm.lpc2j.console.cmd.CmdHelp;
+import io.github.protasm.lpc2j.console.cmd.CmdInspect;
 import io.github.protasm.lpc2j.console.cmd.CmdListObjects;
 import io.github.protasm.lpc2j.console.cmd.CmdLoad;
 import io.github.protasm.lpc2j.console.cmd.CmdParse;
 import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
+import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.fs.FSBasePath;
 import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ParseException;
@@ -33,50 +34,40 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.scanner.Tokens;
 
 public class Console {
-    private final GfunsIntfc gfuns;
-
     private final FSBasePath basePath;
     private Path vPath;
 
     private final Map<String, Object> objects;
     private final java.util.Scanner inputScanner;
 
-    private static Map<String, Command> commands = new TreeMap<>();
+    private static Map<Command, List<String>> commands = new LinkedHashMap<>();
 
     static {
-	commands.put("c", new CmdCompile());
-	commands.put("cat", new CmdFileCat());
-	commands.put("compile", new CmdCompile());
-	commands.put("call", new CmdCall());
-	commands.put("cd", new CmdDirChange());
-	commands.put("h", new CmdHelp());
-	commands.put("help", new CmdHelp());
-	commands.put("l", new CmdLoad());
-	commands.put("load", new CmdLoad());
-	commands.put("ls", new CmdDirList());
-	commands.put("o", new CmdListObjects());
-	commands.put("objects", new CmdListObjects());
-	commands.put("p", new CmdParse());
-	commands.put("parse", new CmdParse());
-	commands.put("pwd", new CmdDirShow());
-	commands.put("q", new CmdQuit());
-	commands.put("quit", new CmdQuit());
-	commands.put("s", new CmdScan());
-	commands.put("scan", new CmdScan());
+	commands.put(new CmdHelp(), List.of("?", "help"));
+	commands.put(new CmdScan(), List.of("s", "scan"));
+	commands.put(new CmdParse(), List.of("p", "parse"));
+	commands.put(new CmdCompile(), List.of("c", "compile"));
+	commands.put(new CmdLoad(), List.of("l", "load"));
+	commands.put(new CmdListObjects(), List.of("o", "objects"));
+	commands.put(new CmdInspect(), List.of("i", "inspect"));
+	commands.put(new CmdCall(), List.of("call"));
+	commands.put(new CmdDirShow(), List.of("pwd"));
+	commands.put(new CmdDirList(), List.of("ls"));
+	commands.put(new CmdDirChange(), List.of("cd"));
+	commands.put(new CmdFileCat(), List.of("cat"));
+	commands.put(new CmdQuit(), List.of("q", "quit"));
     }
 
     public Console(String basePathStr) {
-	this(basePathStr, null);
-    }
-
-    public Console(String basePathStr, GfunsIntfc gfuns) {
-	this.gfuns = gfuns;
-
 	basePath = new FSBasePath(basePathStr);
 	vPath = Path.of("/");
 
-	objects = new HashMap<>();
+	objects = new LinkedHashMap<>();
 	inputScanner = new java.util.Scanner(System.in);
+	
+	// Register Efuns
+	EfunRegistry.set("foo", EfunFoo.INSTANCE);
+	EfunRegistry.set("write", EfunWrite.INSTANCE);
     }
 
     public FSBasePath basePath() {
@@ -109,36 +100,42 @@ public class Console {
 	return objects;
     }
 
-    public static Map<String, Command> commands() {
+    public static Map<Command, List<String>> commands() {
 	return commands;
     }
 
     public void repl() {
 	while (true) {
 	    System.out.print(pwdShort() + " % ");
-
 	    String line = inputScanner.nextLine().trim();
 
 	    if (line.isEmpty())
 		continue;
 
 	    String[] parts = line.split("\\s+");
-	    String command = parts[0];
+	    String input = parts[0];
 
-	    if (Console.commands.containsKey(command)) {
-		Command cmd = Console.commands.get(command);
+	    // Lookup command by alias
+	    Command cmd = Console.getCommand(input);
+
+	    if (cmd != null) {
 		parts = (parts.length > 1) ? Arrays.copyOfRange(parts, 1, parts.length) : new String[0];
 
 		if (!cmd.execute(this, parts))
 		    break;
-	    } else {
-		System.out.println("Unrecognized command: '" + command + "'.");
-
-		continue;
-	    }
+	    } else
+		System.out.println("Unrecognized command: '" + input + "'.");
 	}
 
 	inputScanner.close();
+    }
+
+    public static Command getCommand(String alias) {
+	for (Map.Entry<Command, List<String>> entry : commands.entrySet())
+	    if (entry.getValue().contains(alias))
+		return entry.getKey();
+
+	return null;
     }
 
     public FSSourceFile load(String vPathStr) {
@@ -193,6 +190,7 @@ public class Console {
 		}
 	} catch (InvocationTargetException e) {
 	    System.out.println(e.toString());
+	    e.getCause().printStackTrace();
 	} catch (IllegalAccessException e) {
 	    System.out.println(e.toString());
 	}

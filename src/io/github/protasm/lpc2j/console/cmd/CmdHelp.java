@@ -5,7 +5,9 @@ import io.github.protasm.lpc2j.console.Console;
 public class CmdHelp extends Command {
     @Override
     public boolean execute(Console console, String... args) {
-	Console.commands().forEach((key, value) -> System.out.println(key + "\t-> " + value));
+	Console.commands().forEach((cmd, aliases) -> {
+            System.out.printf("%-20s -> %s%n", String.join(", ", aliases), cmd);
+        });
 
 	return true;
     }

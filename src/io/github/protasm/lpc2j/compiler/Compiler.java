@@ -24,8 +24,6 @@ import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.V23;
 
-import java.lang.reflect.Method;
-
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
@@ -33,6 +31,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
@@ -43,8 +42,8 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCall;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallGfun;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -70,23 +69,13 @@ import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 public class Compiler {
     private final String defaultParentName;
-    private final GfunsIntfc gfuns;
     private final ClassWriter cw;
     private MethodVisitor mv; // current method
 
     public Compiler(String defaultParentName) {
-	this(defaultParentName, null);
-    }
-
-    public Compiler(String defaultParentName, GfunsIntfc gfuns) {
 	this.defaultParentName = defaultParentName;
-	this.gfuns = gfuns;
 
 	cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-    }
-
-    public GfunsIntfc gfuns() {
-	return gfuns;
     }
 
     public byte[] compile(ASTObject astObject) {
@@ -95,7 +84,7 @@ public class Compiler {
 
 	astObject.accept(this);
 
-	return this.bytes();
+	return this.cw.toByteArray();
     }
 
     public void visit(ASTArgument arg) {
@@ -141,7 +130,7 @@ public class Compiler {
 	}
     }
 
-    public void visit(ASTExprCall expr) {
+    public void visit(ASTExprCallMethod expr) {
 	ASTMethod method = expr.method();
 	ASTArguments args = expr.arguments();
 
@@ -162,26 +151,49 @@ public class Compiler {
 //			mv.visitInsn(Opcodes.POP);
     }
 
-    public void visit(ASTExprCallGfun expr) {
-	Method gfun = expr.gfun();
-	LPCType lpcType = expr.lpcType();
-	ASTArguments args = expr.arguments();
+    public void visit(ASTExprCallEfun expr) {
+	    Efun efun = expr.efun();
+	    ASTArguments args = expr.arguments();
 
-	mv.visitMethodInsn(
-		Opcodes.INVOKESTATIC,
-		"io/github/protasm/brainjar/Brainjar", // TODO: parameterize
-		"gfuns",
-		"()Lio/github/protasm/lpc2j/compiler/GfunsIntfc;",
-		false);
+	    mv.visitLdcInsn(efun.symbol().name());
 
-	mv.visitLdcInsn(gfun);
+	    mv.visitMethodInsn(
+	        Opcodes.INVOKESTATIC,
+	        "io/github/protasm/lpc2j/efun/EfunRegistry",
+	        "get",
+	        "(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;",
+	        false
+	    );
 
-	args.accept(this);
+	    // Null-check to avoid null-pointer error
+	    var ok = new org.objectweb.asm.Label();
 
-	invokeMethodInvoke();
+	    mv.visitInsn(Opcodes.DUP);
+	    mv.visitJumpInsn(Opcodes.IFNONNULL, ok);
+	    mv.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
+	    mv.visitInsn(Opcodes.DUP);
+	    mv.visitLdcInsn("Unknown efun: '" + efun.symbol().name() + "'");
+	    mv.visitMethodInsn(
+	        Opcodes.INVOKESPECIAL,
+	        "java/lang/IllegalStateException",
+	        "<init>",
+	        "(Ljava/lang/String;)V",
+	        false
+	    );
+	    mv.visitInsn(Opcodes.ATHROW);
+	    mv.visitLabel(ok);
 
-	invokeReturnValue(lpcType);
-    }
+	    // For non-static invocation, bundle arguments in an Object[] array
+	    args.accept(this);
+
+	    mv.visitMethodInsn(
+	        Opcodes.INVOKEINTERFACE,
+	        "io/github/protasm/lpc2j/efun/Efun",
+	        "invoke",
+	        "([Ljava/lang/Object;)Ljava/lang/Object;",
+	        true
+	    );
+	}
 
     public void visit(ASTExprFieldAccess expr) {
 	ASTField field = expr.field();
@@ -539,9 +551,9 @@ public class Compiler {
 	mv.visitEnd();
     }
 
-    public byte[] bytes() {
-	return cw.toByteArray();
-    }
+//    public byte[] bytes() {
+//	return cw.toByteArray();
+//    }
 
     private void invokeParamTypes(ASTArguments args) {
 	pushInt(args.size());

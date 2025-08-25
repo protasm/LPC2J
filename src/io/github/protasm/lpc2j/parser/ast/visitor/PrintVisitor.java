@@ -31,386 +31,323 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 
 public class PrintVisitor {
-    private int indentLvl;
+	private int indentLvl;
 
-    public PrintVisitor() {
-	indentLvl = 0;
-    }
-
-    private void doOutput(String str) {
-	System.out.println(
-		String.format(
-			"%s%s",
-			"  ".repeat(indentLvl),
-			str));
-    }
-
-    public void visit(ASTArgument argument) {
-	doOutput(argument.className());
-
-	indentLvl++;
-
-	argument.expression().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTArguments arguments) {
-	if (arguments.size() == 0) {
-	    doOutput("[No Arguments]");
-
-	    return;
+	public PrintVisitor() {
+		indentLvl = 0;
 	}
 
-	doOutput("[ARGUMENTS]");
-
-	indentLvl++;
-
-	for (ASTArgument argument : arguments)
-	    argument.accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprCallEfun expr) {
-	doOutput(
-		String.format(
-			"%s%s",
-			expr.className(),
-			expr.efun().symbol()));
-
-	indentLvl++;
-
-	expr.arguments().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprCallMethod expr) {
-	doOutput(
-		String.format(
-			"%s%s",
-			expr.className(),
-			expr.method().symbol()));
-
-	indentLvl++;
-
-	expr.arguments().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprFieldAccess expr) {
-	doOutput(expr.className());
-
-	indentLvl++;
-
-	expr.field().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprFieldStore expr) {
-	doOutput(expr.className());
-
-	indentLvl++;
-
-	expr.field().accept(this);
-	expr.value().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprInvokeLocal expr) {
-	doOutput(
-		String.format(
-			"%s([%s] slot=%d, methodName=%s)",
-			expr.className(),
-			expr.lpcType(),
-			expr.slot(),
-			expr.methodName()));
-
-	indentLvl++;
-
-	expr.args().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprLiteralFalse expr) {
-	doOutput(expr.className());
-    }
-
-    public void visit(ASTExprLiteralInteger expr) {
-	doOutput(
-		String.format(
-			"%s[%s]",
-			expr.className(),
-			expr.value()));
-    }
-
-    public void visit(ASTExprLiteralString expr) {
-	doOutput(
-		String.format(
-			"%s[\"%s\"],",
-			expr.className(),
-			expr.value()));
-    }
-
-    public void visit(ASTExprLiteralTrue expr) {
-	doOutput(expr.className());
-    }
-
-    public void visit(ASTExprLocalAccess expr) {
-	doOutput(expr.className());
-
-	indentLvl++;
-
-	expr.local().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprLocalStore expr) {
-	doOutput(expr.className());
-
-	indentLvl++;
-
-	expr.local().accept(this);
-	expr.value().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprNull expr) {
-	doOutput(expr.className());
-    }
-
-    public void visit(ASTExprOpBinary expr) {
-	doOutput(
-		String.format(
-			"%s[%s]",
-			expr.className(),
-			expr.operator()));
-
-	indentLvl++;
-
-	expr.left().accept(this);
-	expr.right().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTExprOpUnary expr) {
-	doOutput(
-		String.format(
-			"%s[%s]",
-			expr.className(),
-			expr.operator()));
-
-	indentLvl++;
-
-	expr.right().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTField field) {
-	doOutput(
-		String.format(
-			"%s%s",
-			field.className(),
-			field.symbol()));
-
-	indentLvl++;
-
-	if (field.initializer() != null)
-	    field.initializer().accept(this);
-
-	indentLvl--;
-    }
-
-    public void visit(ASTFields fields) {
-	if (fields.size() == 0) {
-	    doOutput("[No Fields]");
-
-	    System.out.println();
-
-	    return;
+	private void doOutput(String str) {
+		System.out.println(String.format("%s%s", "  ".repeat(indentLvl), str));
 	}
 
-	doOutput("[FIELDS]");
+	public void visit(ASTArgument argument) {
+		doOutput(argument.className());
 
-	indentLvl++;
+		indentLvl++;
 
-	for (ASTField field : fields) {
-	    field.accept(this);
+		argument.expression().accept(this);
 
-	    System.out.println();
+		indentLvl--;
 	}
 
-	indentLvl--;
-    }
+	public void visit(ASTArguments arguments) {
+		if (arguments.size() == 0) {
+			doOutput("[No Arguments]");
 
-    public void visit(ASTLocal local) {
-	doOutput(
-		String.format(
-			"%s[%s, slot=%d, depth=%d]",
-			local.className(),
-			local.symbol(),
-			local.slot(),
-			local.scopeDepth()));
-    }
+			return;
+		}
 
-    public void visit(ASTMethod method) {
-	doOutput(
-		String.format(
-			"%s%s",
-			method.className(),
-			method.symbol()));
+		doOutput("[ARGUMENTS]");
 
-	indentLvl++;
+		indentLvl++;
 
-	method.parameters().accept(this);
-	method.body().accept(this);
+		for (ASTArgument argument : arguments)
+			argument.accept(this);
 
-	indentLvl--;
-    }
-
-    public void visit(ASTMethods methods) {
-	if (methods.size() == 0) {
-	    doOutput("[No Methods]");
-
-	    return;
+		indentLvl--;
 	}
 
-	doOutput("[METHODS]");
+	public void visit(ASTExprCallEfun expr) {
+		doOutput(String.format("%s%s", expr.className(), expr.efun().symbol()));
 
-	indentLvl++;
+		indentLvl++;
 
-	int count = 0;
+		expr.arguments().accept(this);
 
-	for (ASTMethod method : methods) {
-	    method.accept(this);
+		indentLvl--;
+	}
 
-	    if (++count < methods.size())
+	public void visit(ASTExprCallMethod expr) {
+		doOutput(String.format("%s%s", expr.className(), expr.method().symbol()));
+
+		indentLvl++;
+
+		expr.arguments().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprFieldAccess expr) {
+		doOutput(expr.className());
+
+		indentLvl++;
+
+		expr.field().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprFieldStore expr) {
+		doOutput(expr.className());
+
+		indentLvl++;
+
+		expr.field().accept(this);
+		expr.value().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprInvokeLocal expr) {
+		doOutput(String.format("%s([%s] slot=%d, methodName=%s)", expr.className(), expr.lpcType(), expr.slot(),
+				expr.methodName()));
+
+		indentLvl++;
+
+		expr.args().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprLiteralFalse expr) {
+		doOutput(expr.className());
+	}
+
+	public void visit(ASTExprLiteralInteger expr) {
+		doOutput(String.format("%s[%s]", expr.className(), expr.value()));
+	}
+
+	public void visit(ASTExprLiteralString expr) {
+		doOutput(String.format("%s[\"%s\"],", expr.className(), expr.value()));
+	}
+
+	public void visit(ASTExprLiteralTrue expr) {
+		doOutput(expr.className());
+	}
+
+	public void visit(ASTExprLocalAccess expr) {
+		doOutput(expr.className());
+
+		indentLvl++;
+
+		expr.local().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprLocalStore expr) {
+		doOutput(expr.className());
+
+		indentLvl++;
+
+		expr.local().accept(this);
+		expr.value().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprNull expr) {
+		doOutput(expr.className());
+	}
+
+	public void visit(ASTExprOpBinary expr) {
+		doOutput(String.format("%s[%s]", expr.className(), expr.operator()));
+
+		indentLvl++;
+
+		expr.left().accept(this);
+		expr.right().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTExprOpUnary expr) {
+		doOutput(String.format("%s[%s]", expr.className(), expr.operator()));
+
+		indentLvl++;
+
+		expr.right().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTField field) {
+		doOutput(String.format("%s%s", field.className(), field.symbol()));
+
+		indentLvl++;
+
+		if (field.initializer() != null)
+			field.initializer().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTFields fields) {
+		if (fields.size() == 0) {
+			doOutput("[No Fields]");
+
+			System.out.println();
+
+			return;
+		}
+
+		doOutput("[FIELDS]");
+
+		indentLvl++;
+
+		for (ASTField field : fields) {
+			field.accept(this);
+
+			System.out.println();
+		}
+
+		indentLvl--;
+	}
+
+	public void visit(ASTLocal local) {
+		doOutput(String.format("%s[%s, slot=%d, depth=%d]", local.className(), local.symbol(), local.slot(),
+				local.scopeDepth()));
+	}
+
+	public void visit(ASTMethod method) {
+		doOutput(String.format("%s%s", method.className(), method.symbol()));
+
+		indentLvl++;
+
+		method.parameters().accept(this);
+		method.body().accept(this);
+
+		indentLvl--;
+	}
+
+	public void visit(ASTMethods methods) {
+		if (methods.size() == 0) {
+			doOutput("[No Methods]");
+
+			return;
+		}
+
+		doOutput("[METHODS]");
+
+		indentLvl++;
+
+		int count = 0;
+
+		for (ASTMethod method : methods) {
+			method.accept(this);
+
+			if (++count < methods.size())
+				System.out.println();
+		}
+
+		indentLvl--;
+	}
+
+	public void visit(ASTObject object) {
+		if (object.parentName() != null)
+			doOutput(String.format("%s(%s inherits %s)", object.className(), object.name(), object.parentName()));
+		else
+			doOutput(String.format("%s(%s)", object.className(), object.name()));
+
+		indentLvl++;
+
+		object.fields().accept(this);
+		object.methods().accept(this);
+
+		indentLvl--;
+
+		doOutput("End Object");
+	}
+
+	public void visit(ASTParameter parameter) {
+		doOutput(String.format("%s%s", parameter.className(), parameter.symbol()));
+	}
+
+	public void visit(ASTParameters parameters) {
+		if (parameters.size() == 0)
+			doOutput("[No Parameters]");
+		else
+			for (ASTParameter param : parameters)
+				param.accept(this);
+
 		System.out.println();
 	}
 
-	indentLvl--;
-    }
+	public void visit(ASTStmtBlock stmt) {
+		doOutput(String.format("%s[%d stmt(s)]", stmt.className(), stmt.size()));
 
-    public void visit(ASTObject object) {
-	if (object.parentName() != null)
-	    doOutput(
-		    String.format(
-			    "%s(%s inherits %s)",
-			    object.className(),
-			    object.name(),
-			    object.parentName()));
-	else
-	    doOutput(
-		    String.format(
-			    "%s(%s)",
-			    object.className(),
-			    object.name()));
+		indentLvl++;
 
-	indentLvl++;
+		int count = 0;
 
-	object.fields().accept(this);
-	object.methods().accept(this);
+		for (ASTStatement statement : stmt) {
+			statement.accept(this);
 
-	indentLvl--;
+			if (++count < stmt.size())
+				System.out.println();
+		}
 
-	doOutput("End Object");
-    }
-
-    public void visit(ASTParameter parameter) {
-	doOutput(
-		String.format(
-			"%s%s",
-			parameter.className(),
-			parameter.symbol()));
-    }
-
-    public void visit(ASTParameters parameters) {
-	if (parameters.size() == 0)
-	    doOutput("[No Parameters]");
-	else
-	    for (ASTParameter param : parameters)
-		param.accept(this);
-
-	System.out.println();
-    }
-
-    public void visit(ASTStmtBlock stmt) {
-	doOutput(
-		String.format(
-			"%s[%d stmt(s)]",
-			stmt.className(),
-			stmt.size()));
-
-	indentLvl++;
-
-	int count = 0;
-
-	for (ASTStatement statement : stmt) {
-	    statement.accept(this);
-
-	    if (++count < stmt.size())
-		System.out.println();
+		indentLvl--;
 	}
 
-	indentLvl--;
-    }
+	public void visit(ASTStmtExpression stmt) {
+		doOutput(stmt.className());
 
-    public void visit(ASTStmtExpression stmt) {
-	doOutput(stmt.className());
+		indentLvl++;
 
-	indentLvl++;
+		stmt.expression().accept(this);
 
-	stmt.expression().accept(this);
+		indentLvl--;
+	}
 
-	indentLvl--;
-    }
+	public void visit(ASTStmtIfThenElse stmt) {
+		doOutput(stmt.className());
 
-    public void visit(ASTStmtIfThenElse stmt) {
-	doOutput(stmt.className());
+		indentLvl++;
 
-	indentLvl++;
+		doOutput("[IF]");
 
-	doOutput("[IF]");
+		stmt.condition().accept(this);
 
-	stmt.condition().accept(this);
+		System.out.println();
 
-	System.out.println();
+		doOutput("[THEN]");
 
-	doOutput("[THEN]");
+		stmt.thenBranch().accept(this);
 
-	stmt.thenBranch().accept(this);
+		System.out.println();
 
-	System.out.println();
+		if (stmt.elseBranch() != null) {
+			doOutput("[ELSE]");
 
-	if (stmt.elseBranch() != null) {
-	    doOutput("[ELSE]");
+			stmt.elseBranch().accept(this);
+		} else
+			doOutput("[No Else Condition]");
 
-	    stmt.elseBranch().accept(this);
-	} else
-	    doOutput("[No Else Condition]");
+		indentLvl--;
+	}
 
-	indentLvl--;
-    }
+	public void visit(ASTStmtReturn stmt) {
+		doOutput(stmt.className());
 
-    public void visit(ASTStmtReturn stmt) {
-	doOutput(stmt.className());
+		indentLvl++;
 
-	indentLvl++;
+		if (stmt.returnValue() != null)
+			stmt.returnValue().accept(this);
+		else
+			doOutput("[No Return Value]");
 
-	if (stmt.returnValue() != null)
-	    stmt.returnValue().accept(this);
-	else
-	    doOutput("[No Return Value]");
-
-	indentLvl--;
-    }
+		indentLvl--;
+	}
 }

@@ -7,35 +7,35 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.scanner.Token;
 
 public class ASTExprLiteralInteger extends ASTExpression {
-    private final Integer value;
+	private final Integer value;
 
-    public ASTExprLiteralInteger(int line, Token<Integer> token) {
-	super(line);
+	public ASTExprLiteralInteger(int line, Token<Integer> token) {
+		super(line);
 
-	this.value = token.literal();
-    }
+		this.value = token.literal();
+	}
 
-    public Integer value() {
-	return value;
-    }
+	public Integer value() {
+		return value;
+	}
 
-    @Override
-    public LPCType lpcType() {
-	return LPCType.LPCINT;
-    }
+	@Override
+	public LPCType lpcType() {
+		return LPCType.LPCINT;
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(Compiler visitor) {
+		visitor.visit(this);
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	visitor.visit(this, lpcType);
-    }
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		visitor.visit(this, lpcType);
+	}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

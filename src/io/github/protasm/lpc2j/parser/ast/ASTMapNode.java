@@ -5,38 +5,38 @@ import java.util.Iterator;
 import java.util.Map;
 
 public abstract class ASTMapNode<T> extends ASTNode implements Iterable<T> {
-    protected Map<String, T> nodes;
+	protected Map<String, T> nodes;
 
-    public ASTMapNode(int line) {
-	super(line);
+	public ASTMapNode(int line) {
+		super(line);
 
-	nodes = new HashMap<>();
-    }
+		nodes = new HashMap<>();
+	}
 
-    public ASTMapNode(int line, Map<String, T> nodes) {
-	super(line);
+	public ASTMapNode(int line, Map<String, T> nodes) {
+		super(line);
 
-	this.nodes = nodes;
-    }
+		this.nodes = nodes;
+	}
 
-    public Map<String, T> nodes() {
-	return nodes;
-    }
+	public Map<String, T> nodes() {
+		return nodes;
+	}
 
-    public void put(String name, T node) {
-	nodes.put(name, node);
-    }
+	public void put(String name, T node) {
+		nodes.put(name, node);
+	}
 
-    public T get(String name) {
-	return nodes.get(name);
-    }
+	public T get(String name) {
+		return nodes.get(name);
+	}
 
-    public int size() {
-	return nodes.size();
-    }
+	public int size() {
+		return nodes.size();
+	}
 
-    @Override
-    public Iterator<T> iterator() {
-	return nodes.values().iterator();
-    }
+	@Override
+	public Iterator<T> iterator() {
+		return nodes.values().iterator();
+	}
 }

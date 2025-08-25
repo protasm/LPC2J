@@ -8,36 +8,41 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprCallMethod extends ASTExpression {
-    private final ASTMethod method;
-    private final ASTArguments arguments;
+	private final ASTMethod method;
+	private final ASTArguments arguments;
 
-    public ASTExprCallMethod(int line, ASTMethod method, ASTArguments arguments) {
-	super(line);
+	public ASTExprCallMethod(int line, ASTMethod method, ASTArguments arguments) {
+		super(line);
 
-	this.method = method;
-	this.arguments = arguments;
-    }
+		this.method = method;
+		this.arguments = arguments;
+	}
 
-    public ASTMethod method() { return method; }
-    public ASTArguments arguments() { return arguments; }
+	public ASTMethod method() {
+		return method;
+	}
 
-    @Override
-    public LPCType lpcType() {
-	return method.symbol().lpcType();
-    }
+	public ASTArguments arguments() {
+		return arguments;
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public LPCType lpcType() {
+		return method.symbol().lpcType();
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	visitor.visit(this, lpcType);
-    }
+	@Override
+	public void accept(Compiler visitor) {
+		visitor.visit(this);
+	}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		visitor.visit(this, lpcType);
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

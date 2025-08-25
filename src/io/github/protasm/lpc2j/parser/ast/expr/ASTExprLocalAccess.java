@@ -7,35 +7,35 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprLocalAccess extends ASTExpression {
-    private final ASTLocal local;
+	private final ASTLocal local;
 
-    public ASTExprLocalAccess(int line, ASTLocal local) {
-	super(line);
+	public ASTExprLocalAccess(int line, ASTLocal local) {
+		super(line);
 
-	this.local = local;
-    }
+		this.local = local;
+	}
 
-    public ASTLocal local() {
-	return local;
-    }
+	public ASTLocal local() {
+		return local;
+	}
 
-    @Override
-    public LPCType lpcType() {
-	return local.symbol().lpcType();
-    }
+	@Override
+	public LPCType lpcType() {
+		return local.symbol().lpcType();
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(Compiler visitor) {
+		visitor.visit(this);
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	visitor.visit(this, lpcType);
-    }
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		visitor.visit(this, lpcType);
+	}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

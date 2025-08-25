@@ -7,157 +7,154 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class FSBasePath {
-    private final Path basePath;
+	private final Path basePath;
 
-    public FSBasePath(String basePathStr) {
-	Path path = Path.of(basePathStr).normalize();
+	public FSBasePath(String basePathStr) {
+		Path path = Path.of(basePathStr).normalize();
 
-	if (!path.isAbsolute())
-	    throw new IllegalArgumentException("Base path must be absolute: " + basePathStr);
+		if (!path.isAbsolute())
+			throw new IllegalArgumentException("Base path must be absolute: " + basePathStr);
 
-	this.basePath = path;
-    }
-
-    public Path basePath() {
-	return basePath;
-    }
-
-    public Path dirAt(String vPathStr) {
-	if ((vPathStr == null) || vPathStr.isBlank())
-	    return Path.of("/");
-
-	try {
-	    Path resolved = resolve(vPathStr, true);
-
-	    if ((resolved == null) || !Files.isDirectory(resolved))
-		throw new IllegalArgumentException();
-
-	    if (resolved.equals(basePath))
-		return Path.of("/");
-
-	    // Return the portion of the path after basePath
-	    return basePath.relativize(resolved);
-	} catch (IllegalArgumentException e) {
-	    return null;
+		this.basePath = path;
 	}
-    }
 
-    public Path fileAt(String vPathStr) {
-	try {
-	    if ((vPathStr == null) || vPathStr.isBlank())
-		throw new IllegalArgumentException();
-
-	    Path resolved = resolve(vPathStr, true);
-
-	    if ((resolved == null) || !Files.isRegularFile(resolved))
-		throw new IllegalArgumentException();
-
-	    return basePath.relativize(resolved);
-	} catch (IllegalArgumentException e) {
-	    return null;
+	public Path basePath() {
+		return basePath;
 	}
-    }
 
-    public boolean read(FSSourceFile sf) {
-	try {
-	    if (sf == null)
-		throw new IllegalArgumentException();
+	public Path dirAt(String vPathStr) {
+		if ((vPathStr == null) || vPathStr.isBlank())
+			return Path.of("/");
 
-	    String vPathStr = sf.vPath().toString();
-	    Path resolved = resolve(vPathStr, true);
+		try {
+			Path resolved = resolve(vPathStr, true);
 
-	    if ((resolved == null) || !Files.isRegularFile(resolved))
-		throw new IllegalArgumentException();
+			if ((resolved == null) || !Files.isDirectory(resolved))
+				throw new IllegalArgumentException();
 
-	    String content = Files.readString(resolved);
+			if (resolved.equals(basePath))
+				return Path.of("/");
 
-	    sf.setSource(content);
-
-	    return true;
-	} catch (IOException e) {
-	    System.out.println("Failed to read source file: " + sf);
-
-	    sf.setSource(null);
-
-	    return false;
+			// Return the portion of the path after basePath
+			return basePath.relativize(resolved);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
-    }
 
-    public boolean write(FSSourceFile sf) {
-	try {
-	    if (sf == null)
-		throw new IllegalArgumentException("Source file cannot be null.");
+	public Path fileAt(String vPathStr) {
+		try {
+			if ((vPathStr == null) || vPathStr.isBlank())
+				throw new IllegalArgumentException();
 
-	    String classPathStr = sf.classPath().toString();
-	    Path resolved = resolve(classPathStr, false);
+			Path resolved = resolve(vPathStr, true);
 
-	    if (resolved == null)
-		throw new IllegalArgumentException("Could not resolve source file path: " + classPathStr);
+			if ((resolved == null) || !Files.isRegularFile(resolved))
+				throw new IllegalArgumentException();
 
-	    byte[] bytes = sf.bytes();
-
-	    if (bytes == null)
-		throw new IllegalArgumentException("Source file bytes are null.");
-
-	    Files.write(resolved, bytes);
-
-	    return true;
-	} catch (IOException | IllegalArgumentException e) {
-	    System.out.println("Failed to write classfile: " + sf);
-
-	    return false;
+			return basePath.relativize(resolved);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
-    }
 
-    public File[] filesIn(String vPathStr) {
-	try {
-	    Path resolved = dirAt(vPathStr);
+	public boolean read(FSSourceFile sf) {
+		try {
+			if (sf == null)
+				throw new IllegalArgumentException();
 
-	    if (resolved == null)
-		throw new IllegalArgumentException();
+			String vPathStr = sf.vPath().toString();
+			Path resolved = resolve(vPathStr, true);
 
-	    // If resolved is "/", use basePath directly
-	    File dir = resolved.equals(Path.of("/"))
-		    ? basePath.toFile()
-		    : basePath.resolve(resolved).toFile();
+			if ((resolved == null) || !Files.isRegularFile(resolved))
+				throw new IllegalArgumentException();
 
-	    return dir.listFiles();
-	} catch (IllegalArgumentException e) {
-	    return null;
+			String content = Files.readString(resolved);
+
+			sf.setSource(content);
+
+			return true;
+		} catch (IOException e) {
+			System.out.println("Failed to read source file: " + sf);
+
+			sf.setSource(null);
+
+			return false;
+		}
 	}
-    }
 
-    public String contentsOf(String vPathStr) {
-	try {
-	    if ((vPathStr == null) || vPathStr.isBlank())
-		throw new IllegalArgumentException();
+	public boolean write(FSSourceFile sf) {
+		try {
+			if (sf == null)
+				throw new IllegalArgumentException("Source file cannot be null.");
 
-	    Path resolved = resolve(vPathStr, true);
+			String classPathStr = sf.classPath().toString();
+			Path resolved = resolve(classPathStr, false);
 
-	    if ((resolved == null) || !Files.isRegularFile(resolved))
-		throw new IllegalArgumentException();
+			if (resolved == null)
+				throw new IllegalArgumentException("Could not resolve source file path: " + classPathStr);
 
-	    return Files.readString(resolved);
-	} catch (IOException | IllegalArgumentException e) {
-	    return null;
+			byte[] bytes = sf.bytes();
+
+			if (bytes == null)
+				throw new IllegalArgumentException("Source file bytes are null.");
+
+			Files.write(resolved, bytes);
+
+			return true;
+		} catch (IOException | IllegalArgumentException e) {
+			System.out.println("Failed to write classfile: " + sf);
+
+			return false;
+		}
 	}
-    }
 
-    private Path resolve(String vPathStr, boolean checkExists) {
-	try {
-	    // Concatenate basePath and vPath, normalize the result
-	    Path concat = Paths.get(basePath.toString(), vPathStr);
-	    Path normalized = concat.normalize();
+	public File[] filesIn(String vPathStr) {
+		try {
+			Path resolved = dirAt(vPathStr);
 
-	    // Ensure the normalized path is still within basePath
-	    // and exists (optional).
-	    if (!normalized.startsWith(basePath)
-		    || (checkExists && !Files.exists(normalized)))
-		throw new IllegalArgumentException();
+			if (resolved == null)
+				throw new IllegalArgumentException();
 
-	    return normalized;
-	} catch (IllegalArgumentException e) {
-	    return null;
+			// If resolved is "/", use basePath directly
+			File dir = resolved.equals(Path.of("/")) ? basePath.toFile() : basePath.resolve(resolved).toFile();
+
+			return dir.listFiles();
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
-    }
+
+	public String contentsOf(String vPathStr) {
+		try {
+			if ((vPathStr == null) || vPathStr.isBlank())
+				throw new IllegalArgumentException();
+
+			Path resolved = resolve(vPathStr, true);
+
+			if ((resolved == null) || !Files.isRegularFile(resolved))
+				throw new IllegalArgumentException();
+
+			return Files.readString(resolved);
+		} catch (IOException | IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	private Path resolve(String vPathStr, boolean checkExists) {
+		try {
+			// Concatenate basePath and vPath, normalize the result
+			Path concat = Paths.get(basePath.toString(), vPathStr);
+			Path normalized = concat.normalize();
+
+			// Ensure the normalized path is still within basePath
+			// and exists (optional).
+			if (!normalized.startsWith(basePath) || (checkExists && !Files.exists(normalized)))
+				throw new IllegalArgumentException();
+
+			return normalized;
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
 }

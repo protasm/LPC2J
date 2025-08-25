@@ -10,54 +10,54 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 public class ASTExprOpUnary extends ASTExpression {
-    private final ASTExpression right;
-    private final UnaryOpType operator;
+	private final ASTExpression right;
+	private final UnaryOpType operator;
 
-    public ASTExprOpUnary(int line, ASTExpression right, UnaryOpType operator) {
-	super(line);
+	public ASTExprOpUnary(int line, ASTExpression right, UnaryOpType operator) {
+		super(line);
 
-	this.right = right;
-	this.operator = operator;
-    }
-
-    public ASTExpression right() {
-	return right;
-    }
-
-    public UnaryOpType operator() {
-	return operator;
-    }
-
-    @Override
-    public LPCType lpcType() {
-	switch (operator) {
-	case UOP_NEGATE:
-	    if (right.lpcType() == LPCINT)
-		return LPCINT;
-	    else
-		throw new IllegalStateException("Unary '-' operator requires an integer operand.");
-	case UOP_NOT:
-	    if (right.lpcType() == LPCSTATUS)
-		return LPCSTATUS;
-	    else
-		throw new IllegalStateException("Logical '!' operator requires a boolean operand.");
+		this.right = right;
+		this.operator = operator;
 	}
 
-	return null; // unreachable
-    }
+	public ASTExpression right() {
+		return right;
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	visitor.visit(this);
-    }
+	public UnaryOpType operator() {
+		return operator;
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	visitor.visit(this, lpcType);
-    }
+	@Override
+	public LPCType lpcType() {
+		switch (operator) {
+		case UOP_NEGATE:
+			if (right.lpcType() == LPCINT)
+				return LPCINT;
+			else
+				throw new IllegalStateException("Unary '-' operator requires an integer operand.");
+		case UOP_NOT:
+			if (right.lpcType() == LPCSTATUS)
+				return LPCSTATUS;
+			else
+				throw new IllegalStateException("Logical '!' operator requires a boolean operand.");
+		}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+		return null; // unreachable
+	}
+
+	@Override
+	public void accept(Compiler visitor) {
+		visitor.visit(this);
+	}
+
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		visitor.visit(this, lpcType);
+	}
+
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

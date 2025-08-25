@@ -6,55 +6,55 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTLocal extends ASTNode {
-    private final Symbol symbol;
-    private int slot;
-    private int scopeDepth;
+	private final Symbol symbol;
+	private int slot;
+	private int scopeDepth;
 
-    public ASTLocal(int line, Symbol symbol) {
-	super(line);
+	public ASTLocal(int line, Symbol symbol) {
+		super(line);
 
-	this.symbol = symbol;
+		this.symbol = symbol;
 
-	slot = -1;
-	scopeDepth = -1;
-    }
+		slot = -1;
+		scopeDepth = -1;
+	}
 
-    public Symbol symbol() {
-	return symbol;
-    }
+	public Symbol symbol() {
+		return symbol;
+	}
 
-    public int slot() {
-	return slot;
-    }
+	public int slot() {
+		return slot;
+	}
 
-    public int scopeDepth() {
-	return scopeDepth;
-    }
+	public int scopeDepth() {
+		return scopeDepth;
+	}
 
-    public void setSlot(int slot) {
-	this.slot = slot;
-    }
+	public void setSlot(int slot) {
+		this.slot = slot;
+	}
 
-    public void setScopeDepth(int scopeDepth) {
-	this.scopeDepth = scopeDepth;
-    }
+	public void setScopeDepth(int scopeDepth) {
+		this.scopeDepth = scopeDepth;
+	}
 
-    public String descriptor() {
-	return symbol.descriptor();
-    }
+	public String descriptor() {
+		return symbol.descriptor();
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	// TODO Auto-generated method stub
-    }
+	@Override
+	public void accept(Compiler visitor) {
+		// TODO Auto-generated method stub
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	// TODO Auto-generated method stub
-    }
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		// TODO Auto-generated method stub
+	}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

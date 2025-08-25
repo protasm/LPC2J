@@ -7,61 +7,61 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTMethod extends ASTNode {
-    private final String ownerName;
-    private final Symbol symbol;
-    private ASTParameters parameters;
-    private ASTStmtBlock body;
+	private final String ownerName;
+	private final Symbol symbol;
+	private ASTParameters parameters;
+	private ASTStmtBlock body;
 
-    public ASTMethod(int line, String ownerName, Symbol symbol) {
-	super(line);
+	public ASTMethod(int line, String ownerName, Symbol symbol) {
+		super(line);
 
-	this.ownerName = ownerName;
-	this.symbol = symbol;
+		this.ownerName = ownerName;
+		this.symbol = symbol;
 
-	parameters = null;
-	body = null;
-    }
+		parameters = null;
+		body = null;
+	}
 
-    public String ownerName() {
-	return ownerName;
-    }
+	public String ownerName() {
+		return ownerName;
+	}
 
-    public Symbol symbol() {
-	return symbol;
-    }
+	public Symbol symbol() {
+		return symbol;
+	}
 
-    public ASTParameters parameters() {
-	return parameters;
-    }
+	public ASTParameters parameters() {
+		return parameters;
+	}
 
-    public void setParameters(ASTParameters parameters) {
-	this.parameters = parameters;
-    }
+	public void setParameters(ASTParameters parameters) {
+		this.parameters = parameters;
+	}
 
-    public ASTStmtBlock body() {
-	return body;
-    }
+	public ASTStmtBlock body() {
+		return body;
+	}
 
-    public void setBody(ASTStmtBlock body) {
-	this.body = body;
-    }
+	public void setBody(ASTStmtBlock body) {
+		this.body = body;
+	}
 
-    public String descriptor() {
-	return parameters.descriptor() + symbol.descriptor();
-    }
+	public String descriptor() {
+		return parameters.descriptor() + symbol.descriptor();
+	}
 
-    @Override
-    public void accept(Compiler visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(Compiler visitor) {
+		visitor.visit(this);
+	}
 
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-	visitor.visit(this, lpcType);
-    }
+	@Override
+	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+		visitor.visit(this, lpcType);
+	}
 
-    @Override
-    public void accept(PrintVisitor visitor) {
-	visitor.visit(this);
-    }
+	@Override
+	public void accept(PrintVisitor visitor) {
+		visitor.visit(this);
+	}
 }

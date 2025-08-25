@@ -6,21 +6,23 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public abstract class ASTNode {
-    protected final int line;
+	protected final int line;
 
-    public ASTNode(int line) {
-	this.line = line;
-    }
+	public ASTNode(int line) {
+		this.line = line;
+	}
 
-    public int line() {
-	return line;
-    }
+	public int line() {
+		return line;
+	}
 
-    public String className() {
-	return getClass().getSimpleName();
-    }
+	public String className() {
+		return getClass().getSimpleName();
+	}
 
-    public abstract void accept(Compiler visitor);
-    public abstract void accept(TypeInferenceVisitor visitor, LPCType lpcType);
-    public abstract void accept(PrintVisitor visitor);
+	public abstract void accept(Compiler visitor);
+
+	public abstract void accept(TypeInferenceVisitor visitor, LPCType lpcType);
+
+	public abstract void accept(PrintVisitor visitor);
 }

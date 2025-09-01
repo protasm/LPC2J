@@ -49,23 +49,19 @@ import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.scanner.TokenType.T_WHILE;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import org.anarres.cpp.CppReader;
-import org.anarres.cpp.Preprocessor;
-import org.anarres.cpp.StringLexerSource;
-
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.preproc.Preproc;
+import io.github.protasm.lpc2j.sourcepos.Source;
 
 public class Scanner {
 	private static final char EOL = '\n';
 	private static final Map<String, LPCType> lpcTypeWords;
 	private static final Map<String, TokenType> reservedWords;
 	private static final Map<Character, TokenType> oneCharLexemes;
-	private ScannableSource ss;
+       private Source ss;
 
 	static {
 		lpcTypeWords = new HashMap<>() {
@@ -115,33 +111,14 @@ public class Scanner {
 		};
 	}
 
-	private void preprocess(String source, String sysInclPath, String quoteInclPath) {
-		try (Preprocessor pp = new Preprocessor()) {
-			pp.addInput(new StringLexerSource(source, true));
-			pp.getSystemIncludePath().add(".");
-
-			List<String> systemPaths = new ArrayList<>();
-			systemPaths.add(sysInclPath);
-			pp.setSystemIncludePath(systemPaths);
-
-			List<String> quotePaths = new ArrayList<>();
-			quotePaths.add(quoteInclPath);
-			pp.setQuoteIncludePath(quotePaths);
-
-			try (CppReader reader = new CppReader(pp)) {
-				StringBuilder output = new StringBuilder();
-
-				int ch;
-
-				while ((ch = reader.read()) != -1)
-					output.append((char) ch);
-
-				ss = new ScannableSource(output.toString());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+       private void preprocess(String source, String sysInclPath, String quoteInclPath) {
+               try {
+                       String out = Preproc.preprocess(source, sysInclPath, quoteInclPath);
+                       ss = new Source(out);
+               } catch (IOException e) {
+                       e.printStackTrace();
+               }
+       }
 
 	public Tokens scan(String source) {
 		if (source != null)

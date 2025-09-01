@@ -48,13 +48,15 @@ import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.preproc.IncludeResolver;
+import io.github.protasm.lpc2j.preproc.Preprocessor;
+import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
@@ -114,33 +116,16 @@ public class Scanner {
 		};
 	}
 
-	private void preprocess(String source, String sysInclPath, String quoteInclPath) {
-		try (Preprocessor pp = new Preprocessor()) {
-			pp.addInput(new StringLexerSource(source, true));
-			pp.getSystemIncludePath().add(".");
+       private void preprocess(String source, String sysInclPath, String quoteInclPath) {
+               IncludeResolver resolver = (includingFile, includePath, system) -> {
+                       Path base = Path.of(system ? sysInclPath : quoteInclPath);
+                       return Files.readString(base.resolve(includePath));
+               };
 
-			List<String> systemPaths = new ArrayList<>();
-			systemPaths.add(sysInclPath);
-			pp.setSystemIncludePath(systemPaths);
-
-			List<String> quotePaths = new ArrayList<>();
-			quotePaths.add(quoteInclPath);
-			pp.setQuoteIncludePath(quotePaths);
-
-			try (CppReader reader = new CppReader(pp)) {
-				StringBuilder output = new StringBuilder();
-
-				int ch;
-
-				while ((ch = reader.read()) != -1)
-					output.append((char) ch);
-
-				ss = new ScannableSource(output.toString());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+               Preprocessor pp = new Preprocessor(resolver);
+               String processed = pp.preprocess(null, source).source;
+               ss = new ScannableSource(processed);
+       }
 
 	public TokenList scan(String source) {
 		if (source != null)
@@ -340,29 +325,35 @@ public class Scanner {
 		return errorToken("Unexpected character: '" + c + "'.");
 	}
 
-	private Token<Object> token(TokenType type) {
-		return new Token<>(type, ss.read(), null, ss.line());
-	}
+       private Token<Object> token(TokenType type) {
+               SourcePos pos = ss.pos();
+               return new Token<>(type, ss.read(), null, pos.line());
+       }
 
-	private Token<String> errorToken(String message) {
-		return new Token<>(T_ERROR, message, null, ss.line());
-	}
+       private Token<String> errorToken(String message) {
+               SourcePos pos = ss.pos();
+               return new Token<>(T_ERROR, message, null, pos.line());
+       }
 
-	private Token<Integer> intToken(TokenType type, String lexeme, Integer i) {
-		return new Token<>(type, lexeme, i, ss.line());
-	}
+       private Token<Integer> intToken(TokenType type, String lexeme, Integer i) {
+               SourcePos pos = ss.pos();
+               return new Token<>(type, lexeme, i, pos.line());
+       }
 
-	private Token<Float> floatToken(TokenType type, String lexeme, Float f) {
-		return new Token<>(type, lexeme, f, ss.line());
-	}
+       private Token<Float> floatToken(TokenType type, String lexeme, Float f) {
+               SourcePos pos = ss.pos();
+               return new Token<>(type, lexeme, f, pos.line());
+       }
 
-	private Token<String> stringToken(TokenType type, String literal) {
-		return new Token<>(type, ss.read(), literal, ss.line());
-	}
+       private Token<String> stringToken(TokenType type, String literal) {
+               SourcePos pos = ss.pos();
+               return new Token<>(type, ss.read(), literal, pos.line());
+       }
 
-	private Token<LPCType> typeToken(String lexeme) {
-		LPCType type = lpcTypeWords.get(lexeme);
+       private Token<LPCType> typeToken(String lexeme) {
+               LPCType type = lpcTypeWords.get(lexeme);
+               SourcePos pos = ss.pos();
 
-		return new Token<>(T_TYPE, lexeme, type, ss.line());
-	}
+               return new Token<>(T_TYPE, lexeme, type, pos.line());
+       }
 }

@@ -144,34 +144,26 @@ public class Compiler {
 //			mv.visitInsn(Opcodes.POP);
 	}
 
-	public void visit(ASTExprCallEfun expr) {
-		Efun efun = expr.efun();
-		ASTArguments args = expr.arguments();
+        public void visit(ASTExprCallEfun expr) {
+                Efun efun = expr.efun();
+                ASTArguments args = expr.arguments();
 
-		mv.visitLdcInsn(efun.symbol().name());
+                // Build descriptor based on argument and return types
+                StringBuilder descriptor = new StringBuilder("(");
+                for (ASTArgument arg : args.nodes()) {
+                        LPCType type = arg.expression().lpcType();
+                        descriptor.append(type == null ? "Ljava/lang/Object;" : type.jType().descriptor());
+                }
+                descriptor.append(")").append(efun.symbol().descriptor());
 
-		mv.visitMethodInsn(Opcodes.INVOKESTATIC, "io/github/protasm/lpc2j/efun/EfunRegistry", "lookup",
-				"(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;", false);
+                // Push arguments without boxing
+                for (ASTArgument arg : args.nodes()) {
+                        arg.expression().accept(this);
+                }
 
-		// Null-check to avoid null-pointer error
-		var ok = new org.objectweb.asm.Label();
-
-		mv.visitInsn(Opcodes.DUP);
-		mv.visitJumpInsn(Opcodes.IFNONNULL, ok);
-		mv.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
-		mv.visitInsn(Opcodes.DUP);
-		mv.visitLdcInsn("Unknown efun: '" + efun.symbol().name() + "'");
-		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/IllegalStateException", "<init>", "(Ljava/lang/String;)V",
-				false);
-		mv.visitInsn(Opcodes.ATHROW);
-		mv.visitLabel(ok);
-
-		// For non-static invocation, bundle arguments in an Object[] array
-		args.accept(this);
-
-		mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "io/github/protasm/lpc2j/efun/Efun", "invoke",
-				"([Ljava/lang/Object;)Ljava/lang/Object;", true);
-	}
+                String owner = efun.getClass().getName().replace('.', '/');
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, owner, "call", descriptor.toString(), false);
+        }
 
 	public void visit(ASTExprFieldAccess expr) {
 		ASTField field = expr.field();

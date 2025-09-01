@@ -18,6 +18,7 @@ class ScannableSource {
 
     ScannableSource(String source) {
         this.source = source;
+
         this.map = new LineMap("<input>", source);
         this.head = 0;
         this.tail = 0;
@@ -40,6 +41,7 @@ class ScannableSource {
             return false;
 
         head++;
+
         return true;
     }
 
@@ -61,6 +63,7 @@ class ScannableSource {
 
     boolean advanceTo(char ch) {
         while (!atEnd() && peek() != ch) head++;
+
         return !atEnd();
     }
 
@@ -75,6 +78,7 @@ class ScannableSource {
     String readTrimmed() {
         int start = Math.min(tail + 1, source.length());
         int end = Math.max(start, Math.min(head - 1, source.length()));
+
         return source.substring(start, end);
     }
 
@@ -82,4 +86,3 @@ class ScannableSource {
         return map.posAt(tail);
     }
 }
-

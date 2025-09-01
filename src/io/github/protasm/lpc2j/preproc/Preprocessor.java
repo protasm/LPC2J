@@ -87,7 +87,11 @@ public final class Preprocessor {
 
 		expandUnit(cur, out, new HashSet<>());
 
-		return new Result(out.toString());
+		String result = out.toString();
+
+		System.out.println(result); // dump fully preprocessed source
+
+		return new Result(result);
 	}
 
 	/* ========================= core expansion ========================== */

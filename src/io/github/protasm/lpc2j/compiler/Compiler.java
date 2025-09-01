@@ -131,10 +131,20 @@ public class Compiler {
 		ASTMethod method = expr.method();
 		ASTArguments args = expr.arguments();
 
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
+                // Load "this" reference
+                mv.visitVarInsn(Opcodes.ALOAD, 0);
 
-		// For non-static invocation, bundle arguments in an Object[] array
-		args.accept(this);
+                // Push each argument value individually on the stack.  The previous
+                // implementation packaged the arguments into an Object[] and passed
+                // that array to the method.  However, the invoked method expects
+                // its arguments directly on the operand stack according to its
+                // descriptor (e.g. an int for "(I)I").  Supplying an Object[]
+                // causes the verifier to see the wrong type, leading to a
+                // java.lang.VerifyError when the class is loaded.  Iterating over
+                // the argument list and visiting each expression ensures the stack
+                // matches the method descriptor.
+                for (ASTArgument arg : args.nodes())
+                        arg.expression().accept(this);
 
 		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.symbol().name(), method.descriptor(),
 				false);

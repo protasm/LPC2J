@@ -1,0 +1,2 @@
+int square(int n) { return n*n; }
+void create() { int r = square(7); return; }

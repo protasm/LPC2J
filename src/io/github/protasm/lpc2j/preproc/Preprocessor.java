@@ -85,7 +85,11 @@ public final class Preprocessor {
 		LineMap map = new LineMap(file, splice(text));
 		CharCursor cur = new CharCursor(map);
 
+		try {
 		expandUnit(cur, out, new HashSet<>());
+		} catch (PreprocessException e) {
+			System.out.println(e);
+		}
 
 		String result = out.toString();
 

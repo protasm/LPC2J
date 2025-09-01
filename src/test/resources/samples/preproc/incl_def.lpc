@@ -1,0 +1,5 @@
+#include "mathlib.h"
+
+#define PI 3.14159
+
+int circumference(int r) { return TWO * PI * r; }

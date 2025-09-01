@@ -48,6 +48,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -116,41 +117,59 @@ public class Scanner {
 		};
 	}
 
-       private void preprocess(String source, String sysInclPath, String quoteInclPath) {
-               IncludeResolver resolver = (includingFile, includePath, system) -> {
-                       Path base = Path.of(system ? sysInclPath : quoteInclPath);
-                       return Files.readString(base.resolve(includePath));
-               };
+        private void preprocess(String source, Path sourcePath, String sysInclPath, String quoteInclPath) {
+                IncludeResolver resolver = (includingFile, includePath, system) -> {
+                        if (!system && (includingFile != null)) {
+                                Path dir = includingFile.getParent();
+                                if (dir != null) {
+                                        Path candidate = dir.resolve(includePath);
+                                        if (Files.exists(candidate))
+                                                return Files.readString(candidate);
+                                }
+                        }
 
-               Preprocessor pp = new Preprocessor(resolver);
-               String processed = pp.preprocess(null, source).source;
-               ss = new ScannableSource(processed);
-       }
+                        Path base = Path.of(system ? sysInclPath : quoteInclPath);
+                        return Files.readString(base.resolve(includePath));
+                };
 
-	public TokenList scan(String source) {
-		if (source != null)
-			return scan(source, ".", ".");
+                Preprocessor pp = new Preprocessor(resolver);
+                String processed = pp.preprocess(sourcePath, source).source;
+                ss = new ScannableSource(processed);
+        }
 
-		return null;
-	}
+        public TokenList scan(String source) {
+                if (source != null)
+                        return scan(source, ".", ".", null);
 
-	public TokenList scan(String source, String sysInclPath, String quoteInclPath) {
-		preprocess(source, sysInclPath, quoteInclPath);
+                return null;
+        }
 
-		TokenList tokens = new TokenList();
-		Token<?> token;
+        public TokenList scan(String source, String sysInclPath, String quoteInclPath) {
+                return scan(source, sysInclPath, quoteInclPath, null);
+        }
 
-		do {
-			token = lexToken();
+        public TokenList scan(Path file) throws IOException {
+                String source = Files.readString(file);
+                return scan(source, file.getParent().toString(), file.getParent().toString(), file);
+        }
 
-			if (token != null)
-				tokens.add(token);
-		} while ((token == null) || (token.type() != T_EOF));
+        private TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
+                preprocess(source, sourceFile, sysInclPath, quoteInclPath);
 
-		return tokens;
-	}
+                TokenList tokens = new TokenList();
+                Token<?> token;
 
-	private Token<?> lexToken() {
+                do {
+                        token = lexToken();
+
+                        if (token != null)
+                                tokens.add(token);
+                } while ((token == null) || (token.type() != T_EOF));
+
+                return tokens;
+        }
+
+        private Token<?> lexToken() {
 		if (ss.atEnd())
 			return token(T_EOF);
 

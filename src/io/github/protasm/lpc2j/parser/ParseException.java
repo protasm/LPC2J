@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser;
 
-import io.github.protasm.lpc2j.scanner.Token;
+import io.github.protasm.lpc2j.token.Token;
 
 public class ParseException extends RuntimeException {
 	private static final long serialVersionUID = 1L;

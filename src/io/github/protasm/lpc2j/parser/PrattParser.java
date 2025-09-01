@@ -5,22 +5,22 @@ import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_EQUALIT
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_FACTOR;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_NONE;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_TERM;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FALSE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FLOAT_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INT_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LESS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SLASH;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STAR;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STRING_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_TRUE;
+import static io.github.protasm.lpc2j.token.TokenType.T_BANG;
+import static io.github.protasm.lpc2j.token.TokenType.T_BANG_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_FALSE;
+import static io.github.protasm.lpc2j.token.TokenType.T_FLOAT_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_GREATER;
+import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_LESS;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_SLASH;
+import static io.github.protasm.lpc2j.token.TokenType.T_STAR;
+import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,8 +32,8 @@ import io.github.protasm.lpc2j.parser.parselet.PrefixLiteral;
 import io.github.protasm.lpc2j.parser.parselet.PrefixNumber;
 import io.github.protasm.lpc2j.parser.parselet.PrefixString;
 import io.github.protasm.lpc2j.parser.parselet.PrefixUnaryOp;
-import io.github.protasm.lpc2j.scanner.Token;
-import io.github.protasm.lpc2j.scanner.TokenType;
+import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenType;
 
 public class PrattParser {
 	public static final class Precedence {
@@ -87,7 +87,7 @@ public class PrattParser {
 	}
 
 	public static ParseRule getRule(Token<?> token) {
-		ParseRule rule = tokenTypeToRule.get(token.tType());
+		ParseRule rule = tokenTypeToRule.get(token.type());
 
 		return (rule != null ? rule : new ParseRule(null, null, PREC_NONE));
 	}

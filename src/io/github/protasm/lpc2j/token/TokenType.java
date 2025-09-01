@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j.scanner;
+package io.github.protasm.lpc2j.token;
 
 import io.github.protasm.lpc2j.parser.type.LPCType;
 

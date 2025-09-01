@@ -4,13 +4,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
-import io.github.protasm.lpc2j.scanner.Tokens;
+import io.github.protasm.lpc2j.token.TokenList;
 
 public class FSSourceFile {
 	private final Path vPath;
 
 	private String source;
-	private Tokens tokens;
+	private TokenList tokens;
 	private ASTObject astObject;
 	private byte[] bytes;
 	private Object lpcObject;
@@ -63,11 +63,11 @@ public class FSSourceFile {
 		this.source = source;
 	}
 
-	public Tokens tokens() {
+	public TokenList tokens() {
 		return tokens;
 	}
 
-	public void setTokens(Tokens tokens) {
+	public void setTokens(TokenList tokens) {
 		this.tokens = tokens;
 	}
 

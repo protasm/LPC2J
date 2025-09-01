@@ -16,7 +16,7 @@ import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.PrattParser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.scanner.Token;
+import io.github.protasm.lpc2j.token.Token;
 
 public class InfixBinaryOp implements InfixParselet {
 	@Override
@@ -28,7 +28,7 @@ public class InfixBinaryOp implements InfixParselet {
 		// evaluate and load RHS operand
 		ASTExpression right = parser.parsePrecedence(rule.precedence() + 1);
 
-		switch (previous.tType()) {
+		switch (previous.type()) {
 		case T_PLUS:
 			return new ASTExprOpBinary(line, left, right, BOP_ADD);
 		case T_MINUS:

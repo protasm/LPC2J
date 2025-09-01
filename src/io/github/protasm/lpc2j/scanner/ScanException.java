@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j.scanner;
 
+import io.github.protasm.lpc2j.token.Token;
+
 public class ScanException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
 	private final int line;

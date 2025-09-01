@@ -1,4 +1,4 @@
-package io.github.protasm.lpc2j.scanner;
+package io.github.protasm.lpc2j.token;
 
 public class Token<T> {
 	private final TokenType tType;
@@ -25,7 +25,7 @@ public class Token<T> {
 		this.line = line;
 	}
 
-	public TokenType tType() {
+	public TokenType type() {
 		return tType;
 	}
 

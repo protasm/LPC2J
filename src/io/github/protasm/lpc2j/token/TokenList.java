@@ -1,6 +1,6 @@
-package io.github.protasm.lpc2j.scanner;
+package io.github.protasm.lpc2j.token;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EOF;
+import static io.github.protasm.lpc2j.token.TokenType.T_EOF;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,11 +8,11 @@ import java.util.StringJoiner;
 
 import io.github.protasm.lpc2j.parser.ParseException;
 
-public class Tokens {
+public class TokenList {
 	private final List<Token<?>> tokens;
 	private int currIdx = 0;
 
-	public Tokens() {
+	public TokenList() {
 		this.tokens = new ArrayList<>();
 	}
 
@@ -75,7 +75,7 @@ public class Tokens {
 	}
 
 	public boolean check(TokenType tType) {
-		return current().tType() == tType;
+		return current().type() == tType;
 	}
 
 	public boolean match(TokenType tType) {
@@ -89,7 +89,7 @@ public class Tokens {
 	}
 
 	public boolean isAtEnd() {
-		return (currIdx >= tokens.size()) || (current().tType() == T_EOF);
+		return (currIdx >= tokens.size()) || (current().type() == T_EOF);
 	}
 
 	@Override

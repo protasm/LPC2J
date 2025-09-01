@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
 
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;

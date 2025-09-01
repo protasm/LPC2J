@@ -1,52 +1,52 @@
 package io.github.protasm.lpc2j.scanner;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_BANG_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_COLON;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_COMMA;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_DBL_AMP;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_DBL_PIPE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_ELSE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EOF;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_ERROR;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FALSE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FLOAT_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_FOR;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_GREATER_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_IF;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INHERIT;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INT_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACKET;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LESS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LESS_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_MINUS_MINUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_NIL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_PLUS;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RETURN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_ARROW;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACKET;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_PAREN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SEMICOLON;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SLASH;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SLASH_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STAR;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STAR_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STRING_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SUPER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_TRUE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_WHILE;
+import static io.github.protasm.lpc2j.token.TokenType.T_BANG;
+import static io.github.protasm.lpc2j.token.TokenType.T_BANG_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_COLON;
+import static io.github.protasm.lpc2j.token.TokenType.T_COMMA;
+import static io.github.protasm.lpc2j.token.TokenType.T_DBL_AMP;
+import static io.github.protasm.lpc2j.token.TokenType.T_DBL_PIPE;
+import static io.github.protasm.lpc2j.token.TokenType.T_ELSE;
+import static io.github.protasm.lpc2j.token.TokenType.T_EOF;
+import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_ERROR;
+import static io.github.protasm.lpc2j.token.TokenType.T_FALSE;
+import static io.github.protasm.lpc2j.token.TokenType.T_FLOAT_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_FOR;
+import static io.github.protasm.lpc2j.token.TokenType.T_GREATER;
+import static io.github.protasm.lpc2j.token.TokenType.T_GREATER_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.token.TokenType.T_IF;
+import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
+import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACKET;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_LESS;
+import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_MINUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_NIL;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_PLUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
+import static io.github.protasm.lpc2j.token.TokenType.T_SLASH;
+import static io.github.protasm.lpc2j.token.TokenType.T_SLASH_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_STAR;
+import static io.github.protasm.lpc2j.token.TokenType.T_STAR_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
+import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
+import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
+import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,11 +54,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.anarres.cpp.CppReader;
-import org.anarres.cpp.Preprocessor;
-import org.anarres.cpp.StringLexerSource;
-
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenList;
+import io.github.protasm.lpc2j.token.TokenType;
 
 public class Scanner {
 	private static final char EOL = '\n';
@@ -143,16 +142,17 @@ public class Scanner {
 		}
 	}
 
-	public Tokens scan(String source) {
+	public TokenList scan(String source) {
 		if (source != null)
 			return scan(source, ".", ".");
+
 		return null;
 	}
 
-	public Tokens scan(String source, String sysInclPath, String quoteInclPath) {
+	public TokenList scan(String source, String sysInclPath, String quoteInclPath) {
 		preprocess(source, sysInclPath, quoteInclPath);
 
-		Tokens tokens = new Tokens();
+		TokenList tokens = new TokenList();
 		Token<?> token;
 
 		do {
@@ -160,7 +160,7 @@ public class Scanner {
 
 			if (token != null)
 				tokens.add(token);
-		} while ((token == null) || (token.tType() != T_EOF));
+		} while ((token == null) || (token.type() != T_EOF));
 
 		return tokens;
 	}

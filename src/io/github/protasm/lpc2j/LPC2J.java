@@ -11,7 +11,7 @@ import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Scanner;
-import io.github.protasm.lpc2j.scanner.Tokens;
+import io.github.protasm.lpc2j.token.TokenList;
 
 public class LPC2J {
 	public static void main(String... args) {
@@ -24,9 +24,8 @@ public class LPC2J {
 		if (!Files.isRegularFile(in))
 			die(2, "Not found: " + in);
 
-		if (!in.getFileName().toString().endsWith(".lpc")) {
+		if (!in.getFileName().toString().endsWith(".lpc"))
 			die(2, "Expected a .lpc file: " + in);
-		}
 
 		try {
 			FSSourceFile sf = compile(in.toString(), basePath);
@@ -103,7 +102,7 @@ public class LPC2J {
 				throw new IllegalArgumentException();
 
 			Scanner scanner = new Scanner();
-			Tokens tokens = scanner.scan(sf.source());
+			TokenList tokens = scanner.scan(sf.source());
 
 			sf.setTokens(tokens);
 

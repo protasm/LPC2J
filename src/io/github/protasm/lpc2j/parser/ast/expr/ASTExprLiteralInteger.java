@@ -4,7 +4,7 @@ import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
-import io.github.protasm.lpc2j.scanner.Token;
+import io.github.protasm.lpc2j.token.Token;
 
 public class ASTExprLiteralInteger extends ASTExpression {
 	private final Integer value;

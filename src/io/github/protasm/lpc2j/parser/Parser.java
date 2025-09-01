@@ -1,25 +1,24 @@
 package io.github.protasm.lpc2j.parser;
 
-import static io.github.protasm.lpc2j.scanner.TokenType.T_COMMA;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_ELSE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_IDENTIFIER;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_IF;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_INHERIT;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_BRACE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_LEFT_PAREN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_PLUS_EQUAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RETURN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_BRACE;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_RIGHT_PAREN;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_SEMICOLON;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_STRING_LITERAL;
-import static io.github.protasm.lpc2j.scanner.TokenType.T_TYPE;
+import static io.github.protasm.lpc2j.token.TokenType.T_COMMA;
+import static io.github.protasm.lpc2j.token.TokenType.T_ELSE;
+import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.token.TokenType.T_IF;
+import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
+import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
@@ -40,18 +39,18 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
-import io.github.protasm.lpc2j.scanner.Token;
-import io.github.protasm.lpc2j.scanner.Tokens;
+import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenList;
 
 public class Parser {
-	private Tokens tokens;
+	private TokenList tokens;
 	private ASTObject currObj;
 	private Locals locals;
 
 	public Parser() {
 	}
 
-	public Tokens tokens() {
+	public TokenList tokens() {
 		return this.tokens;
 	}
 
@@ -67,7 +66,7 @@ public class Parser {
 		return tokens.current().line();
 	}
 
-	public ASTObject parse(String objName, Tokens tokens) {
+	public ASTObject parse(String objName, TokenList tokens) {
 		if (tokens == null)
 			return null;
 
@@ -76,8 +75,6 @@ public class Parser {
 		currObj = new ASTObject(0, objName);
 
 		declarations(); // pass 1
-
-		tokens.reset();
 
 		definitions(); // pass 2
 
@@ -94,6 +91,8 @@ public class Parser {
 	}
 
 	private void definitions() {
+		tokens.reset();
+
 		currObj.setParentName(inherit());
 
 		while (!tokens.isAtEnd())

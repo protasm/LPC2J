@@ -8,7 +8,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 public class PrefixLiteral implements PrefixParselet {
 	@Override
 	public ASTExpression parse(Parser parser, boolean canAssign) {
-		switch (parser.tokens().previous().tType()) {
+		switch (parser.tokens().previous().type()) {
 		case T_TRUE:
 			return new ASTExprLiteralTrue(parser.currLine());
 		case T_FALSE:

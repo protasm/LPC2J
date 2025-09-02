@@ -131,23 +131,22 @@ public class Compiler {
 		ASTMethod method = expr.method();
 		ASTArguments args = expr.arguments();
 
-                // Load "this" reference
-                mv.visitVarInsn(Opcodes.ALOAD, 0);
+        // Load "this" reference
+        mv.visitVarInsn(Opcodes.ALOAD, 0);
 
-                // Push each argument value individually on the stack.  The previous
-                // implementation packaged the arguments into an Object[] and passed
-                // that array to the method.  However, the invoked method expects
-                // its arguments directly on the operand stack according to its
-                // descriptor (e.g. an int for "(I)I").  Supplying an Object[]
-                // causes the verifier to see the wrong type, leading to a
-                // java.lang.VerifyError when the class is loaded.  Iterating over
-                // the argument list and visiting each expression ensures the stack
-                // matches the method descriptor.
-                for (ASTArgument arg : args.nodes())
-                        arg.expression().accept(this);
+        // Push each argument value individually on the stack.  The invoked
+        // method expects its arguments directly on the operand stack
+        // according to its descriptor (e.g. an int for "(I)I").
+        for (ASTArgument arg : args.nodes())
+                arg.expression().accept(this);
 
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, method.ownerName(), method.symbol().name(), method.descriptor(),
-				false);
+		mv.visitMethodInsn(
+			Opcodes.INVOKEVIRTUAL,
+			method.ownerName(),
+			method.symbol().name(),
+			method.descriptor(),
+			false
+		);
 
 		// Pop if the method returns a value but it's unused
 //		if (!method.lpcReturnType().equals("V"))
@@ -160,8 +159,13 @@ public class Compiler {
 
 		mv.visitLdcInsn(efun.symbol().name());
 
-		mv.visitMethodInsn(Opcodes.INVOKESTATIC, "io/github/protasm/lpc2j/efun/EfunRegistry", "lookup",
-				"(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;", false);
+		mv.visitMethodInsn(
+			Opcodes.INVOKESTATIC,
+			"io/github/protasm/lpc2j/efun/EfunRegistry",
+			"lookup",
+			"(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;",
+			false
+		);
 
 		// Null-check to avoid null-pointer error
 		var ok = new org.objectweb.asm.Label();
@@ -171,16 +175,27 @@ public class Compiler {
 		mv.visitTypeInsn(Opcodes.NEW, "java/lang/IllegalStateException");
 		mv.visitInsn(Opcodes.DUP);
 		mv.visitLdcInsn("Unknown efun: '" + efun.symbol().name() + "'");
-		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/IllegalStateException", "<init>", "(Ljava/lang/String;)V",
-				false);
+
+		mv.visitMethodInsn(
+			Opcodes.INVOKESPECIAL, 
+			"java/lang/IllegalStateException", 
+			"<init>", 
+			"(Ljava/lang/String;)V",
+			false
+		);
+
 		mv.visitInsn(Opcodes.ATHROW);
 		mv.visitLabel(ok);
 
 		// For non-static invocation, bundle arguments in an Object[] array
 		args.accept(this);
 
-		mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "io/github/protasm/lpc2j/efun/Efun", "invoke",
-				"([Ljava/lang/Object;)Ljava/lang/Object;", true);
+		mv.visitMethodInsn(
+			Opcodes.INVOKEINTERFACE,
+			"io/github/protasm/lpc2j/efun/Efun", "invoke",
+			"([Ljava/lang/Object;)Ljava/lang/Object;",
+			true
+		);
 	}
 
 	public void visit(ASTExprFieldAccess expr) {

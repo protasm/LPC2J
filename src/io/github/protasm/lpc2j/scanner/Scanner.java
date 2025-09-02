@@ -118,45 +118,50 @@ public class Scanner {
 	}
 
         private void preprocess(String source, Path sourcePath, String sysInclPath, String quoteInclPath) {
-                IncludeResolver resolver = (includingFile, includePath, system) -> {
-                        if (!system && (includingFile != null)) {
-                                Path dir = includingFile.getParent();
-                                if (dir != null) {
-                                        Path candidate = dir.resolve(includePath);
-                                        if (Files.exists(candidate))
-                                                return Files.readString(candidate);
-                                }
-                        }
+            IncludeResolver resolver = (includingFile, includePath, system) -> {
+                if (!system && (includingFile != null)) {
+                    Path dir = includingFile.getParent();
 
-                        Path base = Path.of(system ? sysInclPath : quoteInclPath);
-                        return Files.readString(base.resolve(includePath));
-                };
+                    if (dir != null) {
+                        Path candidate = dir.resolve(includePath);
 
-                Preprocessor pp = new Preprocessor(resolver);
-                String processed = pp.preprocess(sourcePath, source).source;
-                ss = new ScannableSource(processed);
+                        if (Files.exists(candidate))
+                            return Files.readString(candidate);
+                    }
+                }
+
+                Path base = Path.of(system ? sysInclPath : quoteInclPath);
+
+                return Files.readString(base.resolve(includePath));
+            };
+
+            Preprocessor pp = new Preprocessor(resolver);
+            String processed = pp.preprocess(sourcePath, source).source;
+
+            ss = new ScannableSource(processed);
         }
 
         public TokenList scan(String source) {
-                if (source != null)
-                        return scan(source, ".", ".", null);
+            if (source != null)
+                return scan(source, ".", ".", null);
 
-                return null;
+            return null;
         }
 
         public TokenList scan(String source, String sysInclPath, String quoteInclPath) {
-                return scan(source, sysInclPath, quoteInclPath, null);
+            return scan(source, sysInclPath, quoteInclPath, null);
         }
 
         public TokenList scan(Path file) throws IOException {
-                String source = Files.readString(file);
-                return scan(source, file.getParent().toString(), file.getParent().toString(), file);
+            String source = Files.readString(file);
+
+            return scan(source, file.getParent().toString(), file.getParent().toString(), file);
         }
 
        /**
         * Scan an LPC source string, optionally pretending it resides at
         * {@code sourceFile}.
-        * <p>
+        * 
         * Supplying a non {@code null} {@code sourceFile} allows relative
         * {@code #include "..."} directives to resolve against that file's
         * parent directory. This is handy when the source code originates from an
@@ -171,23 +176,24 @@ public class Scanner {
         * @return list of tokens produced by scanning the source
         */
        public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
-               preprocess(source, sourceFile, sysInclPath, quoteInclPath);
+           preprocess(source, sourceFile, sysInclPath, quoteInclPath);
 
-               TokenList tokens = new TokenList();
-               Token<?> token;
+           TokenList tokens = new TokenList();
+           Token<?> token;
 
-               do {
-                       token = lexToken();
+           do {
+               token = lexToken();
 
-                       if (token != null)
-                               tokens.add(token);
-               } while ((token == null) || (token.type() != T_EOF));
+               if (token != null)
+                   tokens.add(token);
+           } while ((token == null) || (token.type() != T_EOF));
 
-               return tokens;
+           return tokens;
        }
 
         private Token<?> lexToken() {
-		if (ss.atEnd())
+
+    	if (ss.atEnd())
 			return token(T_EOF);
 
 		ss.syncTailHead();

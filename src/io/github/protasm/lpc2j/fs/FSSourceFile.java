@@ -49,10 +49,6 @@ public class FSSourceFile {
 			return Paths.get(parent.toString(), prefix() + ".class");
 		else
 			return Paths.get(prefix() + ".class");
-//	return Paths
-//		.get(
-//			vPath.getParent().toString(),
-//			prefix() + ".class");
 	}
 
 	public String source() {

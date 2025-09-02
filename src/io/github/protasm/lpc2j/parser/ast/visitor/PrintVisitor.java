@@ -111,7 +111,7 @@ public class PrintVisitor {
 
 	public void visit(ASTExprInvokeLocal expr) {
 		doOutput(String.format("%s([%s] slot=%d, methodName=%s)", expr.className(), expr.lpcType(), expr.slot(),
-				expr.methodName()));
+			expr.methodName()));
 
 		indentLvl++;
 

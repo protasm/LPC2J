@@ -1,47 +1,82 @@
 package io.github.protasm.lpc2j.sourcepos;
 
-/** Stateless text + stateful index; safe peeking; maintains line/column via LineMap. */
+/**
+ * Stateless text + stateful index; safe peeking; maintains line/column via
+ * LineMap.
+ */
 public final class CharCursor {
-    private final LineMap map;
-    private int i = 0;
+	private final LineMap map;
+	private int i = 0;
 
-    public CharCursor(LineMap map) { this.map = map; }
+	public CharCursor(LineMap map) {
+		this.map = map;
+	}
 
-    public int index() { return i; }
-    public boolean end() { return i >= map.length(); }
-    public char peek() { return map.charAt(i); }
-    public char peekNext() { return map.charAt(i + 1); }
+	public int index() {
+		return i;
+	}
 
-    public int length() { return map.length(); }
-    public boolean canPeekNext() { return (index() + 1) < length(); }
+	public boolean end() {
+		return i >= map.length();
+	}
 
-    /** Advance one char and return it. */
-    public char advance() {
-        if (end()) return '\0'; // avoid calling peek()/charAt() at EOF
+	public char peek() {
+		return map.charAt(i);
+	}
 
-        char c = map.charAt(i);
+	public char peekNext() {
+		return map.charAt(i + 1);
+	}
 
-        i++;
+	public int length() {
+		return map.length();
+	}
 
-        return c;
-    }
+	public boolean canPeekNext() {
+		return (index() + 1) < length();
+	}
 
-    /** Advance while predicate holds; returns chars consumed. */
-    public int advanceWhile(java.util.function.IntPredicate pred) {
-        int start = i;
+	/** Advance one char and return it. */
+	public char advance() {
+		if (end())
+			return '\0'; // avoid calling peek()/charAt() at EOF
 
-        while (!end() && pred.test(map.charAt(i))) i++;
+		char c = map.charAt(i);
 
-        return i - start;
-    }
+		i++;
 
-    public void rewind(int to) { i = Math.max(0, Math.min(to, map.length())); }
+		return c;
+	}
 
-    /** Current 1-based source position. */
-    public SourcePos pos() { return map.posAt(i); }
+	/** Advance while predicate holds; returns chars consumed. */
+	public int advanceWhile(java.util.function.IntPredicate pred) {
+		int start = i;
 
-    /** Helper/convenience methods. */
-    public String file() { return pos().file(); }
-    public int line() { return pos().line(); }
-    public int column() { return pos().column(); }
+		while (!end() && pred.test(map.charAt(i)))
+			i++;
+
+		return i - start;
+	}
+
+	public void rewind(int to) {
+		i = Math.max(0, Math.min(to, map.length()));
+	}
+
+	/** Current 1-based source position. */
+	public SourcePos pos() {
+		return map.posAt(i);
+	}
+
+	/** Helper/convenience methods. */
+	public String file() {
+		return pos().file();
+	}
+
+	public int line() {
+		return pos().line();
+	}
+
+	public int column() {
+		return pos().column();
+	}
 }

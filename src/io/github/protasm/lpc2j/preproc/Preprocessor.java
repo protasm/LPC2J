@@ -86,7 +86,7 @@ public final class Preprocessor {
 		CharCursor cur = new CharCursor(map);
 
 		try {
-		expandUnit(cur, out, new HashSet<>());
+			expandUnit(cur, out, new HashSet<>());
 		} catch (PreprocessException e) {
 			System.out.println(e);
 		}
@@ -102,31 +102,30 @@ public final class Preprocessor {
 
 	private void expandUnit(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
 		while (!cc.end()) {
-		    // buffer leading horizontal ws (not newline)
-		    StringBuilder bolWs = new StringBuilder();
-		    while (!cc.end()) {
-		        char p = cc.peek();
+			// buffer leading horizontal ws (not newline)
+			StringBuilder bolWs = new StringBuilder();
+			while (!cc.end()) {
+				char p = cc.peek();
 
-		        if (p == ' ' || p == '\t' || p == '\r' || p == '\f') {
-		            cc.advance();
+				if ((p == ' ') || (p == '\t') || (p == '\r') || (p == '\f')) {
+					cc.advance();
 
-		            bolWs.append(p);
-		        } else {
-		            break;
-		        }
-		    }
+					bolWs.append(p);
+				} else
+					break;
+			}
 
-		    if (!cc.end() && cc.peek() == '#') {
-		        // directive: ignore buffered ws per preproc rules
-		        handleDirective(cc, out, includeGuard);
+			if (!cc.end() && (cc.peek() == '#')) {
+				// directive: ignore buffered ws per preproc rules
+				handleDirective(cc, out, includeGuard);
 
-		        continue;
-		    }
+				continue;
+			}
 
-		    // not a directive: emit the ws we consumed and expand the rest of the line
-		    out.append(bolWs);
+			// not a directive: emit the ws we consumed and expand the rest of the line
+			out.append(bolWs);
 
-		    copyLineWithExpansion(cc, out);
+			copyLineWithExpansion(cc, out);
 		}
 	}
 
@@ -193,7 +192,7 @@ public final class Preprocessor {
 			// Preprocess included text recursively
 			String includedFile = path.toString();
 			CharCursor child = new CharCursor(new LineMap(includedFile, splice(fileText)));
-			
+
 			expandUnit(child, out, includeGuard);
 		} else
 			throw error("expected \"path\" or <path> after #include", cc, cc.line());
@@ -357,7 +356,7 @@ public final class Preprocessor {
 		while (!cc.end()) {
 			char c = cc.peek();
 
-			if (c == ' ' || c == '\t' || c == '\r' || c == '\f')
+			if ((c == ' ') || (c == '\t') || (c == '\r') || (c == '\f'))
 				cc.advance();
 			else
 				break;
@@ -376,19 +375,19 @@ public final class Preprocessor {
 				String name = readIdent(cc);
 
 				if ("if".equals(name) || "ifdef".equals(name) || "ifndef".equals(name)) {
-				    // nested: skip it fully
-				    skipRestOfLine(cc, new StringBuilder());
+					// nested: skip it fully
+					skipRestOfLine(cc, new StringBuilder());
 
-				    skipConditionalBlock(cc);
+					skipConditionalBlock(cc);
 
-				    continue;
+					continue;
 				}
 
 				if ("elif".equals(name) || "else".equals(name) || "endif".equals(name)) {
-				    // Rewind so caller can process branch switch
-				    cc.rewind(mark);
+					// Rewind so caller can process branch switch
+					cc.rewind(mark);
 
-				    return;
+					return;
 				}
 
 				// Other directive: skip its line
@@ -436,7 +435,7 @@ public final class Preprocessor {
 				break;
 			}
 
-			if (c == '/' && s.canPeekNext() && s.peekNext() == '/') { // // comment
+			if ((c == '/') && s.canPeekNext() && (s.peekNext() == '/')) { // // comment
 				while (!s.end() && (s.advance() != '\n')) {
 					// just advance
 				}
@@ -444,12 +443,12 @@ public final class Preprocessor {
 				break;
 			}
 
-			if (c == '/' && s.canPeekNext() && s.peekNext() == '*') { // /* */ comment
+			if ((c == '/') && s.canPeekNext() && (s.peekNext() == '*')) { // /* */ comment
 				s.advance();
 				s.advance();
 
 				while (!s.end()) {
-					if (s.peek() == '*' && s.canPeekNext() && s.peekNext() == '/') {
+					if ((s.peek() == '*') && s.canPeekNext() && (s.peekNext() == '/')) {
 						s.advance();
 						s.advance();
 
@@ -635,7 +634,7 @@ public final class Preprocessor {
 					if (m.params != null)
 						for (int pi = 0; pi < m.params.size(); pi++) {
 							List<PPToken> val = (pi < actuals.size()) ? actuals.get(pi) : List.of();
-							
+
 							paramMap.put(m.params.get(pi), val);
 						}
 
@@ -795,9 +794,9 @@ public final class Preprocessor {
 	}
 
 	private static boolean isStartOfDirective(CharCursor cc) {
-	    // Minimal: treat any '#' at current cursor as a directive start.
-	    // (If you want to enforce BOL/leading-ws-only later, we can refine this.)
-	    return !cc.end() && cc.peek() == '#';
+		// Minimal: treat any '#' at current cursor as a directive start.
+		// (If you want to enforce BOL/leading-ws-only later, we can refine this.)
+		return !cc.end() && (cc.peek() == '#');
 	}
 
 	/** Handle backslash-newline line splicing up-front. */

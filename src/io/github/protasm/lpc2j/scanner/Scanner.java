@@ -48,13 +48,11 @@ import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.type.LPCType;
-import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
@@ -116,35 +114,14 @@ public class Scanner {
 		};
 	}
 
-	private void preprocess(String source, Path sourcePath, String sysInclPath, String quoteInclPath) {
-		IncludeResolver resolver = (includingFile, includePath, system) -> {
-			if (!system && (includingFile != null)) {
-				Path dir = includingFile.getParent();
+        public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
+                String processed = Preprocessor
+                                .preprocess(sourceFile, source, sysInclPath, quoteInclPath).source;
 
-				if (dir != null) {
-					Path candidate = dir.resolve(includePath);
+                ss = new ScannableSource(processed);
 
-					if (Files.exists(candidate))
-						return Files.readString(candidate);
-				}
-			}
-
-			Path base = Path.of(system ? sysInclPath : quoteInclPath);
-
-			return Files.readString(base.resolve(includePath));
-		};
-
-		Preprocessor pp = new Preprocessor(resolver);
-		String processed = pp.preprocess(sourcePath, source).source;
-
-		ss = new ScannableSource(processed);
-	}
-
-	public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
-		preprocess(source, sourceFile, sysInclPath, quoteInclPath);
-
-		TokenList tokens = new TokenList();
-		Token<?> token;
+                TokenList tokens = new TokenList();
+                Token<?> token;
 
 		do {
 			token = lexToken();

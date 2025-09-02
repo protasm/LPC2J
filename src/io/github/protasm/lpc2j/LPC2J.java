@@ -101,8 +101,12 @@ public class LPC2J {
 			if (!success)
 				throw new IllegalArgumentException();
 
-			Scanner scanner = new Scanner();
-			TokenList tokens = scanner.scan(sf.source());
+                        Scanner scanner = new Scanner();
+                        Path absResolved = basePath.basePath().resolve(resolved);
+                        TokenList tokens = scanner.scan(sf.source(),
+                                        basePath.basePath().toString(),
+                                        absResolved.getParent().toString(),
+                                        absResolved);
 
 			sf.setTokens(tokens);
 

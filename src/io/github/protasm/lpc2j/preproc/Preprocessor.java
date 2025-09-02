@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.preproc;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,17 +68,39 @@ public final class Preprocessor {
 		}
 	}
 
-	private final IncludeResolver resolver;
-	private final Map<String, Macro> macros = new HashMap<>();
+        private final IncludeResolver resolver;
+        private final Map<String, Macro> macros = new HashMap<>();
 
-	public Preprocessor(IncludeResolver resolver) {
-		this.resolver = Objects.requireNonNull(resolver);
+        public Preprocessor(IncludeResolver resolver) {
+                this.resolver = Objects.requireNonNull(resolver);
 
 		// predefineds you may want:
 		defineObject("__LPC__", "1");
-	}
+        }
 
-	/* ========================= public API ========================== */
+        /* ========================= public API ========================== */
+
+        public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
+                IncludeResolver resolver = (includingFile, includePath, system) -> {
+                        if (!system && (includingFile != null)) {
+                                Path dir = includingFile.getParent();
+
+                                if (dir != null) {
+                                        Path candidate = dir.resolve(includePath);
+
+                                        if (Files.exists(candidate))
+                                                return Files.readString(candidate);
+                                }
+                        }
+
+                        Path base = Path.of(system ? sysInclPath : quoteInclPath);
+
+                        return Files.readString(base.resolve(includePath));
+                };
+
+                Preprocessor pp = new Preprocessor(resolver);
+                return pp.preprocess(sourcePath, source);
+        }
 
 	public Result preprocess(Path path, String text) {
 		StringBuilder out = new StringBuilder();

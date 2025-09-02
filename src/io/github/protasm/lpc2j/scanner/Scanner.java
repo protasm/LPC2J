@@ -153,21 +153,38 @@ public class Scanner {
                 return scan(source, file.getParent().toString(), file.getParent().toString(), file);
         }
 
-        private TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
-                preprocess(source, sourceFile, sysInclPath, quoteInclPath);
+       /**
+        * Scan an LPC source string, optionally pretending it resides at
+        * {@code sourceFile}.
+        * <p>
+        * Supplying a non {@code null} {@code sourceFile} allows relative
+        * {@code #include "..."} directives to resolve against that file's
+        * parent directory. This is handy when the source code originates from an
+        * in-memory string rather than an actual file on disk.
+        *
+        * @param source        LPC source text
+        * @param sysInclPath   base directory for {@code <...>} includes
+        * @param quoteInclPath base directory for {@code "..."} includes when
+        *                      {@code sourceFile} lacks a parent
+        * @param sourceFile    absolute or synthetic path of the source, or
+        *                      {@code null}
+        * @return list of tokens produced by scanning the source
+        */
+       public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
+               preprocess(source, sourceFile, sysInclPath, quoteInclPath);
 
-                TokenList tokens = new TokenList();
-                Token<?> token;
+               TokenList tokens = new TokenList();
+               Token<?> token;
 
-                do {
-                        token = lexToken();
+               do {
+                       token = lexToken();
 
-                        if (token != null)
-                                tokens.add(token);
-                } while ((token == null) || (token.type() != T_EOF));
+                       if (token != null)
+                               tokens.add(token);
+               } while ((token == null) || (token.type() != T_EOF));
 
-                return tokens;
-        }
+               return tokens;
+       }
 
         private Token<?> lexToken() {
 		if (ss.atEnd())

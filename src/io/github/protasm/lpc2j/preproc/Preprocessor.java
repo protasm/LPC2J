@@ -68,44 +68,45 @@ public final class Preprocessor {
 		}
 	}
 
-        private final IncludeResolver resolver;
-        private final Map<String, Macro> macros = new HashMap<>();
+	private final IncludeResolver resolver;
+	private final Map<String, Macro> macros = new HashMap<>();
 
-        public Preprocessor(IncludeResolver resolver) {
-                this.resolver = Objects.requireNonNull(resolver);
+	public Preprocessor(IncludeResolver resolver) {
+		this.resolver = Objects.requireNonNull(resolver);
 
 		// predefineds you may want:
 		defineObject("__LPC__", "1");
-        }
+	}
 
-        /* ========================= public API ========================== */
+	/* ========================= public API ========================== */
 
-        public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
-                IncludeResolver resolver = (includingFile, includePath, system) -> {
-                        if (!system && (includingFile != null)) {
-                                Path dir = includingFile.getParent();
+	public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
+		IncludeResolver resolver = (includingFile, includePath, system) -> {
+			if (!system && (includingFile != null)) {
+				Path dir = includingFile.getParent();
 
-                                if (dir != null) {
-                                        Path candidate = dir.resolve(includePath);
+				if (dir != null) {
+					Path candidate = dir.resolve(includePath);
 
-                                        if (Files.exists(candidate))
-                                                return Files.readString(candidate);
-                                }
-                        }
+					if (Files.exists(candidate))
+						return Files.readString(candidate);
+				}
+			}
 
-                        Path base = Path.of(system ? sysInclPath : quoteInclPath);
+			Path base = Path.of(system ? sysInclPath : quoteInclPath);
 
-                        return Files.readString(base.resolve(includePath));
-                };
+			return Files.readString(base.resolve(includePath));
+		};
 
-                Preprocessor pp = new Preprocessor(resolver);
-                return pp.preprocess(sourcePath, source);
-        }
+		Preprocessor pp = new Preprocessor(resolver);
 
-	public Result preprocess(Path path, String text) {
+		return pp.preprocess(sourcePath, source);
+	}
+
+	public Result preprocess(Path sourcePath, String source) {
 		StringBuilder out = new StringBuilder();
-		String file = (path == null) ? "<input>" : path.toString();
-		LineMap map = new LineMap(file, splice(text));
+		String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
+		LineMap map = new LineMap(file, splice(source));
 		CharCursor cur = new CharCursor(map);
 
 		try {
@@ -116,7 +117,7 @@ public final class Preprocessor {
 
 		String result = out.toString();
 
-		System.out.println(result); // dump fully preprocessed source
+//		System.out.println(result); // dump fully preprocessed source
 
 		return new Result(result);
 	}
@@ -207,7 +208,7 @@ public final class Preprocessor {
 			String fileText;
 
 			try {
-				fileText = resolver.resolve(Path.of(cc.file()), path.toString(), system);
+				fileText = resolver.resolve(Path.of(cc.fileName()), path.toString(), system);
 			} catch (IOException e) {
 				throw error("cannot include '" + path + "': " + e.getMessage(), cc, cc.line());
 			}
@@ -792,7 +793,7 @@ public final class Preprocessor {
 	/* ========================= utils ========================== */
 
 	private PreprocessException error(String msg, CharCursor cc, int atLine) {
-		return new PreprocessException(msg, cc.file(), atLine);
+		return new PreprocessException(msg, cc.fileName(), atLine);
 	}
 
 	private String readIdent(CharCursor s) {

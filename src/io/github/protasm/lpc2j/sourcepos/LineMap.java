@@ -2,17 +2,18 @@ package io.github.protasm.lpc2j.sourcepos;
 
 /** Fast line lookup by maintaining offsets of line starts. */
 public final class LineMap {
-	private final String file;
-	private final CharSequence text;
+	private final String fileName;
+	private final CharSequence source;
 	private final int[] lineStarts; // lineStarts[i] = offset of line (i+1)
 
-	public LineMap(String file, CharSequence text) {
-		if ((file == null) || (text == null))
+	public LineMap(String sourceFileName, CharSequence source) {
+		if ((sourceFileName == null) || (source == null))
 			throw new IllegalArgumentException();
 
-		this.file = file;
-		this.text = text;
-		this.lineStarts = buildLineStarts(text);
+		this.fileName = sourceFileName;
+		this.source = source;
+
+		this.lineStarts = buildLineStarts(source);
 	}
 
 	private static int[] buildLineStarts(CharSequence s) {
@@ -34,20 +35,18 @@ public final class LineMap {
 		return starts;
 	}
 
-	public int length() {
-		return text.length();
+	public int sourceLength() {
+		return source.length();
 	}
 
 	public char charAt(int i) {
-		return ((i >= 0) && (i < text.length())) ? text.charAt(i) : '\0';
+		return ((i >= 0) && (i < source.length())) ? source.charAt(i) : '\0';
 	}
 
 	public SourcePos posAt(int offset) {
-		if (offset < 0)
-			offset = 0;
+		if (offset < 0) offset = 0;
 
-		if (offset > text.length())
-			offset = text.length();
+		if (offset > source.length()) offset = source.length();
 
 		int lo = 0, hi = lineStarts.length - 1;
 
@@ -60,7 +59,7 @@ public final class LineMap {
 					int line = mid + 1;
 					int col = (offset - start) + 1;
 
-					return new SourcePos(file, line, col);
+					return new SourcePos(fileName, line, col);
 				}
 
 				lo = mid + 1;
@@ -68,6 +67,6 @@ public final class LineMap {
 				hi = mid - 1;
 		}
 
-		return new SourcePos(file, 1, 1); // fallback
+		return new SourcePos(fileName, 1, 1); // fallback
 	}
 }

@@ -1,10 +1,10 @@
 package io.github.protasm.lpc2j.sourcepos;
 
 /** 1-based line/column position within a logical source file. */
-public record SourcePos(String file, int line, int column) {
+public record SourcePos(String fileName, int line, int column) {
 	public SourcePos {
-		if (file == null)
-			throw new IllegalArgumentException("file");
+		if (fileName == null)
+			throw new IllegalArgumentException("null file name");
 
 		if (line < 1)
 			throw new IllegalArgumentException("line must be 1+");
@@ -15,6 +15,6 @@ public record SourcePos(String file, int line, int column) {
 
 	@Override
 	public String toString() {
-		return file + ":" + line + ":" + column;
+		return fileName + ":" + line + ":" + column;
 	}
 }

@@ -114,14 +114,13 @@ public class Scanner {
 		};
 	}
 
-        public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
-                String processed = Preprocessor
-                                .preprocess(sourceFile, source, sysInclPath, quoteInclPath).source;
+	public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
+		String processed = Preprocessor.preprocess(sourceFile, source, sysInclPath, quoteInclPath).source;
 
-                ss = new ScannableSource(processed);
+		ss = new ScannableSource(processed);
 
-                TokenList tokens = new TokenList();
-                Token<?> token;
+		TokenList tokens = new TokenList();
+		Token<?> token;
 
 		do {
 			token = lexToken();

@@ -17,7 +17,7 @@ public final class CharCursor {
 	}
 
 	public boolean end() {
-		return i >= map.length();
+		return i >= map.sourceLength();
 	}
 
 	public char peek() {
@@ -28,12 +28,12 @@ public final class CharCursor {
 		return map.charAt(i + 1);
 	}
 
-	public int length() {
-		return map.length();
+	public int sourceLength() {
+		return map.sourceLength();
 	}
 
 	public boolean canPeekNext() {
-		return (index() + 1) < length();
+		return (index() + 1) < sourceLength();
 	}
 
 	/** Advance one char and return it. */
@@ -59,7 +59,7 @@ public final class CharCursor {
 	}
 
 	public void rewind(int to) {
-		i = Math.max(0, Math.min(to, map.length()));
+		i = Math.max(0, Math.min(to, map.sourceLength()));
 	}
 
 	/** Current 1-based source position. */
@@ -68,8 +68,8 @@ public final class CharCursor {
 	}
 
 	/** Helper/convenience methods. */
-	public String file() {
-		return pos().file();
+	public String fileName() {
+		return pos().fileName();
 	}
 
 	public int line() {

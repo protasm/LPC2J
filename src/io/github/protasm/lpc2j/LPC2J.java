@@ -5,43 +5,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.fs.FSBasePath;
-import io.github.protasm.lpc2j.fs.FSSourceFile;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Scanner;
+import io.github.protasm.lpc2j.token.TokenBuffer;
 import io.github.protasm.lpc2j.token.TokenList;
 
 public class LPC2J {
-	public static void main(String... args) {
-		if (args.length != 1)
-			die(2, "Usage: lpc2j <path>/file.lpc");
-
-		Path in = Paths.get(args[0]).toAbsolutePath();
-		FSBasePath basePath = new FSBasePath("/");
-
-		if (!Files.isRegularFile(in))
-			die(2, "Not found: " + in);
-
-		if (!in.getFileName().toString().endsWith(".lpc"))
-			die(2, "Expected a .lpc file: " + in);
-
-		try {
-			FSSourceFile sf = compile(in.toString(), basePath);
-
-			if (sf != null)
-				System.out.println(sf.classPath());
-
-			System.exit(0);
-		} catch (Exception ex) {
-			ex.printStackTrace(System.err);
-
-			die(1, "Compilation failed: " + ex.getMessage());
-		}
-	}
-
-	public static FSSourceFile compile(String vPathStr, FSBasePath basePath) {
+	public static ASTObject compile(String vPathStr) {
 		FSSourceFile sf = parse(vPathStr, basePath);
 
 		if (sf == null)
@@ -60,13 +32,13 @@ public class LPC2J {
 
 			return sf;
 		} catch (IllegalArgumentException e) {
-			System.out.println("Error compiling file: " + vPathStr);
+			System.out.println("Error compiling fileName: " + vPathStr);
 
 			return null;
 		}
 	}
 
-	private static FSSourceFile parse(String vPathStr, FSBasePath basePath) {
+	private static FSSourceFile parse(String vPathStr, VirtualFileServer basePath) {
 		FSSourceFile sf = scan(vPathStr, basePath);
 
 		if (sf == null)
@@ -80,14 +52,14 @@ public class LPC2J {
 
 			return sf;
 		} catch (ParseException | IllegalArgumentException e) {
-			System.out.println("Error parsing file: " + vPathStr);
+			System.out.println("Error parsing fileName: " + vPathStr);
 			System.out.println(e);
 
 			return null;
 		}
 	}
 
-	private static FSSourceFile scan(String vPathStr, FSBasePath basePath) {
+	private static TokenBuffer scan(String source) {
 		try {
 			Path resolved = basePath.fileAt(vPathStr);
 
@@ -101,26 +73,18 @@ public class LPC2J {
 			if (!success)
 				throw new IllegalArgumentException();
 
-                        Scanner scanner = new Scanner();
-                        Path absResolved = basePath.basePath().resolve(resolved);
-                        TokenList tokens = scanner.scan(sf.source(),
-                                        basePath.basePath().toString(),
-                                        absResolved.getParent().toString(),
-                                        absResolved);
-
-			sf.setTokens(tokens);
-
-			return sf;
+            Scanner scanner = new Scanner();
+            Path absResolved = basePath.basePath().resolve(resolved);
+            TokenBuffer tokens = scanner.scan(
+        		source,
+                basePath.basePath().toString(),
+                absResolved.getParent().toString(),
+                absResolved
+            );
 		} catch (IllegalArgumentException e) {
-			System.out.println("Error scanning file: " + vPathStr);
+			System.out.println("Error scanning fileName: " + vPathStr);
 
 			return null;
 		}
-	}
-
-	private static void die(int code, String msg) {
-		System.err.println(msg);
-
-		System.exit(code);
 	}
 }

@@ -214,25 +214,19 @@ public class LPCConsole {
 			return null;
 		}
 
-		try {
-			Compiler compiler = new Compiler("java/lang/Object");
-			byte[] bytes = compiler.compile(sf.astObject());
+                try {
+                        Compiler compiler = new Compiler("java/lang/Object");
+                        byte[] bytes = compiler.compile(sf.astObject());
 
-			sf.setBytes(bytes);
+                        sf.setBytes(bytes);
 
-			boolean success = basePath.write(sf);
+                        return sf;
+                } catch (IllegalArgumentException e) {
+                        System.out.println("Error compiling fileName: " + vPathStr);
 
-			if (!success) {
-				throw new IllegalArgumentException();
-			}
-
-			return sf;
-		} catch (IllegalArgumentException e) {
-			System.out.println("Error compiling fileName: " + vPathStr);
-
-			return null;
-		}
-	}
+                        return null;
+                }
+        }
 
 	public FSSourceFile parse(String vPathStr) {
 		FSSourceFile sf = scan(vPathStr);

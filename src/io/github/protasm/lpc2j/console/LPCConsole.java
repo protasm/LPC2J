@@ -66,6 +66,7 @@ public class LPCConsole {
     EfunRegistry.register("foo", EfunFoo.INSTANCE);
     EfunRegistry.register("set_heart_beat", EfunSetHeartBeat.INSTANCE);
     EfunRegistry.register("set_light", EfunSetLight.INSTANCE);
+    EfunRegistry.register("say", EfunSay.INSTANCE);
     EfunRegistry.register("write", EfunWrite.INSTANCE);
   }
 

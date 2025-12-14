@@ -52,6 +52,7 @@ public class ASTExprOpBinary extends ASTExpression {
         case BOP_GE:
         case BOP_LE:
         case BOP_EQ:
+        case BOP_NE:
         case BOP_AND:
         case BOP_OR:
             return LPCSTATUS; // Comparison expressions always evaluate to a boolean

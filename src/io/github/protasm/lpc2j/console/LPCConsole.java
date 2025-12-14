@@ -31,6 +31,7 @@ import io.github.protasm.lpc2j.console.cmd.CmdParse;
 import io.github.protasm.lpc2j.console.cmd.CmdQuit;
 import io.github.protasm.lpc2j.console.cmd.CmdScan;
 import io.github.protasm.lpc2j.console.cmd.Command;
+import io.github.protasm.lpc2j.console.efuns.EfunAddAction;
 import io.github.protasm.lpc2j.console.efuns.EfunFoo;
 import io.github.protasm.lpc2j.console.efuns.EfunWrite;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
@@ -75,8 +76,9 @@ public class LPCConsole {
 		inputScanner = new java.util.Scanner(System.in);
 
 // Register Efuns
-		EfunRegistry.register("foo", EfunFoo.INSTANCE);
-		EfunRegistry.register("write", EfunWrite.INSTANCE);
+                EfunRegistry.register("add_action", EfunAddAction.INSTANCE);
+                EfunRegistry.register("foo", EfunFoo.INSTANCE);
+                EfunRegistry.register("write", EfunWrite.INSTANCE);
 	}
 
 	public VirtualFileServer basePath() {

@@ -3,6 +3,8 @@ package io.github.protasm.lpc2j.parser.parselet;
 import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 
 import io.github.protasm.lpc2j.efun.Efun;
@@ -21,7 +23,9 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 
 public class PrefixIdentifier implements PrefixParselet {
     @Override
@@ -61,6 +65,14 @@ public class PrefixIdentifier implements PrefixParselet {
                 // Assign?
             } else if (canAssign && parser.tokens().match(T_EQUAL))
                 return new ASTExprLocalStore(line, local, parser.expression());
+            else if (canAssign && parser.tokens().match(T_PLUS_EQUAL))
+                return new ASTExprLocalStore(line, local,
+                        new ASTExprOpBinary(line, new ASTExprLocalAccess(line, local), parser.expression(),
+                                BinaryOpType.BOP_ADD));
+            else if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
+                return new ASTExprLocalStore(line, local,
+                        new ASTExprOpBinary(line, new ASTExprLocalAccess(line, local), parser.expression(),
+                                BinaryOpType.BOP_SUB));
             // Retrieve.
             else
                 return new ASTExprLocalAccess(line, local);
@@ -76,6 +88,14 @@ public class PrefixIdentifier implements PrefixParselet {
                 // Assign?
             } else if (canAssign && parser.tokens().match(T_EQUAL))
                 return new ASTExprFieldStore(line, field, parser.expression());
+            else if (canAssign && parser.tokens().match(T_PLUS_EQUAL))
+                return new ASTExprFieldStore(line, field,
+                        new ASTExprOpBinary(line, new ASTExprFieldAccess(line, field), parser.expression(),
+                                BinaryOpType.BOP_ADD));
+            else if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
+                return new ASTExprFieldStore(line, field,
+                        new ASTExprOpBinary(line, new ASTExprFieldAccess(line, field), parser.expression(),
+                                BinaryOpType.BOP_SUB));
             // Retrieve.
             else
                 return new ASTExprFieldAccess(line, field);

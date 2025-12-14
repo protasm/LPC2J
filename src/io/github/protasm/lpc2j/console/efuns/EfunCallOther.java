@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import io.github.protasm.lpc2j.console.RuntimeContext;
 import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -52,9 +53,13 @@ public final class EfunCallOther implements Efun {
                     + target.getClass().getName());
 
         try {
+            RuntimeContext.setCurrentObject(target);
+
             return method.invoke(target, methodArgs);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException("Failed to invoke method '" + methodName + "'", e);
+        } finally {
+            RuntimeContext.clearCurrentObject();
         }
     }
 

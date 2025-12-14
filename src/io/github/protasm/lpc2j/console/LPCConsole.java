@@ -21,6 +21,7 @@ import io.github.protasm.lpc2j.console.cmd.*;
 import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
+import io.github.protasm.lpc2j.console.RuntimeContext;
 
 public class LPCConsole {
   private final VirtualFileServer basePath;
@@ -67,6 +68,7 @@ public class LPCConsole {
     EfunRegistry.register("destruct", EfunDestruct.INSTANCE);
     EfunRegistry.register("foo", EfunFoo.INSTANCE);
     EfunRegistry.register("environment", EfunEnvironment.INSTANCE);
+    EfunRegistry.register("this_object", EfunThisObject.INSTANCE);
     EfunRegistry.register("set_heart_beat", EfunSetHeartBeat.INSTANCE);
     EfunRegistry.register("set_light", EfunSetLight.INSTANCE);
     EfunRegistry.register("say", EfunSay.INSTANCE);
@@ -189,6 +191,8 @@ public class LPCConsole {
   }
 
   try {
+    RuntimeContext.setCurrentObject(obj);
+
     Method[] methods = obj.getClass().getMethods();
 
     for (Method method : methods) {
@@ -203,6 +207,8 @@ public class LPCConsole {
     System.out.println(e.toString());
   } catch (IllegalArgumentException e) {
     System.out.println(e.toString());
+  } finally {
+    RuntimeContext.clearCurrentObject();
   }
 
   return null;

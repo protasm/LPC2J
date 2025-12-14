@@ -28,7 +28,9 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
@@ -40,12 +42,14 @@ import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.token.TokenList;
 
 public class Parser {
-	private TokenList tokens;
-	private ASTObject currObj;
-	private Locals locals;
+        private TokenList tokens;
+        private ASTObject currObj;
+        private Locals locals;
+        private LPCType currentReturnType;
 
 	public Parser() {
 	}
@@ -148,27 +152,28 @@ public class Parser {
 		tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
 	}
 
-	private void method(Symbol symbol, boolean define) {
-		if (!define) {
-			skipMethodBody();
+        private void method(Symbol symbol, boolean define) {
+                if (!define) {
+                        skipMethodBody();
 
-			ASTMethod method = new ASTMethod(currLine(), currObj.name(), symbol);
+                        ASTMethod method = new ASTMethod(currLine(), currObj.name(), symbol);
 
 			currObj.methods().put(method.symbol().name(), method);
 
 			return;
 		}
 
-		ASTMethod method = currObj.methods().get(symbol.name());
+                ASTMethod method = currObj.methods().get(symbol.name());
 
-		locals = new Locals();
+                locals = new Locals();
+                currentReturnType = symbol.lpcType();
 
-		method.setParameters(parameters());
+                method.setParameters(parameters());
 
-		tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");
+                tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");
 
-		method.setBody(block());
-	}
+                method.setBody(block(true));
+        }
 
 	private void skipInherit() {
 		if (!tokens.match(T_INHERIT))
@@ -242,10 +247,10 @@ public class Parser {
 		return args;
 	}
 
-	private ASTStmtBlock block() {
-		locals.beginScope();
+        private ASTStmtBlock block(boolean allowImplicitReturn) {
+                locals.beginScope();
 
-		List<ASTStatement> statements = new ArrayList<>();
+                List<ASTStatement> statements = new ArrayList<>();
 
 		while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
 			if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
@@ -266,12 +271,15 @@ public class Parser {
 			} else
 				statements.add(statement());
 
-		tokens.consume(T_RIGHT_BRACE, "Expect '}' after method body.");
+                tokens.consume(T_RIGHT_BRACE, "Expect '}' after method body.");
 
-		locals.endScope();
+                locals.endScope();
 
-		return new ASTStmtBlock(currLine(), statements);
-	}
+                if (allowImplicitReturn && needsImplicitReturn(statements))
+                        statements.add(implicitReturn());
+
+                return new ASTStmtBlock(currLine(), statements);
+        }
 
 	private ASTLocal local() {
 		Token<LPCType> typeToken = tokens.previous();
@@ -284,16 +292,37 @@ public class Parser {
 		return new ASTLocal(currLine(), symbol);
 	}
 
-	public ASTStatement statement() {
-		if (tokens.match(T_IF))
-			return ifStatement();
-		else if (tokens.match(T_RETURN))
-			return returnStatement();
-		else if (tokens.match(T_LEFT_BRACE))
-			return block();
-		else
-			return expressionStatement();
-	}
+        public ASTStatement statement() {
+                if (tokens.match(T_IF))
+                        return ifStatement();
+                else if (tokens.match(T_RETURN))
+                        return returnStatement();
+                else if (tokens.match(T_LEFT_BRACE))
+                        return block(false);
+                else
+                        return expressionStatement();
+        }
+
+        private boolean needsImplicitReturn(List<ASTStatement> statements) {
+                return statements.isEmpty() || !(statements.get(statements.size() - 1) instanceof ASTStmtReturn);
+        }
+
+        private ASTStmtReturn implicitReturn() {
+                switch (currentReturnType) {
+                case LPCINT:
+                case LPCSTATUS:
+                        return new ASTStmtReturn(currLine(), new ASTExprLiteralInteger(currLine(),
+                                        new Token<Integer>(TokenType.T_INT_LITERAL, "0", 0, currLine())));
+                case LPCSTRING:
+                case LPCOBJECT:
+                case LPCMIXED:
+                        return new ASTStmtReturn(currLine(), new ASTExprNull(currLine()));
+                case LPCVOID:
+                        return new ASTStmtReturn(currLine(), null);
+                default:
+                        throw new ParseException("Unsupported implicit return type: " + currentReturnType);
+                }
+        }
 
 	private ASTStatement ifStatement() {
 		ASTExpression expr = ifCondition();

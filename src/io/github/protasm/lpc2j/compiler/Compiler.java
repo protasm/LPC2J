@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.compiler;
 
 import static org.objectweb.asm.Opcodes.AASTORE;
+import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_SUPER;
@@ -68,9 +69,10 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 public class Compiler {
-	private final String defaultParentName;
-	private final ClassWriter cw;
-	private MethodVisitor mv; // current method
+        private final String defaultParentName;
+        private final ClassWriter cw;
+        private MethodVisitor mv; // current method
+        private LPCType currentReturnType;
 
 	public Compiler(String defaultParentName) {
 		this.defaultParentName = defaultParentName;
@@ -283,8 +285,9 @@ public class Compiler {
 		}
 	}
 
-	public void visit(ASTExprNull expr) {
-	}
+        public void visit(ASTExprNull expr) {
+                mv.visitInsn(ACONST_NULL);
+        }
 
 	public void visit(ASTExprOpBinary expr) {
 		ASTExpression left = expr.left();
@@ -377,9 +380,11 @@ public class Compiler {
 		// TODO Auto-generated method stub
 	}
 
-	public void visit(ASTMethod method) {
-		method.body().accept(this);
-	}
+        public void visit(ASTMethod method) {
+                currentReturnType = method.symbol().lpcType();
+
+                method.body().accept(this);
+        }
 
 	public void visit(ASTMethods methods) {
 		for (ASTMethod method : methods) {
@@ -450,30 +455,53 @@ public class Compiler {
 		mv.visitLabel(endLabel);
 	}
 
-	public void visit(ASTStmtReturn stmt) {
-		ASTExpression returnValue = stmt.returnValue();
+        public void visit(ASTStmtReturn stmt) {
+                ASTExpression returnValue = stmt.returnValue();
 
-		if (returnValue == null) {
-			mv.visitInsn(Opcodes.RETURN);
+                if (returnValue == null) {
+                        emitDefaultReturn();
+                        return;
+                }
 
-			return;
-		}
+                returnValue.accept(this);
 
-		returnValue.accept(this);
+                switch (returnValue.lpcType()) {
+                case LPCINT:
+                        mv.visitInsn(Opcodes.IRETURN);
+                        break;
+                case LPCNULL:
+                        mv.visitInsn(Opcodes.ARETURN);
+                        break;
+                case LPCMIXED:
+                case LPCSTRING:
+                case LPCOBJECT:
+                        mv.visitInsn(Opcodes.ARETURN);
+                        break;
+                default:
+                        throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
+                }
+        }
 
-		switch (returnValue.lpcType()) {
-		case LPCINT:
-			mv.visitInsn(Opcodes.IRETURN);
-			break;
-		case LPCMIXED:
-		case LPCSTRING:
-		case LPCOBJECT:
-			mv.visitInsn(Opcodes.ARETURN);
-			break;
-		default:
-			throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
-		}
-	}
+        private void emitDefaultReturn() {
+                switch (currentReturnType) {
+                case LPCINT:
+                case LPCSTATUS:
+                        mv.visitInsn(Opcodes.ICONST_0);
+                        mv.visitInsn(Opcodes.IRETURN);
+                        break;
+                case LPCSTRING:
+                case LPCOBJECT:
+                case LPCMIXED:
+                        mv.visitInsn(Opcodes.ACONST_NULL);
+                        mv.visitInsn(Opcodes.ARETURN);
+                        break;
+                case LPCVOID:
+                        mv.visitInsn(Opcodes.RETURN);
+                        break;
+                default:
+                        throw new UnsupportedOperationException("Unsupported implicit return type: " + currentReturnType);
+                }
+        }
 
 	private void constructor(ASTObject object, String parentName) {
 		mv = cw.visitMethod( // current method

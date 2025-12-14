@@ -6,19 +6,19 @@ import java.nio.file.Paths;
 import io.github.protasm.lpc2j.console.LPCConsole;
 
 public abstract class Command {
-	public abstract boolean execute(LPCConsole console, String... args);
+    public abstract boolean execute(LPCConsole console, String... args);
 
-	protected String pathStrOfArg(Path consoleVPath, String arg) {
-		Path vPath = Path.of(arg);
+    protected String pathStrOfArg(Path consoleVPath, String arg) {
+        Path vPath = Path.of(arg);
 
-		// handle relative path argument
-		if (!vPath.isAbsolute() && (consoleVPath != null)) {
-			vPath = Paths.get(consoleVPath.toString(), arg);
-		}
+        // handle relative path argument
+        if (!vPath.isAbsolute() && (consoleVPath != null)) {
+            vPath = Paths.get(consoleVPath.toString(), arg);
+        }
 
-		return vPath.toString();
-	}
+        return vPath.toString();
+    }
 
-	@Override
-	public abstract String toString();
+    @Override
+    public abstract String toString();
 }

@@ -5,34 +5,34 @@ import io.github.protasm.lpc2j.console.LPCConsole;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 
 public class CmdScan extends Command {
-	@Override
-	public boolean execute(LPCConsole console, String... args) {
-		System.out.println("Scan");
+    @Override
+    public boolean execute(LPCConsole console, String... args) {
+        System.out.println("Scan");
 
-		if (args.length < 1) {
-			System.out.println("Error: No fileName specified.");
+        if (args.length < 1) {
+            System.out.println("Error: No fileName specified.");
 
-			return true;
-		}
+            return true;
+        }
 
-		String vPathStr = pathStrOfArg(console.vPath(), args[0]);
-		FSSourceFile sf = console.scan(vPathStr);
+        String vPathStr = pathStrOfArg(console.vPath(), args[0]);
+        FSSourceFile sf = console.scan(vPathStr);
 
-		if (sf == null) {
-			return true;
-		}
+        if (sf == null) {
+            return true;
+        }
 
-		TokenList tokens = sf.tokens();
+        TokenList tokens = sf.tokens();
 
-		if (tokens != null) {
-			System.out.println(tokens);
-		}
+        if (tokens != null) {
+            System.out.println(tokens);
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	@Override
-	public String toString() {
-		return "Scan <source fileName>";
-	}
+    @Override
+    public String toString() {
+        return "Scan <source fileName>";
+    }
 }

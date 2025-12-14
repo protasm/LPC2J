@@ -14,41 +14,41 @@ public class FSSourceFile {
         private byte[] bytes;
         private Object lpcObject;
 
-	public FSSourceFile(Path vPath) {
-		if (!validExtension(vPath))
-			throw new IllegalArgumentException("Invalid source fileName name.");
+    public FSSourceFile(Path vPath) {
+        if (!validExtension(vPath))
+            throw new IllegalArgumentException("Invalid source fileName name.");
 
-		this.vPath = vPath;
-	}
+        this.vPath = vPath;
+    }
 
         public Path vPath() {
                 return vPath;
         }
 
-	public String prefix() {
-		String name = vPath.getFileName().toString();
+    public String prefix() {
+        String name = vPath.getFileName().toString();
 
-		int idx = name.lastIndexOf('.');
+        int idx = name.lastIndexOf('.');
 
-		return name.substring(0, idx);
-	}
+        return name.substring(0, idx);
+    }
 
-	public String extension() {
-		String name = vPath.getFileName().toString();
+    public String extension() {
+        String name = vPath.getFileName().toString();
 
-		int idx = name.lastIndexOf('.');
+        int idx = name.lastIndexOf('.');
 
-		return name.substring(idx + 1);
-	}
+        return name.substring(idx + 1);
+    }
 
-	public Path classPath() {
-		Path parent = vPath.getParent();
+    public Path classPath() {
+        Path parent = vPath.getParent();
 
-		if (parent != null)
-			return Paths.get(parent.toString(), prefix() + ".class");
-		else
-			return Paths.get(prefix() + ".class");
-	}
+        if (parent != null)
+            return Paths.get(parent.toString(), prefix() + ".class");
+        else
+            return Paths.get(prefix() + ".class");
+    }
 
         public String source() {
                 return source;
@@ -90,23 +90,23 @@ public class FSSourceFile {
                 this.lpcObject = lpcObject;
         }
 
-	public String slashName() {
-		Path parent = vPath.getParent();
+    public String slashName() {
+        Path parent = vPath.getParent();
 
-		if (parent != null)
-			return Paths.get(parent.toString(), prefix()).toString();
-		else
-			return Paths.get(prefix()).toString();
-	}
+        if (parent != null)
+            return Paths.get(parent.toString(), prefix()).toString();
+        else
+            return Paths.get(prefix()).toString();
+    }
 
-	public String dotName() {
-		// replace infix slashes with dots
-		return slashName().replace("/", ".").replace("\\", ".");
-	}
+    public String dotName() {
+        // replace infix slashes with dots
+        return slashName().replace("/", ".").replace("\\", ".");
+    }
 
-	private boolean validExtension(Path vPath) {
-		String name = vPath.getFileName().toString();
+    private boolean validExtension(Path vPath) {
+        String name = vPath.getFileName().toString();
 
-		return (name.endsWith(".lpc") || name.endsWith(".c"));
-	}
+        return (name.endsWith(".lpc") || name.endsWith(".c"));
+    }
 }

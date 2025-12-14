@@ -5,26 +5,26 @@ import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public final class EfunWrite implements Efun {
-	public static final EfunWrite INSTANCE = new EfunWrite();
-	private static final Symbol SYM = new Symbol(LPCType.LPCVOID, "write");
+    public static final EfunWrite INSTANCE = new EfunWrite();
+    private static final Symbol SYM = new Symbol(LPCType.LPCVOID, "write");
 
-	private EfunWrite() {
-	}
+    private EfunWrite() {
+    }
 
-	@Override
-	public Symbol symbol() {
-		return SYM;
-	}
+    @Override
+    public Symbol symbol() {
+        return SYM;
+    }
 
-	@Override
-	public int arity() {
-		return 1;
-	}
+    @Override
+    public int arity() {
+        return 1;
+    }
 
-	@Override
-	public Object call(Object[] args) {
-		System.out.print(String.valueOf(args[0]));
+    @Override
+    public Object call(Object[] args) {
+        System.out.print(String.valueOf(args[0]));
 
-		return null;
-	}
+        return null;
+    }
 }

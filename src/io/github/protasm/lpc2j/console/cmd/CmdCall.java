@@ -5,59 +5,59 @@ import java.util.Arrays;
 import io.github.protasm.lpc2j.console.LPCConsole;
 
 public class CmdCall extends Command {
-	@Override
-	public boolean execute(LPCConsole console, String... args) {
-		if (args.length < 2) {
-			System.out.println("Usage:  call <object> <method> [<args>]");
+    @Override
+    public boolean execute(LPCConsole console, String... args) {
+        if (args.length < 2) {
+            System.out.println("Usage:  call <object> <method> [<args>]");
 
-			return true;
-		}
+            return true;
+        }
 
-		String[] strArgs = Arrays.copyOfRange(args, 2, args.length);
-		Object[] objArgs = inferArgTypes(console, strArgs);
+        String[] strArgs = Arrays.copyOfRange(args, 2, args.length);
+        Object[] objArgs = inferArgTypes(console, strArgs);
 
-		Object result = console.call(args[0], args[1], objArgs);
-		System.out.println(String.valueOf(result));
+        Object result = console.call(args[0], args[1], objArgs);
+        System.out.println(String.valueOf(result));
 
-		return true;
-	}
+        return true;
+    }
 
-	private Object[] inferArgTypes(LPCConsole console, String[] strArgs) {
-		Object[] objArgs = new Object[strArgs.length];
+    private Object[] inferArgTypes(LPCConsole console, String[] strArgs) {
+        Object[] objArgs = new Object[strArgs.length];
 
-		for (int i = 0; i < strArgs.length; i++) {
-			String strArg = strArgs[i];
+        for (int i = 0; i < strArgs.length; i++) {
+            String strArg = strArgs[i];
 
-			// Integer?
-			try {
-				objArgs[i] = Integer.parseInt(strArg);
-				continue;
-			} catch (NumberFormatException ignored) {
-			}
+            // Integer?
+            try {
+                objArgs[i] = Integer.parseInt(strArg);
+                continue;
+            } catch (NumberFormatException ignored) {
+            }
 
-			// Boolean?
-			if ("true".equalsIgnoreCase(strArg) || "false".equalsIgnoreCase(strArg)) {
-				objArgs[i] = Boolean.parseBoolean(strArg);
+            // Boolean?
+            if ("true".equalsIgnoreCase(strArg) || "false".equalsIgnoreCase(strArg)) {
+                objArgs[i] = Boolean.parseBoolean(strArg);
 
-				continue;
-			}
+                continue;
+            }
 
-			// Loaded object?
-			if (console.objects().containsKey(strArg)) {
-				objArgs[i] = console.objects().get(strArg);
+            // Loaded object?
+            if (console.objects().containsKey(strArg)) {
+                objArgs[i] = console.objects().get(strArg);
 
-				continue;
-			}
+                continue;
+            }
 
-			// String.
-			objArgs[i] = strArg;
-		}
+            // String.
+            objArgs[i] = strArg;
+        }
 
-		return objArgs;
-	}
+        return objArgs;
+    }
 
-	@Override
-	public String toString() {
-		return "Call <object> <method> [<args>]";
-	}
+    @Override
+    public String toString() {
+        return "Call <object> <method> [<args>]";
+    }
 }

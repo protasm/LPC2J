@@ -60,69 +60,69 @@ public class Parser {
                 this.options = (options == null) ? ParserOptions.defaults() : options;
         }
 
-	public TokenList tokens() {
-		return this.tokens;
-	}
+    public TokenList tokens() {
+        return this.tokens;
+    }
 
-	public ASTObject currObj() {
-		return this.currObj;
-	}
+    public ASTObject currObj() {
+        return this.currObj;
+    }
 
-	public Locals locals() {
-		return this.locals;
-	}
+    public Locals locals() {
+        return this.locals;
+    }
 
-	public int currLine() {
-		return tokens.current().line();
-	}
+    public int currLine() {
+        return tokens.current().line();
+    }
 
-	public ASTObject parse(String objName, TokenList tokens) {
-		if (tokens == null)
-			return null;
+    public ASTObject parse(String objName, TokenList tokens) {
+        if (tokens == null)
+            return null;
 
-		this.tokens = tokens;
+        this.tokens = tokens;
 
-		currObj = new ASTObject(0, objName);
+        currObj = new ASTObject(0, objName);
 
-		declarations(); // pass 1
+        declarations(); // pass 1
 
-		definitions(); // pass 2
+        definitions(); // pass 2
 
-		typeInference(); // pass 3
+        typeInference(); // pass 3
 
-		return currObj;
-	}
+        return currObj;
+    }
 
-	private void declarations() {
-		skipInherit();
+    private void declarations() {
+        skipInherit();
 
-		while (!tokens.isAtEnd())
-			property(false);
-	}
+        while (!tokens.isAtEnd())
+            property(false);
+    }
 
-	private void definitions() {
-		tokens.reset();
+    private void definitions() {
+        tokens.reset();
 
-		currObj.setParentName(inherit());
+        currObj.setParentName(inherit());
 
-		while (!tokens.isAtEnd())
-			property(true);
-	}
+        while (!tokens.isAtEnd())
+            property(true);
+    }
 
-	private void typeInference() {
-		currObj.accept(new TypeInferenceVisitor(), LPCType.LPCNULL);
-	}
+    private void typeInference() {
+        currObj.accept(new TypeInferenceVisitor(), LPCType.LPCNULL);
+    }
 
-	private String inherit() {
-		if (!tokens.match(T_INHERIT))
-			return null;
+    private String inherit() {
+        if (!tokens.match(T_INHERIT))
+            return null;
 
-		Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expect string after 'inherit'.");
+        Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expect string after 'inherit'.");
 
-		tokens.consume(T_SEMICOLON, "Expect ';' after inherited object path.");
+        tokens.consume(T_SEMICOLON, "Expect ';' after inherited object path.");
 
-		return parentToken.lexeme();
-	}
+        return parentToken.lexeme();
+    }
 
         private void property(boolean define) {
                 Declaration declaration = declarationSymbol();
@@ -160,28 +160,28 @@ public class Parser {
                 throw new ParseException(message, tokens.current());
         }
 
-	private void field(Symbol symbol, boolean define) {
-		if (!define) {
-			skipFieldInit();
+    private void field(Symbol symbol, boolean define) {
+        if (!define) {
+            skipFieldInit();
 
-			ASTField field = new ASTField(currLine(), currObj.name(), symbol);
+            ASTField field = new ASTField(currLine(), currObj.name(), symbol);
 
-			currObj.fields().put(field.symbol().name(), field);
+            currObj.fields().put(field.symbol().name(), field);
 
-			return;
-		}
+            return;
+        }
 
-		// TODO: what about int x, y = 45, z;?
+        // TODO: what about int x, y = 45, z;?
 
-		if (tokens.match(T_EQUAL)) {
-			ASTField field = currObj.fields().get(symbol.name());
-			ASTExpression initializer = expression();
+        if (tokens.match(T_EQUAL)) {
+            ASTField field = currObj.fields().get(symbol.name());
+            ASTExpression initializer = expression();
 
-			field.setInitializer(initializer);
-		}
+            field.setInitializer(initializer);
+        }
 
-		tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
-	}
+        tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
+    }
 
         private void method(Symbol symbol, boolean define) {
                 if (!define) {
@@ -189,10 +189,10 @@ public class Parser {
 
                         ASTMethod method = new ASTMethod(currLine(), currObj.name(), symbol);
 
-			currObj.methods().put(method.symbol().name(), method);
+            currObj.methods().put(method.symbol().name(), method);
 
-			return;
-		}
+            return;
+        }
 
                 ASTMethod method = currObj.methods().get(symbol.name());
 
@@ -206,33 +206,33 @@ public class Parser {
                 method.setBody(block(true));
         }
 
-	private void skipInherit() {
-		if (!tokens.match(T_INHERIT))
-			return;
+    private void skipInherit() {
+        if (!tokens.match(T_INHERIT))
+            return;
 
-		tokens.advanceThrough(T_SEMICOLON);
-	}
+        tokens.advanceThrough(T_SEMICOLON);
+    }
 
-	private void skipFieldInit() {
-		tokens.advanceThrough(T_SEMICOLON);
-	}
+    private void skipFieldInit() {
+        tokens.advanceThrough(T_SEMICOLON);
+    }
 
-	private void skipMethodBody() {
-		int count = 0;
+    private void skipMethodBody() {
+        int count = 0;
 
-		while (!tokens.isAtEnd())
-			if (tokens.match(T_LEFT_BRACE))
-				count++;
-			else if (tokens.match(T_RIGHT_BRACE)) {
-				count--;
+        while (!tokens.isAtEnd())
+            if (tokens.match(T_LEFT_BRACE))
+                count++;
+            else if (tokens.match(T_RIGHT_BRACE)) {
+                count--;
 
-				if (count == 0)
-					return;
-			} else
-				tokens.advance();
+                if (count == 0)
+                    return;
+            } else
+                tokens.advance();
 
-		throw new ParseException("Unmatched '{' in method body.");
-	}
+        throw new ParseException("Unmatched '{' in method body.");
+    }
 
         private ASTParameters parameters() {
                 ASTParameters params = new ASTParameters(currLine());
@@ -262,57 +262,57 @@ public class Parser {
 
                         params.add(param);
 
-			locals.add(local, true);
-		} while (tokens.match(T_COMMA));
+            locals.add(local, true);
+        } while (tokens.match(T_COMMA));
 
-		tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
 
-		return params;
-	}
+        return params;
+    }
 
-	public ASTArguments arguments() {
-		ASTArguments args = new ASTArguments(currLine());
+    public ASTArguments arguments() {
+        ASTArguments args = new ASTArguments(currLine());
 
-		tokens.consume(T_LEFT_PAREN, "Expect '(' after method name.");
+        tokens.consume(T_LEFT_PAREN, "Expect '(' after method name.");
 
-		if (tokens.match(T_RIGHT_PAREN)) // No arguments
-			return args;
+        if (tokens.match(T_RIGHT_PAREN)) // No arguments
+            return args;
 
-		do {
-			ASTExpression expr = expression();
-			ASTArgument arg = new ASTArgument(currLine(), expr);
+        do {
+            ASTExpression expr = expression();
+            ASTArgument arg = new ASTArgument(currLine(), expr);
 
-			args.add(arg);
-		} while (tokens.match(T_COMMA));
+            args.add(arg);
+        } while (tokens.match(T_COMMA));
 
-		tokens.consume(T_RIGHT_PAREN, "Expect ')' after method arguments.");
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after method arguments.");
 
-		return args;
-	}
+        return args;
+    }
 
         private ASTStmtBlock block(boolean allowImplicitReturn) {
                 locals.beginScope();
 
                 List<ASTStatement> statements = new ArrayList<>();
 
-		while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-			if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
-				ASTLocal local = local();
+        while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
+            if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
+                ASTLocal local = local();
 
-				locals.add(local, true); // sets slot # and depth
+                locals.add(local, true); // sets slot # and depth
 
-				// TODO: what about int x, y = 45, z;?
+                // TODO: what about int x, y = 45, z;?
 
-				if (tokens.match(T_EQUAL)) { // local assignment
-					ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
-					ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
+                if (tokens.match(T_EQUAL)) { // local assignment
+                    ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
+                    ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
 
-					statements.add(exprStmt);
-				}
+                    statements.add(exprStmt);
+                }
 
-				tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
-			} else
-				statements.add(statement());
+                tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+            } else
+                statements.add(statement());
 
                 tokens.consume(T_RIGHT_BRACE, "Expect '}' after method body.");
 
@@ -324,16 +324,16 @@ public class Parser {
                 return new ASTStmtBlock(currLine(), statements);
         }
 
-	private ASTLocal local() {
-		Token<LPCType> typeToken = tokens.previous();
-		Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
-		Symbol symbol = new Symbol(typeToken, nameToken);
+    private ASTLocal local() {
+        Token<LPCType> typeToken = tokens.previous();
+        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
+        Symbol symbol = new Symbol(typeToken, nameToken);
 
-		if (locals.hasCollision(symbol.name()))
-			throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
+        if (locals.hasCollision(symbol.name()))
+            throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
 
-		return new ASTLocal(currLine(), symbol);
-	}
+        return new ASTLocal(currLine(), symbol);
+    }
 
         public ASTStatement statement() {
                 if (tokens.match(T_IF))
@@ -385,76 +385,76 @@ public class Parser {
                 }
         }
 
-	private ASTStatement ifStatement() {
-		ASTExpression expr = ifCondition();
-		ASTStatement stmtThen = statement();
+    private ASTStatement ifStatement() {
+        ASTExpression expr = ifCondition();
+        ASTStatement stmtThen = statement();
 
-		if (tokens.match(T_ELSE))
-			return new ASTStmtIfThenElse(currLine(), expr, stmtThen, statement());
-		else
-			return new ASTStmtIfThenElse(currLine(), expr, stmtThen, null);
-	}
+        if (tokens.match(T_ELSE))
+            return new ASTStmtIfThenElse(currLine(), expr, stmtThen, statement());
+        else
+            return new ASTStmtIfThenElse(currLine(), expr, stmtThen, null);
+    }
 
-	private ASTExpression ifCondition() {
-		tokens.consume(T_LEFT_PAREN, "Expect '(' after if.");
+    private ASTExpression ifCondition() {
+        tokens.consume(T_LEFT_PAREN, "Expect '(' after if.");
 
-		ASTExpression expr = expression();
+        ASTExpression expr = expression();
 
-		tokens.consume(T_RIGHT_PAREN, "Expect ')' after if condition.");
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after if condition.");
 
-		return expr;
-	}
+        return expr;
+    }
 
-	private ASTStmtReturn returnStatement() {
-		if (tokens.match(T_SEMICOLON))
-			return new ASTStmtReturn(currLine(), null);
+    private ASTStmtReturn returnStatement() {
+        if (tokens.match(T_SEMICOLON))
+            return new ASTStmtReturn(currLine(), null);
 
-		ASTExpression expr = expression();
+        ASTExpression expr = expression();
 
-		tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
+        tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
 
-		return new ASTStmtReturn(currLine(), expr);
-	}
+        return new ASTStmtReturn(currLine(), expr);
+    }
 
-	private ASTStmtExpression expressionStatement() {
-		ASTExpression expr = expression();
+    private ASTStmtExpression expressionStatement() {
+        ASTExpression expr = expression();
 
-		tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
+        tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
 
-		return new ASTStmtExpression(currLine(), expr);
-	}
+        return new ASTStmtExpression(currLine(), expr);
+    }
 
-	public ASTExpression expression() {
-		return parsePrecedence(PrattParser.Precedence.PREC_ASSIGNMENT);
-	}
+    public ASTExpression expression() {
+        return parsePrecedence(PrattParser.Precedence.PREC_ASSIGNMENT);
+    }
 
-	public ASTExpression parsePrecedence(int precedence) {
-		tokens.advance();
+    public ASTExpression parsePrecedence(int precedence) {
+        tokens.advance();
 
-		PrefixParselet pp = PrattParser.getRule(tokens.previous()).prefix();
+        PrefixParselet pp = PrattParser.getRule(tokens.previous()).prefix();
 
-		if (pp == null)
-			throw new ParseException("Expect expression.", tokens.current());
+        if (pp == null)
+            throw new ParseException("Expect expression.", tokens.current());
 
-		boolean canAssign = (precedence <= PrattParser.Precedence.PREC_ASSIGNMENT);
+        boolean canAssign = (precedence <= PrattParser.Precedence.PREC_ASSIGNMENT);
 
-		ASTExpression expr = pp.parse(this, canAssign);
+        ASTExpression expr = pp.parse(this, canAssign);
 
-		while (precedence <= PrattParser.getRule(tokens.current()).precedence()) {
-			tokens.advance();
+        while (precedence <= PrattParser.getRule(tokens.current()).precedence()) {
+            tokens.advance();
 
-			InfixParselet ip = PrattParser.getRule(tokens.previous()).infix();
+            InfixParselet ip = PrattParser.getRule(tokens.previous()).infix();
 
-			if (ip == null)
-				throw new ParseException("Expect expression.", tokens.current());
+            if (ip == null)
+                throw new ParseException("Expect expression.", tokens.current());
 
-			expr = ip.parse(this, expr, canAssign);
-		}
+            expr = ip.parse(this, expr, canAssign);
+        }
 
-		if (canAssign)
-			if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
-				throw new ParseException("Invalid assignment target.", tokens.current());
+        if (canAssign)
+            if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
+                throw new ParseException("Invalid assignment target.", tokens.current());
 
-		return expr;
-	}
+        return expr;
+    }
 }

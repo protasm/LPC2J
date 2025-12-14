@@ -24,62 +24,62 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
 import io.github.protasm.lpc2j.token.Token;
 
 public class PrefixIdentifier implements PrefixParselet {
-	@Override
-	public ASTExpression parse(Parser parser, boolean canAssign) {
-		int line = parser.currLine();
-		String identifier = parser.tokens().previous().lexeme();
+    @Override
+    public ASTExpression parse(Parser parser, boolean canAssign) {
+        int line = parser.currLine();
+        String identifier = parser.tokens().previous().lexeme();
 
-		// Call?
-		if (parser.tokens().check(T_LEFT_PAREN)) {
-			ASTArguments args = parser.arguments();
+        // Call?
+        if (parser.tokens().check(T_LEFT_PAREN)) {
+            ASTArguments args = parser.arguments();
 
-			// Method of same object?
-			// TODO: handle overloaded methods
-			ASTMethod method = parser.currObj().methods().get(identifier);
+            // Method of same object?
+            // TODO: handle overloaded methods
+            ASTMethod method = parser.currObj().methods().get(identifier);
 
-			if (method != null) // Call
-				return new ASTExprCallMethod(line, method, args);
+            if (method != null) // Call
+                return new ASTExprCallMethod(line, method, args);
 
-			// Efun?
-			Efun efun = EfunRegistry.lookup(identifier);
+            // Efun?
+            Efun efun = EfunRegistry.lookup(identifier);
 
-			if (efun != null) // Call
-				return new ASTExprCallEfun(line, efun, args);
+            if (efun != null) // Call
+                return new ASTExprCallEfun(line, efun, args);
 
-			throw new ParseException("Unrecognized method or function '" + identifier + "'.");
-		}
+            throw new ParseException("Unrecognized method or function '" + identifier + "'.");
+        }
 
-		// Local?
-		ASTLocal local = parser.locals().get(identifier);
+        // Local?
+        ASTLocal local = parser.locals().get(identifier);
 
-		if (local != null)
-			// Invoke?
-			if (parser.tokens().match(T_RIGHT_ARROW)) {
-				Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
+        if (local != null)
+            // Invoke?
+            if (parser.tokens().match(T_RIGHT_ARROW)) {
+                Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
 
-				return new ASTExprInvokeLocal(line, local.slot(), nameToken.lexeme(), parser.arguments());
-				// Assign?
-			} else if (canAssign && parser.tokens().match(T_EQUAL))
-				return new ASTExprLocalStore(line, local, parser.expression());
-			// Retrieve.
-			else
-				return new ASTExprLocalAccess(line, local);
+                return new ASTExprInvokeLocal(line, local.slot(), nameToken.lexeme(), parser.arguments());
+                // Assign?
+            } else if (canAssign && parser.tokens().match(T_EQUAL))
+                return new ASTExprLocalStore(line, local, parser.expression());
+            // Retrieve.
+            else
+                return new ASTExprLocalAccess(line, local);
 
-		// Field?
-		ASTField field = parser.currObj().fields().get(identifier);
+        // Field?
+        ASTField field = parser.currObj().fields().get(identifier);
 
-		if (field != null)
-			// Invoke?
-			if (parser.tokens().match(T_RIGHT_ARROW)) {
-				System.out.println("TODO: implement field invocation (PrefixIdentifier.java)");
-				return null; // TODO
-				// Assign?
-			} else if (canAssign && parser.tokens().match(T_EQUAL))
-				return new ASTExprFieldStore(line, field, parser.expression());
-			// Retrieve.
-			else
-				return new ASTExprFieldAccess(line, field);
+        if (field != null)
+            // Invoke?
+            if (parser.tokens().match(T_RIGHT_ARROW)) {
+                System.out.println("TODO: implement field invocation (PrefixIdentifier.java)");
+                return null; // TODO
+                // Assign?
+            } else if (canAssign && parser.tokens().match(T_EQUAL))
+                return new ASTExprFieldStore(line, field, parser.expression());
+            // Retrieve.
+            else
+                return new ASTExprFieldAccess(line, field);
 
-		throw new ParseException("Unrecognized local or field '" + identifier + "'.");
-	}
+        throw new ParseException("Unrecognized local or field '" + identifier + "'.");
+    }
 }

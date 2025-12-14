@@ -24,57 +24,57 @@ import io.github.protasm.lpc2j.sourcepos.LineMap;
  * hideset to avoid recursive re-expansion.
  */
 public final class Preprocessor {
-	public static final class Result {
-		public final String source; // fully expanded text
+    public static final class Result {
+        public final String source; // fully expanded text
 
-		public Result(String source) {
-			this.source = source;
-		}
-	}
+        public Result(String source) {
+            this.source = source;
+        }
+    }
 
-	private static final class Macro {
-		final String name;
-		final List<String> params; // null for object-like
-		final List<PPToken> body; // tokenized body
+    private static final class Macro {
+        final String name;
+        final List<String> params; // null for object-like
+        final List<PPToken> body; // tokenized body
 
-		Macro(String name, List<String> params, List<PPToken> body) {
-			this.name = name;
-			this.params = params;
-			this.body = body;
-		}
+        Macro(String name, List<String> params, List<PPToken> body) {
+            this.name = name;
+            this.params = params;
+            this.body = body;
+        }
 
-		boolean isFunctionLike() {
-			return params != null;
-		}
-	}
+        boolean isFunctionLike() {
+            return params != null;
+        }
+    }
 
-	/** Tiny token for preprocessing stage only. */
-	private static final class PPToken {
-		enum Kind {
-			IDENT, NUMBER, STRING, OP, PUNCT, END
-		}
+    /** Tiny token for preprocessing stage only. */
+    private static final class PPToken {
+        enum Kind {
+            IDENT, NUMBER, STRING, OP, PUNCT, END
+        }
 
-		final Kind kind;
-		final String lexeme;
+        final Kind kind;
+        final String lexeme;
 
-		PPToken(Kind k, String x) {
-			kind = k;
-			lexeme = x;
-		}
+        PPToken(Kind k, String x) {
+            kind = k;
+            lexeme = x;
+        }
 
-		@Override
-		public String toString() {
-			return lexeme;
-		}
-	}
+        @Override
+        public String toString() {
+            return lexeme;
+        }
+    }
 
-	private final IncludeResolver resolver;
-	private final Map<String, Macro> macros = new HashMap<>();
+    private final IncludeResolver resolver;
+    private final Map<String, Macro> macros = new HashMap<>();
 
         public Preprocessor(IncludeResolver resolver) {
                 this.resolver = Objects.requireNonNull(resolver);
 
-		// predefineds you may want:
+        // predefineds you may want:
                 defineObject("__LPC__", "1");
         }
 
@@ -100,762 +100,762 @@ public final class Preprocessor {
         public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
                 IncludeResolver resolver = (includingFile, includePath, system) -> {
                         if (!system && (includingFile != null)) {
-				Path dir = includingFile.getParent();
+                Path dir = includingFile.getParent();
 
-				if (dir != null) {
-					Path candidate = dir.resolve(includePath);
+                if (dir != null) {
+                    Path candidate = dir.resolve(includePath);
 
-					if (Files.exists(candidate))
-						return Files.readString(candidate);
-				}
-			}
+                    if (Files.exists(candidate))
+                        return Files.readString(candidate);
+                }
+            }
 
-			Path base = Path.of(system ? sysInclPath : quoteInclPath);
+            Path base = Path.of(system ? sysInclPath : quoteInclPath);
 
-			return Files.readString(base.resolve(includePath));
-		};
+            return Files.readString(base.resolve(includePath));
+        };
 
-		Preprocessor pp = new Preprocessor(resolver);
+        Preprocessor pp = new Preprocessor(resolver);
 
-		return pp.preprocess(sourcePath, source);
-	}
+        return pp.preprocess(sourcePath, source);
+    }
 
-	public Result preprocess(Path sourcePath, String source) {
-		StringBuilder out = new StringBuilder();
-		String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
-		LineMap map = new LineMap(file, splice(source));
-		CharCursor cur = new CharCursor(map);
+    public Result preprocess(Path sourcePath, String source) {
+        StringBuilder out = new StringBuilder();
+        String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
+        LineMap map = new LineMap(file, splice(source));
+        CharCursor cur = new CharCursor(map);
 
-		try {
-			expandUnit(cur, out, new HashSet<>());
-		} catch (PreprocessException e) {
-			System.out.println(e);
-		}
+        try {
+            expandUnit(cur, out, new HashSet<>());
+        } catch (PreprocessException e) {
+            System.out.println(e);
+        }
 
-		String result = out.toString();
+        String result = out.toString();
 
-//		System.out.println(result); // dump fully preprocessed source
+//        System.out.println(result); // dump fully preprocessed source
 
-		return new Result(result);
-	}
+        return new Result(result);
+    }
 
-	/* ========================= core expansion ========================== */
+    /* ========================= core expansion ========================== */
 
-	private void expandUnit(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
-		while (!cc.end()) {
-			// buffer leading horizontal ws (not newline)
-			StringBuilder bolWs = new StringBuilder();
-			while (!cc.end()) {
-				char p = cc.peek();
+    private void expandUnit(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+        while (!cc.end()) {
+            // buffer leading horizontal ws (not newline)
+            StringBuilder bolWs = new StringBuilder();
+            while (!cc.end()) {
+                char p = cc.peek();
 
-				if ((p == ' ') || (p == '\t') || (p == '\r') || (p == '\f')) {
-					cc.advance();
+                if ((p == ' ') || (p == '\t') || (p == '\r') || (p == '\f')) {
+                    cc.advance();
 
-					bolWs.append(p);
-				} else
-					break;
-			}
+                    bolWs.append(p);
+                } else
+                    break;
+            }
 
-			if (!cc.end() && (cc.peek() == '#')) {
-				// directive: ignore buffered ws per preproc rules
-				handleDirective(cc, out, includeGuard);
+            if (!cc.end() && (cc.peek() == '#')) {
+                // directive: ignore buffered ws per preproc rules
+                handleDirective(cc, out, includeGuard);
 
-				continue;
-			}
+                continue;
+            }
 
-			// not a directive: emit the ws we consumed and expand the rest of the line
-			out.append(bolWs);
+            // not a directive: emit the ws we consumed and expand the rest of the line
+            out.append(bolWs);
 
-			copyLineWithExpansion(cc, out);
-		}
-	}
+            copyLineWithExpansion(cc, out);
+        }
+    }
 
-	private void handleDirective(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
-		int directiveLine = cc.line();
+    private void handleDirective(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+        int directiveLine = cc.line();
 
-		cc.advance(); // consume '#'
+        cc.advance(); // consume '#'
 
-		skipWhitespaceExceptNewline(cc);
+        skipWhitespaceExceptNewline(cc);
 
-		String name = readIdent(cc);
+        String name = readIdent(cc);
 
-		if (name == null)
-			throw error("expected directive name after '#'", cc, directiveLine);
+        if (name == null)
+            throw error("expected directive name after '#'", cc, directiveLine);
 
-		switch (name) {
-		case "include" -> doInclude(cc, out, includeGuard);
-		case "define" -> doDefine(cc);
-		case "undef" -> doUndef(cc);
-		case "ifdef" -> doIfdef(cc, out, true);
-		case "ifndef" -> doIfdef(cc, out, false);
-		case "if" -> doIf(cc, out);
-		case "elif", "else", "endif" -> throw error("#" + name + " without matching #if", cc, directiveLine);
-		default -> {
-			// Unknown pragma-like directive: drop the line but preserve newline to keep
-			// line numbers stable.
-			skipRestOfLine(cc, out);
-		}
-		}
-	}
+        switch (name) {
+        case "include" -> doInclude(cc, out, includeGuard);
+        case "define" -> doDefine(cc);
+        case "undef" -> doUndef(cc);
+        case "ifdef" -> doIfdef(cc, out, true);
+        case "ifndef" -> doIfdef(cc, out, false);
+        case "if" -> doIf(cc, out);
+        case "elif", "else", "endif" -> throw error("#" + name + " without matching #if", cc, directiveLine);
+        default -> {
+            // Unknown pragma-like directive: drop the line but preserve newline to keep
+            // line numbers stable.
+            skipRestOfLine(cc, out);
+        }
+        }
+    }
 
-	private void doInclude(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
-		skipWhitespaceExceptNewline(cc);
+    private void doInclude(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+        skipWhitespaceExceptNewline(cc);
 
-		char q = cc.peek();
-		boolean system = false;
+        char q = cc.peek();
+        boolean system = false;
 
-		if ((q == '"') || (q == '<')) {
-			system = (q == '<');
+        if ((q == '"') || (q == '<')) {
+            system = (q == '<');
 
-			cc.advance();
+            cc.advance();
 
-			StringBuilder path = new StringBuilder();
-			char endq = (q == '"') ? '"' : '>';
+            StringBuilder path = new StringBuilder();
+            char endq = (q == '"') ? '"' : '>';
 
-			while (!cc.end() && (cc.peek() != endq))
-				path.append(cc.advance());
+            while (!cc.end() && (cc.peek() != endq))
+                path.append(cc.advance());
 
-			if (cc.peek() != endq)
-				throw error("unterminated include path", cc, cc.line());
+            if (cc.peek() != endq)
+                throw error("unterminated include path", cc, cc.line());
 
-			cc.advance(); // consume closing
+            cc.advance(); // consume closing
 
-			skipRestOfLine(cc, out); // eat trailing until newline
+            skipRestOfLine(cc, out); // eat trailing until newline
 
-			String fileText;
+            String fileText;
 
-			try {
-				fileText = resolver.resolve(Path.of(cc.fileName()), path.toString(), system);
-			} catch (IOException e) {
-				throw error("cannot include '" + path + "': " + e.getMessage(), cc, cc.line());
-			}
+            try {
+                fileText = resolver.resolve(Path.of(cc.fileName()), path.toString(), system);
+            } catch (IOException e) {
+                throw error("cannot include '" + path + "': " + e.getMessage(), cc, cc.line());
+            }
 
-			// Preprocess included text recursively
-			String includedFile = path.toString();
-			CharCursor child = new CharCursor(new LineMap(includedFile, splice(fileText)));
+            // Preprocess included text recursively
+            String includedFile = path.toString();
+            CharCursor child = new CharCursor(new LineMap(includedFile, splice(fileText)));
 
-			expandUnit(child, out, includeGuard);
-		} else
-			throw error("expected \"path\" or <path> after #include", cc, cc.line());
-	}
+            expandUnit(child, out, includeGuard);
+        } else
+            throw error("expected \"path\" or <path> after #include", cc, cc.line());
+    }
 
-	private void doDefine(CharCursor cc) {
-		skipWhitespaceExceptNewline(cc);
+    private void doDefine(CharCursor cc) {
+        skipWhitespaceExceptNewline(cc);
 
-		String name = readIdent(cc);
+        String name = readIdent(cc);
 
-		if (name == null)
-			throw error("expected macro name after #define", cc, cc.line());
+        if (name == null)
+            throw error("expected macro name after #define", cc, cc.line());
 
-		// function-like?
-		List<String> params = null;
+        // function-like?
+        List<String> params = null;
 
-		skipWhitespaceExceptNewline(cc);
+        skipWhitespaceExceptNewline(cc);
 
-		if (cc.peek() == '(') {
-			cc.advance(); // '('
+        if (cc.peek() == '(') {
+            cc.advance(); // '('
 
-			params = new ArrayList<>();
+            params = new ArrayList<>();
 
-			if (cc.peek() != ')')
-				while (true) {
-					skipWhitespaceExceptNewline(cc);
+            if (cc.peek() != ')')
+                while (true) {
+                    skipWhitespaceExceptNewline(cc);
 
-					String p = readIdent(cc);
+                    String p = readIdent(cc);
 
-					if (p == null)
-						throw error("expected parameter name in macro", cc, cc.line());
+                    if (p == null)
+                        throw error("expected parameter name in macro", cc, cc.line());
 
-					params.add(p);
+                    params.add(p);
 
-					skipWhitespaceExceptNewline(cc);
+                    skipWhitespaceExceptNewline(cc);
 
-					if (cc.peek() == ')')
-						break;
+                    if (cc.peek() == ')')
+                        break;
 
-					if (cc.peek() != ',')
-						throw error("expected ',' or ')'", cc, cc.line());
+                    if (cc.peek() != ',')
+                        throw error("expected ',' or ')'", cc, cc.line());
 
-					cc.advance();
-				}
+                    cc.advance();
+                }
 
-			cc.advance(); // ')'
-		}
+            cc.advance(); // ')'
+        }
 
-		// body = rest of line (tokenized)
-		List<PPToken> body = tokenizeUntilNewline(cc);
+        // body = rest of line (tokenized)
+        List<PPToken> body = tokenizeUntilNewline(cc);
 
-		macros.put(name, new Macro(name, params, body));
-		// keep newline (already consumed by tokenizer)
-	}
+        macros.put(name, new Macro(name, params, body));
+        // keep newline (already consumed by tokenizer)
+    }
 
-	private void doUndef(CharCursor cc) {
-		skipWhitespaceExceptNewline(cc);
+    private void doUndef(CharCursor cc) {
+        skipWhitespaceExceptNewline(cc);
 
-		String name = readIdent(cc);
+        String name = readIdent(cc);
 
-		if (name == null)
-			throw error("expected macro name after #undef", cc, cc.line());
+        if (name == null)
+            throw error("expected macro name after #undef", cc, cc.line());
 
-		macros.remove(name);
+        macros.remove(name);
 
-		skipRestOfLine(cc, new StringBuilder()); // drop to EOL
-	}
+        skipRestOfLine(cc, new StringBuilder()); // drop to EOL
+    }
 
-	private void doIfdef(CharCursor cc, StringBuilder out, boolean positive) {
-		skipWhitespaceExceptNewline(cc);
+    private void doIfdef(CharCursor cc, StringBuilder out, boolean positive) {
+        skipWhitespaceExceptNewline(cc);
 
-		String name = readIdent(cc);
+        String name = readIdent(cc);
 
-		if (name == null)
-			throw error("expected identifier after #" + (positive ? "ifdef" : "ifndef"), cc, cc.line());
+        if (name == null)
+            throw error("expected identifier after #" + (positive ? "ifdef" : "ifndef"), cc, cc.line());
 
-		boolean cond = macros.containsKey(name);
+        boolean cond = macros.containsKey(name);
 
-		if (!positive)
-			cond = !cond;
+        if (!positive)
+            cond = !cond;
 
-		handleConditional(cc, out, cond);
-	}
+        handleConditional(cc, out, cond);
+    }
 
-	private void doIf(CharCursor cc, StringBuilder out) {
-		// Evaluate simple integer expression with defined(NAME)
-		List<PPToken> expr = tokenizeUntilNewline(cc);
-		boolean cond = evalIfExpr(expr);
+    private void doIf(CharCursor cc, StringBuilder out) {
+        // Evaluate simple integer expression with defined(NAME)
+        List<PPToken> expr = tokenizeUntilNewline(cc);
+        boolean cond = evalIfExpr(expr);
 
-		handleConditional(cc, out, cond);
-	}
+        handleConditional(cc, out, cond);
+    }
 
-	private void handleConditional(CharCursor cc, StringBuilder out, boolean firstBranch) {
-		// Consume blocks until matching #endif
-		boolean taken = false;
+    private void handleConditional(CharCursor cc, StringBuilder out, boolean firstBranch) {
+        // Consume blocks until matching #endif
+        boolean taken = false;
 
-		while (true) {
-			if (!taken && firstBranch) {
-				// Expand this block
-				expandConditionalBlock(cc, out);
+        while (true) {
+            if (!taken && firstBranch) {
+                // Expand this block
+                expandConditionalBlock(cc, out);
 
-				taken = true;
-			} else
-				// Skip this block but still handle nesting
-				skipConditionalBlock(cc);
+                taken = true;
+            } else
+                // Skip this block but still handle nesting
+                skipConditionalBlock(cc);
 
-			// Expect #elif / #else / #endif
-			if (!isStartOfDirective(cc))
-				break;
+            // Expect #elif / #else / #endif
+            if (!isStartOfDirective(cc))
+                break;
 
-			cc.advance();
+            cc.advance();
 
-			skipWhitespaceExceptNewline(cc);
+            skipWhitespaceExceptNewline(cc);
 
-			String name = readIdent(cc);
+            String name = readIdent(cc);
 
-			if ("elif".equals(name)) {
-				List<PPToken> expr = tokenizeUntilNewline(cc);
+            if ("elif".equals(name)) {
+                List<PPToken> expr = tokenizeUntilNewline(cc);
 
-				firstBranch = evalIfExpr(expr);
+                firstBranch = evalIfExpr(expr);
 
-				continue;
-			} else if ("else".equals(name)) {
-				skipRestOfLine(cc, out);
+                continue;
+            } else if ("else".equals(name)) {
+                skipRestOfLine(cc, out);
 
-				firstBranch = true; // only last branch remaining
+                firstBranch = true; // only last branch remaining
 
-				continue;
-			} else if ("endif".equals(name)) {
-				skipRestOfLine(cc, out);
+                continue;
+            } else if ("endif".equals(name)) {
+                skipRestOfLine(cc, out);
 
-				break;
-			} else
-				throw error("#" + name + " not allowed here", cc, cc.line());
-		}
-	}
+                break;
+            } else
+                throw error("#" + name + " not allowed here", cc, cc.line());
+        }
+    }
 
-	private void expandConditionalBlock(CharCursor cc, StringBuilder out) {
-		while (!cc.end()) {
-			if (isStartOfDirective(cc)) {
-				// Lookahead to see if this is an #elif/#else/#endif to end this block
-				int mark = cc.index();
+    private void expandConditionalBlock(CharCursor cc, StringBuilder out) {
+        while (!cc.end()) {
+            if (isStartOfDirective(cc)) {
+                // Lookahead to see if this is an #elif/#else/#endif to end this block
+                int mark = cc.index();
 
-				cc.advance();
+                cc.advance();
 
-				skipWhitespaceExceptNewline(cc);
+                skipWhitespaceExceptNewline(cc);
 
-				String name = readIdent(cc);
+                String name = readIdent(cc);
 
-				cc.rewind(mark);
+                cc.rewind(mark);
 
-				if ("elif".equals(name) || "else".equals(name) || "endif".equals(name))
-					return; // let caller handle the directive
-			}
+                if ("elif".equals(name) || "else".equals(name) || "endif".equals(name))
+                    return; // let caller handle the directive
+            }
 
-			copyLineWithExpansion(cc, out);
-		}
-	}
+            copyLineWithExpansion(cc, out);
+        }
+    }
 
-	private static void skipWhitespaceExceptNewline(CharCursor cc) {
-		while (!cc.end()) {
-			char c = cc.peek();
+    private static void skipWhitespaceExceptNewline(CharCursor cc) {
+        while (!cc.end()) {
+            char c = cc.peek();
 
-			if ((c == ' ') || (c == '\t') || (c == '\r') || (c == '\f'))
-				cc.advance();
-			else
-				break;
-		}
-	}
+            if ((c == ' ') || (c == '\t') || (c == '\r') || (c == '\f'))
+                cc.advance();
+            else
+                break;
+        }
+    }
 
-	private void skipConditionalBlock(CharCursor cc) {
-		while (!cc.end()) {
-			if (isStartOfDirective(cc)) {
-				int mark = cc.index();
+    private void skipConditionalBlock(CharCursor cc) {
+        while (!cc.end()) {
+            if (isStartOfDirective(cc)) {
+                int mark = cc.index();
 
-				cc.advance();
+                cc.advance();
 
-				skipWhitespaceExceptNewline(cc);
+                skipWhitespaceExceptNewline(cc);
 
-				String name = readIdent(cc);
+                String name = readIdent(cc);
 
-				if ("if".equals(name) || "ifdef".equals(name) || "ifndef".equals(name)) {
-					// nested: skip it fully
-					skipRestOfLine(cc, new StringBuilder());
+                if ("if".equals(name) || "ifdef".equals(name) || "ifndef".equals(name)) {
+                    // nested: skip it fully
+                    skipRestOfLine(cc, new StringBuilder());
 
-					skipConditionalBlock(cc);
+                    skipConditionalBlock(cc);
 
-					continue;
-				}
+                    continue;
+                }
 
-				if ("elif".equals(name) || "else".equals(name) || "endif".equals(name)) {
-					// Rewind so caller can process branch switch
-					cc.rewind(mark);
+                if ("elif".equals(name) || "else".equals(name) || "endif".equals(name)) {
+                    // Rewind so caller can process branch switch
+                    cc.rewind(mark);
 
-					return;
-				}
+                    return;
+                }
 
-				// Other directive: skip its line
-				cc.rewind(mark);
-			}
+                // Other directive: skip its line
+                cc.rewind(mark);
+            }
 
-			// Skip one full physical line preserving newline for line numbers
-			while (!cc.end()) {
-				char c = cc.advance();
+            // Skip one full physical line preserving newline for line numbers
+            while (!cc.end()) {
+                char c = cc.advance();
 
-				if (c == '\n')
-					break;
-			}
-		}
-	}
+                if (c == '\n')
+                    break;
+            }
+        }
+    }
 
-	/*
-	 * ========================= line copying + expansion ==========================
-	 */
+    /*
+     * ========================= line copying + expansion ==========================
+     */
 
-	private void copyLineWithExpansion(CharCursor cc, StringBuilder out) {
-		List<PPToken> toks = tokenizeUntilNewline(cc);
-		List<PPToken> expanded = expandMacros(toks, new HashSet<>());
+    private void copyLineWithExpansion(CharCursor cc, StringBuilder out) {
+        List<PPToken> toks = tokenizeUntilNewline(cc);
+        List<PPToken> expanded = expandMacros(toks, new HashSet<>());
 
-		for (PPToken t : expanded)
-			out.append(t.lexeme);
+        for (PPToken t : expanded)
+            out.append(t.lexeme);
 
-		out.append('\n'); // keep line numbers stable
-	}
+        out.append('\n'); // keep line numbers stable
+    }
 
-	/*
-	 * ========================= tokenization (preproc level)
-	 * ==========================
-	 */
+    /*
+     * ========================= tokenization (preproc level)
+     * ==========================
+     */
 
-	private List<PPToken> tokenizeUntilNewline(CharCursor s) {
-		List<PPToken> out = new ArrayList<>();
+    private List<PPToken> tokenizeUntilNewline(CharCursor s) {
+        List<PPToken> out = new ArrayList<>();
 
-		while (!s.end()) {
-			char c = s.peek();
+        while (!s.end()) {
+            char c = s.peek();
 
-			if (c == '\n') {
-				s.advance();
+            if (c == '\n') {
+                s.advance();
 
-				break;
-			}
+                break;
+            }
 
-			if ((c == '/') && s.canPeekNext() && (s.peekNext() == '/')) { // // comment
-				while (!s.end() && (s.advance() != '\n')) {
-					// just advance
-				}
+            if ((c == '/') && s.canPeekNext() && (s.peekNext() == '/')) { // // comment
+                while (!s.end() && (s.advance() != '\n')) {
+                    // just advance
+                }
 
-				break;
-			}
+                break;
+            }
 
-			if ((c == '/') && s.canPeekNext() && (s.peekNext() == '*')) { // /* */ comment
-				s.advance();
-				s.advance();
+            if ((c == '/') && s.canPeekNext() && (s.peekNext() == '*')) { // /* */ comment
+                s.advance();
+                s.advance();
 
-				while (!s.end()) {
-					if ((s.peek() == '*') && s.canPeekNext() && (s.peekNext() == '/')) {
-						s.advance();
-						s.advance();
+                while (!s.end()) {
+                    if ((s.peek() == '*') && s.canPeekNext() && (s.peekNext() == '/')) {
+                        s.advance();
+                        s.advance();
 
-						break;
-					}
+                        break;
+                    }
 
-					s.advance();
-				}
+                    s.advance();
+                }
 
-				continue;
-			}
+                continue;
+            }
 
-			if (Character.isWhitespace(c)) {
-				out.add(new PPToken(PPToken.Kind.PUNCT, String.valueOf(s.advance())));
+            if (Character.isWhitespace(c)) {
+                out.add(new PPToken(PPToken.Kind.PUNCT, String.valueOf(s.advance())));
 
-				continue;
-			}
+                continue;
+            }
 
-			if ((c == '"') || (c == '\'')) {
-				out.add(readString(s));
+            if ((c == '"') || (c == '\'')) {
+                out.add(readString(s));
 
-				continue;
-			}
+                continue;
+            }
 
-			if (Character.isLetter(c) || (c == '_')) {
-				out.add(readIdentTok(s));
+            if (Character.isLetter(c) || (c == '_')) {
+                out.add(readIdentTok(s));
 
-				continue;
-			}
+                continue;
+            }
 
-			if (Character.isDigit(c)) {
-				out.add(readNumberTok(s));
+            if (Character.isDigit(c)) {
+                out.add(readNumberTok(s));
 
-				continue;
-			}
+                continue;
+            }
 
-			// operators/punctuators (keep as single chars; good enough for macro re-expand)
-			out.add(new PPToken(PPToken.Kind.OP, String.valueOf(s.advance())));
-		}
+            // operators/punctuators (keep as single chars; good enough for macro re-expand)
+            out.add(new PPToken(PPToken.Kind.OP, String.valueOf(s.advance())));
+        }
 
-		return out;
-	}
+        return out;
+    }
 
-	private PPToken readIdentTok(CharCursor s) {
-		StringBuilder sb = new StringBuilder();
+    private PPToken readIdentTok(CharCursor s) {
+        StringBuilder sb = new StringBuilder();
 
-		while (!s.end()) {
-			char ch = s.peek();
+        while (!s.end()) {
+            char ch = s.peek();
 
-			if (Character.isLetterOrDigit(ch) || (ch == '_'))
-				sb.append(s.advance());
-			else
-				break;
-		}
+            if (Character.isLetterOrDigit(ch) || (ch == '_'))
+                sb.append(s.advance());
+            else
+                break;
+        }
 
-		return new PPToken(PPToken.Kind.IDENT, sb.toString());
-	}
+        return new PPToken(PPToken.Kind.IDENT, sb.toString());
+    }
 
-	private PPToken readNumberTok(CharCursor s) {
-		StringBuilder sb = new StringBuilder();
+    private PPToken readNumberTok(CharCursor s) {
+        StringBuilder sb = new StringBuilder();
 
-		while (!s.end() && Character.isDigit(s.peek()))
-			sb.append(s.advance());
+        while (!s.end() && Character.isDigit(s.peek()))
+            sb.append(s.advance());
 
-		if (!s.end() && (s.peek() == '.')) {
-			sb.append(s.advance());
+        if (!s.end() && (s.peek() == '.')) {
+            sb.append(s.advance());
 
-			while (!s.end() && Character.isDigit(s.peek()))
-				sb.append(s.advance());
-		}
+            while (!s.end() && Character.isDigit(s.peek()))
+                sb.append(s.advance());
+        }
 
-		return new PPToken(PPToken.Kind.NUMBER, sb.toString());
-	}
+        return new PPToken(PPToken.Kind.NUMBER, sb.toString());
+    }
 
-	private PPToken readString(CharCursor s) {
-		StringBuilder sb = new StringBuilder();
-		char q = s.advance(); // opening
+    private PPToken readString(CharCursor s) {
+        StringBuilder sb = new StringBuilder();
+        char q = s.advance(); // opening
 
-		sb.append(q);
+        sb.append(q);
 
-		while (!s.end()) {
-			char c = s.advance();
+        while (!s.end()) {
+            char c = s.advance();
 
-			sb.append(c);
+            sb.append(c);
 
-			if (c == q)
-				break;
+            if (c == q)
+                break;
 
-			if ((c == '\\') && !s.end())
-				sb.append(s.advance());
-		}
-		return new PPToken(PPToken.Kind.STRING, sb.toString());
-	}
+            if ((c == '\\') && !s.end())
+                sb.append(s.advance());
+        }
+        return new PPToken(PPToken.Kind.STRING, sb.toString());
+    }
 
-	private void skipRestOfLine(CharCursor s, StringBuilder out) {
-		while (!s.end() && (s.advance() != '\n')) {
-			// just advance
-		}
+    private void skipRestOfLine(CharCursor s, StringBuilder out) {
+        while (!s.end() && (s.advance() != '\n')) {
+            // just advance
+        }
 
-		out.append('\n'); // preserve line count
-	}
+        out.append('\n'); // preserve line count
+    }
 
-	/* ========================= macros ========================== */
+    /* ========================= macros ========================== */
 
-	private void defineObject(String name, String body) {
-		macros.put(name, new Macro(name, null, List.of(new PPToken(PPToken.Kind.IDENT, body))));
-	}
+    private void defineObject(String name, String body) {
+        macros.put(name, new Macro(name, null, List.of(new PPToken(PPToken.Kind.IDENT, body))));
+    }
 
-	private List<PPToken> expandMacros(List<PPToken> in, Set<String> hideset) {
-		List<PPToken> out = new ArrayList<>();
+    private List<PPToken> expandMacros(List<PPToken> in, Set<String> hideset) {
+        List<PPToken> out = new ArrayList<>();
 
-		for (int i = 0; i < in.size();) {
-			PPToken t = in.get(i);
+        for (int i = 0; i < in.size();) {
+            PPToken t = in.get(i);
 
-			if ((t.kind == PPToken.Kind.IDENT) && macros.containsKey(t.lexeme) && !hideset.contains(t.lexeme)) {
-				Macro m = macros.get(t.lexeme);
+            if ((t.kind == PPToken.Kind.IDENT) && macros.containsKey(t.lexeme) && !hideset.contains(t.lexeme)) {
+                Macro m = macros.get(t.lexeme);
 
-				if (!m.isFunctionLike()) {
-					// object-like: splice body, with hideset entry
-					Set<String> nextHide = new HashSet<>(hideset);
+                if (!m.isFunctionLike()) {
+                    // object-like: splice body, with hideset entry
+                    Set<String> nextHide = new HashSet<>(hideset);
 
-					nextHide.add(m.name);
+                    nextHide.add(m.name);
 
-					out.addAll(expandMacros(m.body, nextHide));
+                    out.addAll(expandMacros(m.body, nextHide));
 
-					i++;
-				} else {
-					// function-like: collect actual args
-					int save = i;
+                    i++;
+                } else {
+                    // function-like: collect actual args
+                    int save = i;
 
-					i++; // consume name
+                    i++; // consume name
 
-					if ((i >= in.size()) || !in.get(i).lexeme.equals("(")) {
-						// not a call site; leave as-is
-						i = save;
+                    if ((i >= in.size()) || !in.get(i).lexeme.equals("(")) {
+                        // not a call site; leave as-is
+                        i = save;
 
-						out.add(in.get(i++));
+                        out.add(in.get(i++));
 
-						continue;
-					}
+                        continue;
+                    }
 
-					i++; // consume '('
+                    i++; // consume '('
 
-					List<List<PPToken>> actuals = new ArrayList<>();
-					List<PPToken> current = new ArrayList<>();
-					int depth = 1;
+                    List<List<PPToken>> actuals = new ArrayList<>();
+                    List<PPToken> current = new ArrayList<>();
+                    int depth = 1;
 
-					while ((i < in.size()) && (depth > 0)) {
-						PPToken x = in.get(i++);
+                    while ((i < in.size()) && (depth > 0)) {
+                        PPToken x = in.get(i++);
 
-						if (x.lexeme.equals("(")) {
-							depth++;
+                        if (x.lexeme.equals("(")) {
+                            depth++;
 
-							current.add(x);
+                            current.add(x);
 
-							continue;
-						}
+                            continue;
+                        }
 
-						if (x.lexeme.equals(")")) {
-							depth--;
+                        if (x.lexeme.equals(")")) {
+                            depth--;
 
-							if (depth == 0) {
-								actuals.add(current);
+                            if (depth == 0) {
+                                actuals.add(current);
 
-								break;
-							}
+                                break;
+                            }
 
-							current.add(x);
+                            current.add(x);
 
-							continue;
-						}
-						if (x.lexeme.equals(",") && (depth == 1)) {
-							actuals.add(current);
+                            continue;
+                        }
+                        if (x.lexeme.equals(",") && (depth == 1)) {
+                            actuals.add(current);
 
-							current = new ArrayList<>();
-						} else
-							current.add(x);
-					}
+                            current = new ArrayList<>();
+                        } else
+                            current.add(x);
+                    }
 
-					// substitute params
-					Map<String, List<PPToken>> paramMap = new HashMap<>();
+                    // substitute params
+                    Map<String, List<PPToken>> paramMap = new HashMap<>();
 
-					if (m.params != null)
-						for (int pi = 0; pi < m.params.size(); pi++) {
-							List<PPToken> val = (pi < actuals.size()) ? actuals.get(pi) : List.of();
+                    if (m.params != null)
+                        for (int pi = 0; pi < m.params.size(); pi++) {
+                            List<PPToken> val = (pi < actuals.size()) ? actuals.get(pi) : List.of();
 
-							paramMap.put(m.params.get(pi), val);
-						}
+                            paramMap.put(m.params.get(pi), val);
+                        }
 
-					List<PPToken> substituted = substitute(m.body, paramMap);
-					Set<String> nextHide = new HashSet<>(hideset);
+                    List<PPToken> substituted = substitute(m.body, paramMap);
+                    Set<String> nextHide = new HashSet<>(hideset);
 
-					nextHide.add(m.name);
+                    nextHide.add(m.name);
 
-					out.addAll(expandMacros(substituted, nextHide));
-				}
-			} else {
-				out.add(t);
+                    out.addAll(expandMacros(substituted, nextHide));
+                }
+            } else {
+                out.add(t);
 
-				i++;
-			}
-		}
+                i++;
+            }
+        }
 
-		return out;
-	}
+        return out;
+    }
 
-	private List<PPToken> substitute(List<PPToken> body, Map<String, List<PPToken>> params) {
-		if (params.isEmpty())
-			return body;
+    private List<PPToken> substitute(List<PPToken> body, Map<String, List<PPToken>> params) {
+        if (params.isEmpty())
+            return body;
 
-		List<PPToken> out = new ArrayList<>();
+        List<PPToken> out = new ArrayList<>();
 
-		for (PPToken t : body)
-			if ((t.kind == PPToken.Kind.IDENT) && params.containsKey(t.lexeme))
-				out.addAll(params.get(t.lexeme));
-			else
-				out.add(t);
-		return out;
-	}
+        for (PPToken t : body)
+            if ((t.kind == PPToken.Kind.IDENT) && params.containsKey(t.lexeme))
+                out.addAll(params.get(t.lexeme));
+            else
+                out.add(t);
+        return out;
+    }
 
-	/* ========================= #if expression ========================== */
+    /* ========================= #if expression ========================== */
 
-	private boolean evalIfExpr(List<PPToken> expr) {
-		// Recursive-descent over ||, &&, !, parentheses, NUMBER, defined(IDENT)
-		class P {
-			int i = 0;
+    private boolean evalIfExpr(List<PPToken> expr) {
+        // Recursive-descent over ||, &&, !, parentheses, NUMBER, defined(IDENT)
+        class P {
+            int i = 0;
 
-			PPToken la() {
-				return i < expr.size() ? expr.get(i) : new PPToken(PPToken.Kind.END, "");
-			}
+            PPToken la() {
+                return i < expr.size() ? expr.get(i) : new PPToken(PPToken.Kind.END, "");
+            }
 
-			PPToken eat() {
-				return expr.get(i++);
-			}
+            PPToken eat() {
+                return expr.get(i++);
+            }
 
-			boolean parseOr() {
-				boolean v = parseAnd();
+            boolean parseOr() {
+                boolean v = parseAnd();
 
-				while ((i < expr.size()) && "||".equals(expr.get(i).lexeme)) {
-					i++;
+                while ((i < expr.size()) && "||".equals(expr.get(i).lexeme)) {
+                    i++;
 
-					v = v || parseAnd();
-				}
+                    v = v || parseAnd();
+                }
 
-				return v;
-			}
+                return v;
+            }
 
-			boolean parseAnd() {
-				boolean v = parseUnary();
+            boolean parseAnd() {
+                boolean v = parseUnary();
 
-				while ((i < expr.size()) && "&&".equals(expr.get(i).lexeme)) {
-					i++;
+                while ((i < expr.size()) && "&&".equals(expr.get(i).lexeme)) {
+                    i++;
 
-					v = v && parseUnary();
-				}
+                    v = v && parseUnary();
+                }
 
-				return v;
-			}
+                return v;
+            }
 
-			boolean parseUnary() {
-				if ((i < expr.size()) && "!".equals(expr.get(i).lexeme)) {
-					i++;
+            boolean parseUnary() {
+                if ((i < expr.size()) && "!".equals(expr.get(i).lexeme)) {
+                    i++;
 
-					return !parseUnary();
-				}
+                    return !parseUnary();
+                }
 
-				if ((i < expr.size()) && "(".equals(expr.get(i).lexeme)) {
-					i++;
+                if ((i < expr.size()) && "(".equals(expr.get(i).lexeme)) {
+                    i++;
 
-					boolean v = parseOr();
+                    boolean v = parseOr();
 
-					if ((i < expr.size()) && ")".equals(expr.get(i).lexeme))
-						i++;
+                    if ((i < expr.size()) && ")".equals(expr.get(i).lexeme))
+                        i++;
 
-					return v;
-				}
+                    return v;
+                }
 
-				if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)
-						&& "defined".equals(expr.get(i).lexeme)) {
-					i++;
+                if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)
+                        && "defined".equals(expr.get(i).lexeme)) {
+                    i++;
 
-					boolean paren = (i < expr.size()) && "(".equals(expr.get(i).lexeme);
+                    boolean paren = (i < expr.size()) && "(".equals(expr.get(i).lexeme);
 
-					if (paren)
-						i++;
+                    if (paren)
+                        i++;
 
-					String id = ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)) ? eat().lexeme : "";
+                    String id = ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)) ? eat().lexeme : "";
 
-					if (paren && (i < expr.size()) && ")".equals(expr.get(i).lexeme))
-						i++;
+                    if (paren && (i < expr.size()) && ")".equals(expr.get(i).lexeme))
+                        i++;
 
-					return macros.containsKey(id);
-				}
-				// numbers: non-zero => true
-				if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.NUMBER))
-					try {
-						String n = eat().lexeme;
-						double d = Double.parseDouble(n);
+                    return macros.containsKey(id);
+                }
+                // numbers: non-zero => true
+                if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.NUMBER))
+                    try {
+                        String n = eat().lexeme;
+                        double d = Double.parseDouble(n);
 
-						return d != 0.0;
-					} catch (NumberFormatException e) {
-						return false;
-					}
-				// unknown identifiers treated as 0
-				if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)) {
-					i++;
+                        return d != 0.0;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                // unknown identifiers treated as 0
+                if ((i < expr.size()) && (expr.get(i).kind == PPToken.Kind.IDENT)) {
+                    i++;
 
-					return false;
-				}
+                    return false;
+                }
 
-				return false;
-			}
-		}
+                return false;
+            }
+        }
 
-		return new P().parseOr();
-	}
+        return new P().parseOr();
+    }
 
-	/* ========================= utils ========================== */
+    /* ========================= utils ========================== */
 
-	private PreprocessException error(String msg, CharCursor cc, int atLine) {
-		return new PreprocessException(msg, cc.fileName(), atLine);
-	}
+    private PreprocessException error(String msg, CharCursor cc, int atLine) {
+        return new PreprocessException(msg, cc.fileName(), atLine);
+    }
 
-	private String readIdent(CharCursor s) {
-		StringBuilder sb = new StringBuilder();
-		char c = s.peek();
+    private String readIdent(CharCursor s) {
+        StringBuilder sb = new StringBuilder();
+        char c = s.peek();
 
-		if (!(Character.isLetter(c) || (c == '_')))
-			return null;
+        if (!(Character.isLetter(c) || (c == '_')))
+            return null;
 
-		sb.append(s.advance());
+        sb.append(s.advance());
 
-		while (!s.end()) {
-			char ch = s.peek();
+        while (!s.end()) {
+            char ch = s.peek();
 
-			if (Character.isLetterOrDigit(ch) || (ch == '_'))
-				sb.append(s.advance());
-			else
-				break;
-		}
+            if (Character.isLetterOrDigit(ch) || (ch == '_'))
+                sb.append(s.advance());
+            else
+                break;
+        }
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 
-	private static boolean isStartOfDirective(CharCursor cc) {
-		// Minimal: treat any '#' at current cursor as a directive start.
-		// (If you want to enforce BOL/leading-ws-only later, we can refine this.)
-		return !cc.end() && (cc.peek() == '#');
-	}
+    private static boolean isStartOfDirective(CharCursor cc) {
+        // Minimal: treat any '#' at current cursor as a directive start.
+        // (If you want to enforce BOL/leading-ws-only later, we can refine this.)
+        return !cc.end() && (cc.peek() == '#');
+    }
 
-	/** Handle backslash-newline line splicing up-front. */
-	private static String splice(String text) {
-		StringBuilder out = new StringBuilder(text.length());
+    /** Handle backslash-newline line splicing up-front. */
+    private static String splice(String text) {
+        StringBuilder out = new StringBuilder(text.length());
 
-		for (int i = 0; i < text.length(); i++) {
-			char c = text.charAt(i);
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
 
-			if ((c == '\\') && ((i + 1) < text.length()) && (text.charAt(i + 1) == '\n')) {
-				i++; // drop both
+            if ((c == '\\') && ((i + 1) < text.length()) && (text.charAt(i + 1) == '\n')) {
+                i++; // drop both
 
-				continue;
-			}
+                continue;
+            }
 
-			out.append(c);
-		}
+            out.append(c);
+        }
 
-		return out.toString();
-	}
+        return out.toString();
+    }
 }

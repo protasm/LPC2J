@@ -6,27 +6,27 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class ASTExprLiteralTrue extends ASTExpression {
-	public ASTExprLiteralTrue(int line) {
-		super(line);
-	}
+    public ASTExprLiteralTrue(int line) {
+        super(line);
+    }
 
-	@Override
-	public LPCType lpcType() {
-		return LPCType.LPCSTATUS;
-	}
+    @Override
+    public LPCType lpcType() {
+        return LPCType.LPCSTATUS;
+    }
 
-	@Override
-	public void accept(Compiler visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(Compiler visitor) {
+        visitor.visit(this);
+    }
 
-	@Override
-	public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-		visitor.visit(this, lpcType);
-	}
+    @Override
+    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
+        visitor.visit(this, lpcType);
+    }
 
-	@Override
-	public void accept(PrintVisitor visitor) {
-		visitor.visit(this);
-	}
+    @Override
+    public void accept(PrintVisitor visitor) {
+        visitor.visit(this);
+    }
 }

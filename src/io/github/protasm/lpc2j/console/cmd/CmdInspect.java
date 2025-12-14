@@ -10,57 +10,57 @@ import io.github.protasm.lpc2j.console.LPCConsole;
 
 public class CmdInspect extends Command {
 
-	@Override
-	public boolean execute(LPCConsole console, String... args) {
-		if (args.length != 1) {
-			System.out.println("Usage: inspect <object>");
+    @Override
+    public boolean execute(LPCConsole console, String... args) {
+        if (args.length != 1) {
+            System.out.println("Usage: inspect <object>");
 
-			return true;
-		}
+            return true;
+        }
 
-		String objName = args[0];
-		Object obj = console.objects().get(objName);
+        String objName = args[0];
+        Object obj = console.objects().get(objName);
 
-		if (obj == null) {
-			System.out.println("Object not found: " + objName);
+        if (obj == null) {
+            System.out.println("Object not found: " + objName);
 
-			return true;
-		}
+            return true;
+        }
 
-		Class<?> clazz = obj.getClass();
+        Class<?> clazz = obj.getClass();
 
-		System.out.println("Object: " + clazz.getName());
-		System.out.println("\nFields:");
+        System.out.println("Object: " + clazz.getName());
+        System.out.println("\nFields:");
 
-		for (Field field : clazz.getDeclaredFields()) {
-			field.setAccessible(true); // allows access to private fields
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true); // allows access to private fields
 
-			try {
-				Object value = field.get(obj);
+            try {
+                Object value = field.get(obj);
 
-				System.out.printf("  %s %s %s = %s%n", Modifier.toString(field.getModifiers()),
-						field.getType().getSimpleName(), field.getName(), String.valueOf(value));
-			} catch (IllegalAccessException e) {
-				System.out.printf("  %s %s %s = <inaccessible>%n", Modifier.toString(field.getModifiers()),
-						field.getType().getSimpleName(), field.getName());
-			}
-		}
+                System.out.printf("  %s %s %s = %s%n", Modifier.toString(field.getModifiers()),
+                        field.getType().getSimpleName(), field.getName(), String.valueOf(value));
+            } catch (IllegalAccessException e) {
+                System.out.printf("  %s %s %s = <inaccessible>%n", Modifier.toString(field.getModifiers()),
+                        field.getType().getSimpleName(), field.getName());
+            }
+        }
 
-		System.out.println("\nMethods:");
+        System.out.println("\nMethods:");
 
-		for (Method method : clazz.getDeclaredMethods()) {
-			String params = Arrays.stream(method.getParameterTypes()).map(Class::getSimpleName)
-					.collect(Collectors.joining(", "));
+        for (Method method : clazz.getDeclaredMethods()) {
+            String params = Arrays.stream(method.getParameterTypes()).map(Class::getSimpleName)
+                    .collect(Collectors.joining(", "));
 
-			System.out.printf("  %s %s %s(%s)%n", Modifier.toString(method.getModifiers()),
-					method.getReturnType().getSimpleName(), method.getName(), params);
-		}
+            System.out.printf("  %s %s %s(%s)%n", Modifier.toString(method.getModifiers()),
+                    method.getReturnType().getSimpleName(), method.getName(), params);
+        }
 
-		return true;
-	}
+        return true;
+    }
 
-	@Override
-	public String toString() {
-		return "Inspect fields and methods of a named object";
-	}
+    @Override
+    public String toString() {
+        return "Inspect fields and methods of a named object";
+    }
 }

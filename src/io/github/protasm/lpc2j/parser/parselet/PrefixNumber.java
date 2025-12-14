@@ -7,25 +7,25 @@ import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenType;
 
 public class PrefixNumber implements PrefixParselet {
-	@Override
-	public ASTExpression parse(Parser parser, boolean canAssign) {
-		TokenType tType = parser.tokens().previous().type();
+    @Override
+    public ASTExpression parse(Parser parser, boolean canAssign) {
+        TokenType tType = parser.tokens().previous().type();
 
-		switch (tType) {
-		case T_INT_LITERAL:
-			Token<Integer> previous = parser.tokens().previous();
+        switch (tType) {
+        case T_INT_LITERAL:
+            Token<Integer> previous = parser.tokens().previous();
 
-			return new ASTExprLiteralInteger(parser.currLine(), previous);
-//	case TOKEN_NUM_FLOAT:
-		//// if (inBinaryOp && lhsType == JType.JINT) {
-////		compiler.i2f();
-////	    }
+            return new ASTExprLiteralInteger(parser.currLine(), previous);
+//    case TOKEN_NUM_FLOAT:
+        //// if (inBinaryOp && lhsType == JType.JINT) {
+////        compiler.i2f();
+////        }
 ////
-////	    compiler.lpcFloat((Float) literal);
+////        compiler.lpcFloat((Float) literal);
 //
-//	    return;
-		default:
-			return null;
-		} // switch (numType)
-	}
+//        return;
+        default:
+            return null;
+        } // switch (numType)
+    }
 }

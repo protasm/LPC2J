@@ -1,12 +1,16 @@
 package io.github.protasm.lpc2j.parser;
 
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_AND;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_COMPARISON;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_EQUALITY;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_FACTOR;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_NONE;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_OR;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_TERM;
 import static io.github.protasm.lpc2j.token.TokenType.T_BANG;
 import static io.github.protasm.lpc2j.token.TokenType.T_BANG_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_DBL_AMP;
+import static io.github.protasm.lpc2j.token.TokenType.T_DBL_PIPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_FALSE;
 import static io.github.protasm.lpc2j.token.TokenType.T_FLOAT_LITERAL;
@@ -67,6 +71,9 @@ public class PrattParser {
         tokenTypeToRule.put(T_PLUS, new ParseRule(null, new InfixBinaryOp(), PREC_TERM));
         tokenTypeToRule.put(T_STAR, new ParseRule(null, new InfixBinaryOp(), PREC_FACTOR));
         tokenTypeToRule.put(T_SLASH, new ParseRule(null, new InfixBinaryOp(), PREC_FACTOR));
+
+        tokenTypeToRule.put(T_DBL_PIPE, new ParseRule(null, new InfixBinaryOp(), PREC_OR));
+        tokenTypeToRule.put(T_DBL_AMP, new ParseRule(null, new InfixBinaryOp(), PREC_AND));
 
         tokenTypeToRule.put(T_GREATER, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
         tokenTypeToRule.put(T_LESS, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));

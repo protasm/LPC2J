@@ -16,6 +16,7 @@ import static org.objectweb.asm.Opcodes.GOTO;
 import static org.objectweb.asm.Opcodes.ICONST_0;
 import static org.objectweb.asm.Opcodes.ICONST_1;
 import static org.objectweb.asm.Opcodes.IFEQ;
+import static org.objectweb.asm.Opcodes.IFNE;
 import static org.objectweb.asm.Opcodes.ILOAD;
 import static org.objectweb.asm.Opcodes.INEG;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
@@ -294,14 +295,14 @@ public class Compiler {
         ASTExpression right = expr.right();
         BinaryOpType operator = expr.operator();
 
-        left.accept(this);
-        right.accept(this);
-
         switch (operator) {
         case BOP_ADD:
         case BOP_SUB:
         case BOP_MULT:
         case BOP_DIV:
+            left.accept(this);
+            right.accept(this);
+
             mv.visitInsn(operator.opcode());
             break;
         case BOP_GT:
@@ -309,6 +310,9 @@ public class Compiler {
         case BOP_LT:
         case BOP_LE:
         case BOP_EQ:
+            left.accept(this);
+            right.accept(this);
+
             Label labelTrue = new Label();
             Label labelEnd = new Label();
 
@@ -325,6 +329,46 @@ public class Compiler {
 
             // End label
             mv.visitLabel(labelEnd);
+            break;
+        case BOP_AND:
+            left.accept(this);
+
+            Label falseLabel = new Label();
+            Label endAndLabel = new Label();
+
+            // Short-circuit if the left operand is false.
+            mv.visitJumpInsn(IFEQ, falseLabel);
+
+            right.accept(this);
+            mv.visitJumpInsn(IFEQ, falseLabel);
+
+            mv.visitInsn(ICONST_1);
+            mv.visitJumpInsn(GOTO, endAndLabel);
+
+            mv.visitLabel(falseLabel);
+            mv.visitInsn(ICONST_0);
+
+            mv.visitLabel(endAndLabel);
+            break;
+        case BOP_OR:
+            left.accept(this);
+
+            Label trueLabel = new Label();
+            Label endOrLabel = new Label();
+
+            // Short-circuit if the left operand is true.
+            mv.visitJumpInsn(IFNE, trueLabel);
+
+            right.accept(this);
+            mv.visitJumpInsn(IFNE, trueLabel);
+
+            mv.visitInsn(ICONST_0);
+            mv.visitJumpInsn(GOTO, endOrLabel);
+
+            mv.visitLabel(trueLabel);
+            mv.visitInsn(ICONST_1);
+
+            mv.visitLabel(endOrLabel);
             break;
         default:
             throw new UnsupportedOperationException("Unsupported operator: " + operator);

@@ -71,18 +71,35 @@ public final class Preprocessor {
 	private final IncludeResolver resolver;
 	private final Map<String, Macro> macros = new HashMap<>();
 
-	public Preprocessor(IncludeResolver resolver) {
-		this.resolver = Objects.requireNonNull(resolver);
+        public Preprocessor(IncludeResolver resolver) {
+                this.resolver = Objects.requireNonNull(resolver);
 
 		// predefineds you may want:
-		defineObject("__LPC__", "1");
-	}
+                defineObject("__LPC__", "1");
+        }
 
-	/* ========================= public API ========================== */
+        /* ========================= public API ========================== */
 
-	public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
-		IncludeResolver resolver = (includingFile, includePath, system) -> {
-			if (!system && (includingFile != null)) {
+        /**
+         * Preprocess source text without filesystem includes.
+         * <p>
+         * This helper builds a {@link Preprocessor} that rejects any attempt to
+         * resolve <code>#include</code> directives, making it suitable for
+         * string-only compilation flows.
+         */
+        public static Result preprocess(String source) {
+                IncludeResolver resolver = (includingFile, includePath, system) -> {
+                        throw new IOException("Includes are not supported without a resolver");
+                };
+
+                Preprocessor pp = new Preprocessor(resolver);
+
+                return pp.preprocess(null, source);
+        }
+
+        public static Result preprocess(Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
+                IncludeResolver resolver = (includingFile, includePath, system) -> {
+                        if (!system && (includingFile != null)) {
 				Path dir = includingFile.getParent();
 
 				if (dir != null) {

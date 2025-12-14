@@ -48,7 +48,6 @@ import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -114,8 +113,8 @@ public class Scanner {
 		};
 	}
 
-	public TokenList scan(String source, String sysInclPath, String quoteInclPath, Path sourceFile) {
-		String processed = Preprocessor.preprocess(sourceFile, source, sysInclPath, quoteInclPath).source;
+        public TokenList scan(String source) {
+                String processed = Preprocessor.preprocess(source).source;
 
 		ss = new ScannableSource(processed);
 

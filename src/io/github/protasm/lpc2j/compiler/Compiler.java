@@ -259,6 +259,7 @@ public class Compiler {
             break;
         case LPCSTRING:
         case LPCOBJECT:
+        case LPCMIXED:
             mv.visitVarInsn(ALOAD, local.slot());
             break;
         default:
@@ -279,6 +280,7 @@ public class Compiler {
             break;
         case LPCSTRING:
         case LPCOBJECT:
+        case LPCMIXED:
             mv.visitVarInsn(ASTORE, local.slot());
             break;
         default:

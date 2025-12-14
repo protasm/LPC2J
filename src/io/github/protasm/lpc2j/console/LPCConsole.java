@@ -13,6 +13,7 @@ import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
@@ -36,11 +37,12 @@ import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 
 public class LPCConsole {
-	private final VirtualFileServer basePath;
-	private Path vPath;
+        private final VirtualFileServer basePath;
+        private Path vPath;
+        private final ParserOptions parserOptions;
 
-	private final Map<String, Object> objects;
-	private final java.util.Scanner inputScanner;
+        private final Map<String, Object> objects;
+        private final java.util.Scanner inputScanner;
 
 	private static Map<Command, List<String>> commands = new LinkedHashMap<>();
 
@@ -60,11 +62,16 @@ public class LPCConsole {
 		commands.put(new CmdQuit(), List.of("q", "quit"));
 	}
 
-	public LPCConsole(String basePathStr) {
-		basePath = new VirtualFileServer(basePathStr);
-		vPath = Path.of("/");
+        public LPCConsole(String basePathStr) {
+                this(basePathStr, ParserOptions.defaults());
+        }
 
-		objects = new LinkedHashMap<>();
+        public LPCConsole(String basePathStr, ParserOptions parserOptions) {
+                basePath = new VirtualFileServer(basePathStr);
+                this.parserOptions = (parserOptions == null) ? ParserOptions.defaults() : parserOptions;
+                vPath = Path.of("/");
+
+                objects = new LinkedHashMap<>();
 		inputScanner = new java.util.Scanner(System.in);
 
 // Register Efuns
@@ -228,15 +235,15 @@ public class LPCConsole {
                 }
         }
 
-	public FSSourceFile parse(String vPathStr) {
-		FSSourceFile sf = scan(vPathStr);
+        public FSSourceFile parse(String vPathStr) {
+                FSSourceFile sf = scan(vPathStr);
 
-		if (sf == null)
-			return null;
-		
-		try {
-			Parser parser = new Parser();
-			ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
+                if (sf == null)
+                        return null;
+
+                try {
+                        Parser parser = new Parser(parserOptions);
+                        ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
 
 			sf.setASTObject(astObject);
 
@@ -277,15 +284,37 @@ public class LPCConsole {
 		}
 	}
 
-	public static void main(String[] args) {
-		if (args.length != 1) {
-			System.out.println("Error: missing base path.");
+        public static void main(String[] args) {
+                boolean allowUntypedMethods = false;
+                String basePathArg = null;
 
-			System.exit(-1);
-		}
+                for (String arg : args) {
+                        if ("--allow-untyped-methods".equals(arg))
+                                allowUntypedMethods = true;
+                        else if (basePathArg == null)
+                                basePathArg = arg;
+                        else {
+                                System.out.println("Error: unexpected argument '" + arg + "'.");
+                                printUsage();
 
-		LPCConsole console = new LPCConsole(args[0]);
+                                System.exit(-1);
+                        }
+                }
 
-		console.repl();
-	}
+                if (basePathArg == null) {
+                        System.out.println("Error: missing base path.");
+                        printUsage();
+
+                        System.exit(-1);
+                }
+
+                ParserOptions parserOptions = new ParserOptions(allowUntypedMethods);
+                LPCConsole console = new LPCConsole(basePathArg, parserOptions);
+
+                console.repl();
+        }
+
+        private static void printUsage() {
+                System.out.println("Usage: LPCConsole [--allow-untyped-methods] <base path>");
+        }
 }

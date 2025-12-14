@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.console.fs;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,9 +58,9 @@ public class VirtualFileServer {
 		}
 	}
 
-	public File[] filesIn(String vPathStr) {
-		try {
-			Path resolved = dirAt(vPathStr);
+        public File[] filesIn(String vPathStr) {
+                try {
+                        Path resolved = dirAt(vPathStr);
 
 			if (resolved == null)
 				throw new IllegalArgumentException();
@@ -67,13 +68,62 @@ public class VirtualFileServer {
 			// If resolved is "/", use path directly
 			File dir = resolved.equals(Path.of("/")) ? path.toFile() : path.resolve(resolved).toFile();
 
-			return dir.listFiles();
-		} catch (IllegalArgumentException e) {
-			return null;
-		}
-	}
+                        return dir.listFiles();
+                } catch (IllegalArgumentException e) {
+                        return null;
+                }
+        }
 
-	private Path resolve(String vPath, boolean checkExists) {
+        public boolean read(FSSourceFile sf) {
+                try {
+                        Path resolved = resolve(sf.vPath().toString(), true);
+
+                        if ((resolved == null) || !Files.isRegularFile(resolved))
+                                return false;
+
+                        sf.setSource(Files.readString(resolved));
+
+                        return true;
+                } catch (IOException e) {
+                        return false;
+                }
+        }
+
+        public boolean write(FSSourceFile sf) {
+                try {
+                        if (sf.bytes() == null)
+                                return false;
+
+                        Path target = path.resolve(sf.classPath()).normalize();
+
+                        if (!target.startsWith(path))
+                                return false;
+
+                        if (target.getParent() != null)
+                                Files.createDirectories(target.getParent());
+
+                        Files.write(target, sf.bytes());
+
+                        return true;
+                } catch (IOException | IllegalArgumentException e) {
+                        return false;
+                }
+        }
+
+        public String contentsOfFileAt(String vPathStr) {
+                try {
+                        Path resolved = resolve(vPathStr, true);
+
+                        if ((resolved == null) || !Files.isRegularFile(resolved))
+                                return null;
+
+                        return Files.readString(resolved);
+                } catch (IOException | IllegalArgumentException e) {
+                        return null;
+                }
+        }
+
+        private Path resolve(String vPath, boolean checkExists) {
 		try {
 			// Concatenate base path and vPath, normalize the result
 			Path concat = Paths.get(path.toString(), vPath);

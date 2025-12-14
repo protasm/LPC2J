@@ -7,7 +7,12 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.token.TokenList;
 
 public class FSSourceFile {
-	private final Path vPath;
+        private final Path vPath;
+        private String source;
+        private TokenList tokens;
+        private ASTObject astObject;
+        private byte[] bytes;
+        private Object lpcObject;
 
 	public FSSourceFile(Path vPath) {
 		if (!validExtension(vPath))
@@ -16,9 +21,9 @@ public class FSSourceFile {
 		this.vPath = vPath;
 	}
 
-	public Path vPath() {
-		return vPath;
-	}
+        public Path vPath() {
+                return vPath;
+        }
 
 	public String prefix() {
 		String name = vPath.getFileName().toString();
@@ -45,13 +50,45 @@ public class FSSourceFile {
 			return Paths.get(prefix() + ".class");
 	}
 
-	public String source() {
-		return source;
-	}
+        public String source() {
+                return source;
+        }
 
-	public void setSource(String source) {
-		this.source = source;
-	}
+        public void setSource(String source) {
+                this.source = source;
+        }
+
+        public TokenList tokens() {
+                return tokens;
+        }
+
+        public void setTokens(TokenList tokens) {
+                this.tokens = tokens;
+        }
+
+        public ASTObject astObject() {
+                return astObject;
+        }
+
+        public void setASTObject(ASTObject astObject) {
+                this.astObject = astObject;
+        }
+
+        public byte[] bytes() {
+                return bytes;
+        }
+
+        public void setBytes(byte[] bytes) {
+                this.bytes = bytes;
+        }
+
+        public Object lpcObject() {
+                return lpcObject;
+        }
+
+        public void setLPCObject(Object lpcObject) {
+                this.lpcObject = lpcObject;
+        }
 
 	public String slashName() {
 		Path parent = vPath.getParent();

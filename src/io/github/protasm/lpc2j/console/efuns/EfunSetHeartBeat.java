@@ -4,11 +4,11 @@ import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
-public final class EfunAddAction implements Efun {
-        public static final EfunAddAction INSTANCE = new EfunAddAction();
-        private static final Symbol SYM = new Symbol(LPCType.LPCVOID, "add_action");
+public final class EfunSetHeartBeat implements Efun {
+        public static final EfunSetHeartBeat INSTANCE = new EfunSetHeartBeat();
+        private static final Symbol SYM = new Symbol(LPCType.LPCVOID, "set_heart_beat");
 
-        private EfunAddAction() {
+        private EfunSetHeartBeat() {
         }
 
         @Override
@@ -23,7 +23,7 @@ public final class EfunAddAction implements Efun {
 
         @Override
         public Object call(Object[] args) {
-                // TODO: Implement action registration when command handling is available
+                // TODO: Implement heart beat control when runtime support is available
                 return null;
         }
 }

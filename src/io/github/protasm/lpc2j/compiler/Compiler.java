@@ -310,6 +310,7 @@ public class Compiler {
         case BOP_LT:
         case BOP_LE:
         case BOP_EQ:
+        case BOP_NE:
             left.accept(this);
             right.accept(this);
 

@@ -4,6 +4,7 @@ import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_AND;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_DIV;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_EQ;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_NE;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GE;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GT;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_LE;
@@ -53,6 +54,8 @@ public class InfixBinaryOp implements InfixParselet {
             return new ASTExprOpBinary(line, left, right, BOP_LE);
         case T_EQUAL_EQUAL:
             return new ASTExprOpBinary(line, left, right, BOP_EQ);
+        case T_BANG_EQUAL:
+            return new ASTExprOpBinary(line, left, right, BOP_NE);
         default:
             throw new ParseException("Unknown operator type.", parser.tokens().current());
         } // switch (operatorType)

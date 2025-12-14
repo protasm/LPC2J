@@ -26,7 +26,11 @@ public class CmdFileCat extends Command {
                 return true;
             }
 
-            System.out.println(contents);
+            String[] lines = contents.split("\\R", -1);
+
+            for (int i = 0; i < lines.length; i++) {
+                System.out.printf("%d: %s%n", i + 1, lines[i]);
+            }
         } catch (InvalidPathException e) {
             System.out.println("Error displaying contents of fileName: " + args[0]);
         }

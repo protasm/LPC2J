@@ -255,32 +255,27 @@ public class LPCConsole {
 		}
 	}
 
-	public FSSourceFile scan(String vPathStr) {
-		try {
-			Path resolved = basePath.fileAt(vPathStr);
+        public FSSourceFile scan(String vPathStr) {
+                try {
+                        Path resolved = basePath.fileAt(vPathStr);
 
 			if (resolved == null)
 				throw new IllegalArgumentException();
 
-			FSSourceFile sf = new FSSourceFile(resolved);
+                        FSSourceFile sf = new FSSourceFile(resolved);
 
-			boolean success = basePath.read(sf);
+                        boolean success = basePath.read(sf);
 
-			if (!success)
-				throw new IllegalArgumentException();
+                        if (!success)
+                                throw new IllegalArgumentException();
 
-			Scanner scanner = new Scanner();
+                        Scanner scanner = new Scanner();
 
-			TokenList tokens = scanner.scan(
-				sf.source(),
-				".", // system include path
-				".", // quote include path
-				Path.of("/Users/jonathan/git/LPC2J/src/test/resources/samples/preproc/incl_def.lpc") 
-			);
+                        TokenList tokens = scanner.scan(sf.source());
 
-			sf.setTokens(tokens);
+                        sf.setTokens(tokens);
 
-			return sf;
+                        return sf;
 		} catch (IllegalArgumentException e) {
 			System.out.println("Error scanning fileName: " + vPathStr);
 

@@ -1,18 +1,18 @@
 package io.github.protasm.lpc2j.parser;
 
 public class ParserOptions {
-        private final boolean allowUntypedMethods;
+        private final boolean requireUntyped;
 
         public ParserOptions() {
                 this(false);
         }
 
-        public ParserOptions(boolean allowUntypedMethods) {
-                this.allowUntypedMethods = allowUntypedMethods;
+        public ParserOptions(boolean requireUntyped) {
+                this.requireUntyped = requireUntyped;
         }
 
-        public boolean allowUntypedMethods() {
-                return allowUntypedMethods;
+        public boolean requireUntyped() {
+                return requireUntyped;
         }
 
         public static ParserOptions defaults() {

@@ -1,9 +1,6 @@
 package io.github.protasm.lpc2j;
 
-import java.nio.file.Path;
-
 import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -11,81 +8,49 @@ import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
 
 public class LPC2J {
-    public static FSSourceFile compile(String vPathStr, VirtualFileServer basePath) {
-        FSSourceFile sf = parse(vPathStr, basePath);
+    private static final String DEFAULT_PARENT = "java/lang/Object";
 
-        if (sf == null)
-            return null;
+    public static TokenList scan(String source) {
+        Scanner scanner = new Scanner();
 
-        try {
-            Compiler compiler = new Compiler("java/lang/Object");
-            byte[] bytes = compiler.compile(sf.astObject());
-
-            sf.setBytes(bytes);
-
-            boolean success = basePath.write(sf);
-
-            if (!success)
-                throw new IllegalArgumentException();
-
-            return sf;
-        } catch (IllegalArgumentException e) {
-            System.out.println("Error compiling fileName: " + vPathStr);
-
-            return null;
-        }
+        return scanner.scan(source);
     }
 
-    private static FSSourceFile parse(String vPathStr, VirtualFileServer basePath) {
-        FSSourceFile sf = scan(vPathStr, basePath);
-
-        if (sf == null)
+    public static ASTObject parse(TokenList tokens) {
+        if (tokens == null)
             return null;
 
         try {
             Parser parser = new Parser();
-            ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
 
-            sf.setASTObject(astObject);
-
-            return sf;
+            return parser.parse("<input>", tokens);
         } catch (ParseException | IllegalArgumentException e) {
-            System.out.println("Error parsing fileName: " + vPathStr);
+            System.out.println("Error parsing tokens");
             System.out.println(e);
 
             return null;
         }
     }
 
-    private static FSSourceFile scan(String vPathStr, VirtualFileServer basePath) {
+    public static byte[] compile(ASTObject astObject) {
+        if (astObject == null)
+            return null;
+
         try {
-            Path resolved = basePath.fileAt(vPathStr);
+            Compiler compiler = new Compiler(DEFAULT_PARENT);
 
-            if (resolved == null)
-                throw new IllegalArgumentException();
-
-            FSSourceFile sf = new FSSourceFile(resolved);
-
-            boolean success = basePath.read(sf);
-
-            if (!success)
-                throw new IllegalArgumentException();
-
-            Scanner scanner = new Scanner();
-            Path absResolved = basePath.basePath().resolve(resolved);
-            TokenList tokens = scanner.scan(
-                    sf.source(),
-                    basePath.basePath().toString(),
-                    absResolved.getParent().toString(),
-                    absResolved);
-
-            sf.setTokens(tokens);
-
-            return sf;
+            return compiler.compile(astObject);
         } catch (IllegalArgumentException e) {
-            System.out.println("Error scanning fileName: " + vPathStr);
+            System.out.println("Error compiling ASTObject");
 
             return null;
         }
+    }
+
+    public static byte[] compile(String source) {
+        TokenList tokens = scan(source);
+        ASTObject astObject = parse(tokens);
+
+        return compile(astObject);
     }
 }

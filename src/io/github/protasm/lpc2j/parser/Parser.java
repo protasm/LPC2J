@@ -50,9 +50,15 @@ public class Parser {
         private ASTObject currObj;
         private Locals locals;
         private LPCType currentReturnType;
+        private final ParserOptions options;
 
-	public Parser() {
-	}
+        public Parser() {
+                this(ParserOptions.defaults());
+        }
+
+        public Parser(ParserOptions options) {
+                this.options = (options == null) ? ParserOptions.defaults() : options;
+        }
 
 	public TokenList tokens() {
 		return this.tokens;
@@ -118,16 +124,36 @@ public class Parser {
 		return parentToken.lexeme();
 	}
 
-	private void property(boolean define) {
-		Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect property type.");
-		Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
-		Symbol symbol = new Symbol(typeToken, nameToken);
+        private void property(boolean define) {
+                Declaration declaration = declarationSymbol();
+                Symbol symbol = declaration.symbol();
 
-		if (tokens.match(T_LEFT_PAREN))
-			method(symbol, define);
-		else
-			field(symbol, define); // TODO: field(s)
-	}
+                if (tokens.match(T_LEFT_PAREN))
+                        method(symbol, define);
+                else if (declaration.inferredUntypedMethod())
+                        throw new ParseException("Expect '(' after method name.", tokens.current());
+                else
+                        field(symbol, define); // TODO: field(s)
+        }
+
+        private Declaration declarationSymbol() {
+                if (tokens.check(T_TYPE)) {
+                        Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect property type.");
+                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
+                        Symbol symbol = new Symbol(typeToken, nameToken);
+
+                        return new Declaration(symbol, false);
+                }
+
+                if (options.allowUntypedMethods() && tokens.check(T_IDENTIFIER) && (tokens.peek(1).type() == T_LEFT_PAREN)) {
+                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect method name.");
+                        Symbol symbol = new Symbol(LPCType.LPCMIXED, nameToken.lexeme());
+
+                        return new Declaration(symbol, true);
+                }
+
+                throw new ParseException("Expect property type.", tokens.current());
+        }
 
 	private void field(Symbol symbol, boolean define) {
 		if (!define) {
@@ -321,6 +347,24 @@ public class Parser {
                         return new ASTStmtReturn(currLine(), null);
                 default:
                         throw new ParseException("Unsupported implicit return type: " + currentReturnType);
+                }
+        }
+
+        private static class Declaration {
+                private final Symbol symbol;
+                private final boolean inferredUntypedMethod;
+
+                Declaration(Symbol symbol, boolean inferredUntypedMethod) {
+                        this.symbol = symbol;
+                        this.inferredUntypedMethod = inferredUntypedMethod;
+                }
+
+                Symbol symbol() {
+                        return symbol;
+                }
+
+                boolean inferredUntypedMethod() {
+                        return inferredUntypedMethod;
                 }
         }
 

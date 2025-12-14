@@ -43,9 +43,24 @@ public class TokenList {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> Token<T> current() {
-		return (Token<T>) tokens.get(currIdx);
-	}
+        public <T> Token<T> current() {
+                return (Token<T>) tokens.get(currIdx);
+        }
+
+        public Token<?> peek(int offset) {
+                if (tokens.isEmpty())
+                        throw new IllegalStateException("Cannot peek an empty token list.");
+
+                int idx = currIdx + offset;
+
+                if (idx < 0)
+                        idx = 0;
+
+                if (idx >= tokens.size())
+                        idx = tokens.size() - 1;
+
+                return tokens.get(idx);
+        }
 
 	@SuppressWarnings("unchecked")
 	public <T> Token<T> previous() {

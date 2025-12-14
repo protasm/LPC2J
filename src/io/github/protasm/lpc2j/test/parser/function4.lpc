@@ -2,4 +2,4 @@ int square(int n) { return n*n; }
 
 int foo() { return square(7); }
 
-void bar() { return; }
+void bar() { }

@@ -8,6 +8,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_IF;
 import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
@@ -452,7 +453,7 @@ public class Parser {
         }
 
         if (canAssign)
-            if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL))
+            if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL) || tokens.match(T_MINUS_EQUAL))
                 throw new ParseException("Invalid assignment target.", tokens.current());
 
         return expr;

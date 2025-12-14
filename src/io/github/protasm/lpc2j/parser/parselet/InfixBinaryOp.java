@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.parser.parselet;
 
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_AND;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_DIV;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_EQ;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GE;
@@ -8,6 +9,7 @@ import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_GT;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_LE;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_LT;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_MULT;
+import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_OR;
 import static io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_SUB;
 
 import io.github.protasm.lpc2j.parser.ParseException;
@@ -37,6 +39,10 @@ public class InfixBinaryOp implements InfixParselet {
             return new ASTExprOpBinary(line, left, right, BOP_MULT);
         case T_SLASH:
             return new ASTExprOpBinary(line, left, right, BOP_DIV);
+        case T_DBL_PIPE:
+            return new ASTExprOpBinary(line, left, right, BOP_OR);
+        case T_DBL_AMP:
+            return new ASTExprOpBinary(line, left, right, BOP_AND);
         case T_GREATER:
             return new ASTExprOpBinary(line, left, right, BOP_GT);
         case T_GREATER_EQUAL:

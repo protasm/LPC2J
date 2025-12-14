@@ -285,12 +285,12 @@ public class LPCConsole {
 	}
 
         public static void main(String[] args) {
-                boolean allowUntypedMethods = false;
+                boolean requireUntyped = false;
                 String basePathArg = null;
 
                 for (String arg : args) {
-                        if ("--allow-untyped-methods".equals(arg))
-                                allowUntypedMethods = true;
+                        if ("--require-untyped".equals(arg))
+                                requireUntyped = true;
                         else if (basePathArg == null)
                                 basePathArg = arg;
                         else {
@@ -308,13 +308,13 @@ public class LPCConsole {
                         System.exit(-1);
                 }
 
-                ParserOptions parserOptions = new ParserOptions(allowUntypedMethods);
+                ParserOptions parserOptions = new ParserOptions(requireUntyped);
                 LPCConsole console = new LPCConsole(basePathArg, parserOptions);
 
                 console.repl();
         }
 
         private static void printUsage() {
-                System.out.println("Usage: LPCConsole [--allow-untyped-methods] <base path>");
+                System.out.println("Usage: LPCConsole [--require-untyped] <base path>");
         }
 }

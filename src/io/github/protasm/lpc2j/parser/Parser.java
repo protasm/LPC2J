@@ -142,17 +142,22 @@ public class Parser {
                         Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
                         Symbol symbol = new Symbol(typeToken, nameToken);
 
+                        if (options.requireUntyped() && tokens.check(T_LEFT_PAREN))
+                                throw new ParseException("Method declarations must omit return types when --require-untyped is set.", typeToken);
+
                         return new Declaration(symbol, false);
                 }
 
-                if (options.allowUntypedMethods() && tokens.check(T_IDENTIFIER) && (tokens.peek(1).type() == T_LEFT_PAREN)) {
+                if (options.requireUntyped() && tokens.check(T_IDENTIFIER) && (tokens.peek(1).type() == T_LEFT_PAREN)) {
                         Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect method name.");
                         Symbol symbol = new Symbol(LPCType.LPCMIXED, nameToken.lexeme());
 
                         return new Declaration(symbol, true);
                 }
 
-                throw new ParseException("Expect property type.", tokens.current());
+                String message = options.requireUntyped() ? "Expect method name." : "Expect property type.";
+
+                throw new ParseException(message, tokens.current());
         }
 
 	private void field(Symbol symbol, boolean define) {
@@ -229,21 +234,33 @@ public class Parser {
 		throw new ParseException("Unmatched '{' in method body.");
 	}
 
-	private ASTParameters parameters() {
-		ASTParameters params = new ASTParameters(currLine());
+        private ASTParameters parameters() {
+                ASTParameters params = new ASTParameters(currLine());
 
-		if (tokens.match(T_RIGHT_PAREN)) // No parameters
-			return params;
+                if (tokens.match(T_RIGHT_PAREN)) // No parameters
+                        return params;
 
-		do {
-			Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
-			Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-			Symbol symbol = new Symbol(typeToken, nameToken);
+                do {
+                        Symbol symbol;
 
-			ASTParameter param = new ASTParameter(currLine(), symbol);
-			ASTLocal local = new ASTLocal(currLine(), symbol);
+                        if (options.requireUntyped()) {
+                                if (tokens.check(T_TYPE))
+                                        throw new ParseException("Method parameters must be untyped when --require-untyped is set.", tokens.current());
 
-			params.add(param);
+                                Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
+
+                                symbol = new Symbol(LPCType.LPCMIXED, nameToken.lexeme());
+                        } else {
+                                Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
+                                Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
+
+                                symbol = new Symbol(typeToken, nameToken);
+                        }
+
+                        ASTParameter param = new ASTParameter(currLine(), symbol);
+                        ASTLocal local = new ASTLocal(currLine(), symbol);
+
+                        params.add(param);
 
 			locals.add(local, true);
 		} while (tokens.match(T_COMMA));

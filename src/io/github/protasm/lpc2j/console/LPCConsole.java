@@ -63,7 +63,10 @@ public class LPCConsole {
     // Register Efuns
     EfunRegistry.register("add_action", EfunAddAction.INSTANCE);
     EfunRegistry.register("add_verb", EfunAddVerb.INSTANCE);
+    EfunRegistry.register("call_other", EfunCallOther.INSTANCE);
+    EfunRegistry.register("destruct", EfunDestruct.INSTANCE);
     EfunRegistry.register("foo", EfunFoo.INSTANCE);
+    EfunRegistry.register("environment", EfunEnvironment.INSTANCE);
     EfunRegistry.register("set_heart_beat", EfunSetHeartBeat.INSTANCE);
     EfunRegistry.register("set_light", EfunSetLight.INSTANCE);
     EfunRegistry.register("say", EfunSay.INSTANCE);

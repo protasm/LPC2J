@@ -18,6 +18,9 @@ public class Locals {
         // Locals slot 0 reserved for "this"
         ASTLocal local = new ASTLocal(0, new Symbol(LPCType.LPCOBJECT, "this"));
 
+        // Ensure the implicit receiver uses the correct local slot so ASM frame
+        // computation sees a valid index.
+        local.setSlot(0);
         local.setScopeDepth(0);
 
         locals.push(local);

@@ -471,6 +471,14 @@ public class Compiler {
 
     public void visit(ASTStmtExpression stmt) {
         stmt.expression().accept(this);
+
+        // Expression statements should not leave stray values on the stack. Most
+        // expressions produce a value (method calls, assignments, etc.), so drop
+        // it unless the expression is explicitly void.
+        var type = stmt.expression().lpcType();
+
+        if (type == null || type != LPCType.LPCVOID)
+            mv.visitInsn(Opcodes.POP);
     }
 
     public void visit(ASTStmtIfThenElse stmt) {

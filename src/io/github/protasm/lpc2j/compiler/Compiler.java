@@ -68,6 +68,7 @@ import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
+import io.github.protasm.lpc2j.runtime.Truth;
 
 public class Compiler {
         private final String defaultParentName;
@@ -338,6 +339,7 @@ public class Compiler {
             break;
         case BOP_AND:
             left.accept(this);
+            coerceToBoolean(left);
 
             Label falseLabel = new Label();
             Label endAndLabel = new Label();
@@ -346,6 +348,7 @@ public class Compiler {
             mv.visitJumpInsn(IFEQ, falseLabel);
 
             right.accept(this);
+            coerceToBoolean(right);
             mv.visitJumpInsn(IFEQ, falseLabel);
 
             mv.visitInsn(ICONST_1);
@@ -358,6 +361,7 @@ public class Compiler {
             break;
         case BOP_OR:
             left.accept(this);
+            coerceToBoolean(left);
 
             Label trueLabel = new Label();
             Label endOrLabel = new Label();
@@ -366,6 +370,7 @@ public class Compiler {
             mv.visitJumpInsn(IFNE, trueLabel);
 
             right.accept(this);
+            coerceToBoolean(right);
             mv.visitJumpInsn(IFNE, trueLabel);
 
             mv.visitInsn(ICONST_0);
@@ -386,6 +391,9 @@ public class Compiler {
         UnaryOpType operator = expr.operator();
 
         right.accept(this);
+
+        if (operator == UnaryOpType.UOP_NOT)
+            coerceToBoolean(right);
 
         switch (operator) {
         case UOP_NEGATE: // Unary minus (-)
@@ -499,6 +507,7 @@ public class Compiler {
 
         // Generate bytecode for condition
         condition.accept(this);
+        coerceToBoolean(condition);
 
         // If condition is false, jump to else (or end if no else)
         mv.visitJumpInsn(IFEQ, elseBranch != null ? elseLabel : endLabel);
@@ -680,6 +689,26 @@ public class Compiler {
                 // or add an appropriate cast if necessary.
                 break;
             }
+    }
+
+    private void coerceToBoolean(ASTExpression expr) {
+        LPCType type = expr.lpcType();
+
+        if (type != null)
+            switch (type.jType()) {
+            case JBOOLEAN:
+            case JINT:
+                return; // already an int-compatible boolean
+            case JFLOAT:
+                // Box float so truthiness can be evaluated uniformly.
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+                break;
+            default:
+                break; // other types handled below
+            }
+
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Truth.class), "isTruthy",
+                "(Ljava/lang/Object;)Z", false);
     }
 
     private void pushInt(int value) {

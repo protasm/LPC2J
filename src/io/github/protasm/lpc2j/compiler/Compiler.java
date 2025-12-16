@@ -570,6 +570,7 @@ public class Compiler {
                 case LPCSTRING:
                 case LPCOBJECT:
                 case LPCMIXED:
+                case LPCNULL:
                         mv.visitInsn(Opcodes.ACONST_NULL);
                         mv.visitInsn(Opcodes.ARETURN);
                         break;

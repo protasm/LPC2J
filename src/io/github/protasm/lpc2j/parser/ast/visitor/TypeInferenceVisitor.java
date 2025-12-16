@@ -33,6 +33,7 @@ import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class TypeInferenceVisitor {
+    private Symbol currentMethodSymbol;
     public void visit(ASTExprFieldStore expr, LPCType lpcType) {
         lpcType = expr.lpcType(); // pass down type of assignment target
 
@@ -56,9 +57,14 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTMethod method, LPCType lpcType) {
-        lpcType = method.symbol().lpcType(); // pass down method return type
+        Symbol prevMethodSymbol = currentMethodSymbol;
+
+        currentMethodSymbol = method.symbol();
+        lpcType = currentMethodSymbol.lpcType(); // pass down method return type
 
         method.body().accept(this, lpcType);
+
+        currentMethodSymbol = prevMethodSymbol;
     }
 
     public void visit(ASTMethods methods, LPCType lpcType) {
@@ -90,8 +96,10 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTStmtReturn stmt, LPCType lpcType) {
-        if (stmt.returnValue() != null)
+        if (stmt.returnValue() != null) {
             stmt.returnValue().accept(this, lpcType);
+            updateSymbolType(currentMethodSymbol, stmt.returnValue().lpcType());
+        }
     }
 
     public void visit(ASTArguments astArguments, LPCType lpcType) {

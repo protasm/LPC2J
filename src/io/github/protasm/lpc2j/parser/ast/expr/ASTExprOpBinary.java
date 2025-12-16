@@ -39,10 +39,10 @@ public class ASTExprOpBinary extends ASTExpression {
     public LPCType lpcType() {
         switch (operator) {
         case BOP_ADD:
-            if (matchTypes(LPCINT, LPCINT))
-                return LPCINT;
-            else if (matchTypes(LPCSTRING, LPCSTRING))
+            if (matchTypes(LPCSTRING, LPCSTRING) || hasStringOperand())
                 return LPCSTRING;
+            else if (matchTypes(LPCINT, LPCINT))
+                return LPCINT;
         case BOP_SUB:
         case BOP_MULT:
         case BOP_DIV:
@@ -63,6 +63,10 @@ public class ASTExprOpBinary extends ASTExpression {
 
     private boolean matchTypes(LPCType lType, LPCType rType) {
         return (left.lpcType() == lType) && (right.lpcType() == rType);
+    }
+
+    private boolean hasStringOperand() {
+        return left.lpcType() == LPCSTRING || right.lpcType() == LPCSTRING;
     }
 
     @Override

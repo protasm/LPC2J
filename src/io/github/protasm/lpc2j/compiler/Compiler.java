@@ -307,6 +307,15 @@ public class Compiler {
 
         switch (operator) {
         case BOP_ADD:
+            if (expr.lpcType() == LPCType.LPCSTRING)
+                emitStringConcat(left, right);
+            else {
+                left.accept(this);
+                right.accept(this);
+
+                mv.visitInsn(operator.opcode());
+            }
+            break;
         case BOP_SUB:
         case BOP_MULT:
         case BOP_DIV:
@@ -763,6 +772,47 @@ public class Compiler {
         default:
             break;
         }
+    }
+
+    private void emitStringConcat(ASTExpression left, ASTExpression right) {
+        mv.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+        mv.visitInsn(Opcodes.DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+
+        left.accept(this);
+        appendStringBuilder(left.lpcType());
+
+        right.accept(this);
+        appendStringBuilder(right.lpcType());
+
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+    }
+
+    private void appendStringBuilder(LPCType type) {
+        String descriptor;
+
+        if (type != null && type.jType() != null)
+            switch (type.jType()) {
+            case JINT:
+                descriptor = "(I)Ljava/lang/StringBuilder;";
+                break;
+            case JFLOAT:
+                descriptor = "(F)Ljava/lang/StringBuilder;";
+                break;
+            case JBOOLEAN:
+                descriptor = "(Z)Ljava/lang/StringBuilder;";
+                break;
+            case JSTRING:
+                descriptor = "(Ljava/lang/String;)Ljava/lang/StringBuilder;";
+                break;
+            default:
+                descriptor = "(Ljava/lang/Object;)Ljava/lang/StringBuilder;";
+                break;
+            }
+        else
+            descriptor = "(Ljava/lang/Object;)Ljava/lang/StringBuilder;";
+
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", descriptor, false);
     }
 
     private void pushInt(int value) {

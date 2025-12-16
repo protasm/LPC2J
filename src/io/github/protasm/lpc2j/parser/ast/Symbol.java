@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast;
 
+import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.token.Token;
 
@@ -38,7 +39,9 @@ public class Symbol {
     }
 
     public String descriptor() {
-        return lpcType.jType().descriptor();
+        String descriptor = (lpcType == null || lpcType.jType() == null) ? null : lpcType.jType().descriptor();
+
+        return descriptor != null ? descriptor : JType.JOBJECT.descriptor();
     }
 
     @Override

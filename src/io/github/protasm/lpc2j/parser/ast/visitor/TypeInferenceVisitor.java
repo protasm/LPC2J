@@ -9,6 +9,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
+import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
@@ -28,6 +29,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class TypeInferenceVisitor {
@@ -36,6 +38,8 @@ public class TypeInferenceVisitor {
 
         expr.field().accept(this, lpcType);
         expr.value().accept(this, lpcType);
+
+        updateSymbolType(expr.field().symbol(), expr.value().lpcType());
     }
 
     public void visit(ASTExprInvokeLocal expr, LPCType lpcType) {
@@ -47,6 +51,8 @@ public class TypeInferenceVisitor {
 
         expr.local().accept(this, lpcType);
         expr.value().accept(this, lpcType);
+
+        updateSymbolType(expr.local().symbol(), expr.value().lpcType());
     }
 
     public void visit(ASTMethod method, LPCType lpcType) {
@@ -76,7 +82,7 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTStmtIfThenElse stmt, LPCType lpcType) {
-        stmt.condition().accept(this, lpcType);
+        stmt.condition().accept(this, LPCType.LPCSTATUS);
         stmt.thenBranch().accept(this, lpcType);
 
         if (stmt.elseBranch() != null)
@@ -89,22 +95,20 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTArguments astArguments, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        for (ASTArgument arg : astArguments)
+            arg.accept(this, null);
     }
 
     public void visit(ASTExprFieldAccess astExprFieldAccess, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        updateSymbolType(astExprFieldAccess.field().symbol(), lpcType);
     }
 
     public void visit(ASTExprCallMethod astExprCall, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        astExprCall.arguments().accept(this, null);
     }
 
     public void visit(ASTExprCallEfun astExprCallEfun, LPCType lpcTyp) {
-
+        astExprCallEfun.arguments().accept(this, null);
     }
 
     public void visit(ASTExprLiteralFalse astExprLiteralFalse, LPCType lpcType) {
@@ -128,8 +132,7 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTExprLocalAccess astExprLocalAccess, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        updateSymbolType(astExprLocalAccess.local().symbol(), lpcType);
     }
 
     public void visit(ASTExprNull astExprNull, LPCType lpcType) {
@@ -138,23 +141,25 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTExprOpBinary astExprOpBinary, LPCType lpcType) {
-        // TODO Auto-generated method stub
+        LPCType operandExpectation = expectedBinaryOperandType(astExprOpBinary, lpcType);
 
+        astExprOpBinary.left().accept(this, operandExpectation);
+        astExprOpBinary.right().accept(this, operandExpectation);
     }
 
     public void visit(ASTExprOpUnary astExprOpUnary, LPCType lpcType) {
-        // TODO Auto-generated method stub
+        LPCType operandExpectation = astExprOpUnary.operator() == UnaryOpType.UOP_NOT ? LPCType.LPCSTATUS
+                : LPCType.LPCINT;
 
+        astExprOpUnary.right().accept(this, operandExpectation);
     }
 
     public void visit(ASTArgument astArgument, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        astArgument.expression().accept(this, lpcType);
     }
 
     public void visit(ASTField astField, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        updateSymbolType(astField.symbol(), lpcType);
     }
 
     public void visit(ASTFields astFields, LPCType lpcType) {
@@ -163,12 +168,40 @@ public class TypeInferenceVisitor {
     }
 
     public void visit(ASTParameter astParameter, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+        updateSymbolType(astParameter.symbol(), lpcType);
     }
 
     public void visit(ASTParameters astParameters, LPCType lpcType) {
-        // TODO Auto-generated method stub
+        for (ASTParameter param : astParameters)
+            param.accept(this, param.symbol().lpcType());
+    }
 
+    private LPCType expectedBinaryOperandType(ASTExprOpBinary expr, LPCType context) {
+        switch (expr.operator()) {
+        case BOP_ADD:
+            return (expr.left().lpcType() == LPCType.LPCSTRING || expr.right().lpcType() == LPCType.LPCSTRING
+                    || context == LPCType.LPCSTRING) ? LPCType.LPCSTRING : LPCType.LPCINT;
+        case BOP_SUB:
+        case BOP_MULT:
+        case BOP_DIV:
+        case BOP_GT:
+        case BOP_GE:
+        case BOP_LT:
+        case BOP_LE:
+        case BOP_EQ:
+        case BOP_NE:
+        case BOP_AND:
+        case BOP_OR:
+            return LPCType.LPCINT;
+        default:
+            return context;
+        }
+    }
+
+    private void updateSymbolType(Symbol symbol, LPCType candidate) {
+        if (symbol == null || candidate == null)
+            return;
+
+        symbol.setLpcType(candidate);
     }
 }

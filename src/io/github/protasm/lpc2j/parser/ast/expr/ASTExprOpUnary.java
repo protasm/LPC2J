@@ -37,10 +37,7 @@ public class ASTExprOpUnary extends ASTExpression {
             else
                 throw new IllegalStateException("Unary '-' operator requires an integer operand.");
         case UOP_NOT:
-            if (right.lpcType() == LPCSTATUS)
-                return LPCSTATUS;
-            else
-                throw new IllegalStateException("Logical '!' operator requires a boolean operand.");
+            return LPCSTATUS;
         }
 
         return null; // unreachable

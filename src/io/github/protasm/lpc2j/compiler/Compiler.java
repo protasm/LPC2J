@@ -12,6 +12,7 @@ import static org.objectweb.asm.Opcodes.CHECKCAST;
 import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.GETFIELD;
 import static org.objectweb.asm.Opcodes.GETSTATIC;
+import static org.objectweb.asm.Opcodes.FNEG;
 import static org.objectweb.asm.Opcodes.GOTO;
 import static org.objectweb.asm.Opcodes.ICONST_0;
 import static org.objectweb.asm.Opcodes.ICONST_1;
@@ -410,7 +411,14 @@ public class Compiler {
 
         switch (operator) {
         case UOP_NEGATE: // Unary minus (-)
-            mv.visitInsn(INEG);
+            switch (coerceUnaryNumericOperand(right)) {
+            case JFLOAT:
+                mv.visitInsn(FNEG);
+                break;
+            default:
+                mv.visitInsn(INEG);
+                break;
+            }
             break;
         case UOP_NOT: // Logical NOT (!)
             Label trueLabel = new Label();
@@ -758,6 +766,29 @@ public class Compiler {
         default:
             break;
         }
+    }
+
+    private JType coerceUnaryNumericOperand(ASTExpression operand) {
+        LPCType type = operand.lpcType();
+
+        if (type != null)
+            switch (type.jType()) {
+            case JINT:
+            case JBOOLEAN:
+                return JType.JINT;
+            case JFLOAT:
+                return JType.JFLOAT;
+            case JOBJECT:
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+                return JType.JINT;
+            default:
+                break;
+            }
+
+        mv.visitTypeInsn(CHECKCAST, "java/lang/Number");
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Number", "intValue", "()I", false);
+        return JType.JINT;
     }
 
     private boolean isLiteralZero(ASTExpression expr) {

@@ -198,6 +198,8 @@ public class Compiler {
 
         value.accept(this);
 
+        coerceAssignmentValue(field.symbol().lpcType(), value);
+
         mv.visitInsn(Opcodes.DUP_X1);
         mv.visitFieldInsn(PUTFIELD, field.ownerName(), field.symbol().name(), field.symbol().descriptor());
     }
@@ -274,6 +276,8 @@ public class Compiler {
         ASTExpression value = expr.value();
 
         value.accept(this);
+
+        coerceAssignmentValue(local.symbol().lpcType(), value);
 
         switch (local.symbol().lpcType()) {
         case LPCINT:
@@ -594,6 +598,8 @@ public class Compiler {
 
                 field.initializer().accept(this);
 
+                coerceAssignmentValue(field.symbol().lpcType(), field.initializer());
+
                 mv.visitFieldInsn(PUTFIELD, object.name(), field.symbol().name(), field.descriptor());
             }
 
@@ -709,6 +715,53 @@ public class Compiler {
 
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, Type.getInternalName(Truth.class), "isTruthy",
                 "(Ljava/lang/Object;)Z", false);
+    }
+
+    private void coerceAssignmentValue(LPCType targetType, ASTExpression value) {
+        if (targetType == null || value == null)
+            return;
+
+        switch (targetType.jType()) {
+        case JSTRING:
+            if (isLiteralZero(value)) {
+                mv.visitInsn(Opcodes.POP);
+                mv.visitInsn(Opcodes.ACONST_NULL);
+            }
+            break;
+        case JOBJECT:
+            if (targetType == LPCType.LPCMIXED)
+                boxPrimitiveIfNeeded(value.lpcType());
+            else if (isLiteralZero(value)) {
+                mv.visitInsn(Opcodes.POP);
+                mv.visitInsn(Opcodes.ACONST_NULL);
+            }
+            break;
+        default:
+            break;
+        }
+    }
+
+    private boolean isLiteralZero(ASTExpression expr) {
+        return expr instanceof ASTExprLiteralInteger && ((ASTExprLiteralInteger) expr).value() == 0;
+    }
+
+    private void boxPrimitiveIfNeeded(LPCType sourceType) {
+        if (sourceType == null)
+            return;
+
+        switch (sourceType.jType()) {
+        case JINT:
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+            break;
+        case JFLOAT:
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+            break;
+        case JBOOLEAN:
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            break;
+        default:
+            break;
+        }
     }
 
     private void pushInt(int value) {

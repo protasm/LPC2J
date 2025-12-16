@@ -551,7 +551,16 @@ public class Compiler {
 
                 returnValue.accept(this);
 
-                switch (returnValue.lpcType()) {
+                // Ensure the emitted return opcode matches the declared (or
+                // inferred) method return type, not just the expression type
+                // of this particular return statement. This keeps the JVM
+                // verifier happy even when an LPC function is implicitly
+                // "mixed" but returns a primitive value.
+                coerceAssignmentValue(currentReturnType, returnValue);
+
+                LPCType returnType = currentReturnType != null ? currentReturnType : returnValue.lpcType();
+
+                switch (returnType) {
                 case LPCINT:
                 case LPCSTATUS:
                         mv.visitInsn(Opcodes.IRETURN);

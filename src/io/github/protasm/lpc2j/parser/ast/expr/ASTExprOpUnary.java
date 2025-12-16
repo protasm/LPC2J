@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
+import static io.github.protasm.lpc2j.parser.type.LPCType.LPCFLOAT;
 import static io.github.protasm.lpc2j.parser.type.LPCType.LPCINT;
 import static io.github.protasm.lpc2j.parser.type.LPCType.LPCSTATUS;
 
@@ -30,12 +31,16 @@ public class ASTExprOpUnary extends ASTExpression {
 
     @Override
     public LPCType lpcType() {
+        LPCType operandType = right.lpcType();
+
         switch (operator) {
         case UOP_NEGATE:
-            if (right.lpcType() == LPCINT)
-                return LPCINT;
-            else
-                throw new IllegalStateException("Unary '-' operator requires an integer operand.");
+            if (operandType == null || operandType == LPCINT || operandType == LPCFLOAT || operandType == LPCSTATUS
+                    || operandType == LPCType.LPCMIXED)
+                return operandType == LPCFLOAT ? LPCFLOAT : LPCINT;
+
+            throw new IllegalStateException(
+                    String.format("Unary '-' operator requires a numeric operand, got %s.", operandType));
         case UOP_NOT:
             return LPCSTATUS;
         }

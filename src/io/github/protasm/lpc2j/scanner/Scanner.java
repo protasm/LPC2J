@@ -113,22 +113,33 @@ public class Scanner {
         };
     }
 
-        public TokenList scan(String source) {
-                String processed = Preprocessor.preprocess(source).source;
+    public TokenList scan(String source) {
+        if (source == null)
+            throw new ScanException("Source text cannot be null.", -1);
 
-        ss = new ScannableSource(processed);
+        try {
+            String processed = Preprocessor.preprocess(source).source;
 
-        TokenList tokens = new TokenList();
-        Token<?> token;
+            ss = new ScannableSource(processed);
 
-        do {
-            token = lexToken();
+            TokenList tokens = new TokenList();
+            Token<?> token;
 
-            if (token != null)
-                tokens.add(token);
-        } while ((token == null) || (token.type() != T_EOF));
+            do {
+                token = lexToken();
 
-        return tokens;
+                if (token != null)
+                    tokens.add(token);
+            } while ((token == null) || (token.type() != T_EOF));
+
+            return tokens;
+        } catch (ScanException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            int line = (ss != null) ? ss.pos().line() : -1;
+
+            throw new ScanException("Failed to scan source: " + e.getMessage(), line, e);
+        }
     }
 
     private Token<?> lexToken() {
@@ -272,10 +283,16 @@ public class Scanner {
 
         String lexeme = ss.read();
 
-        if (isFloat)
-            return floatToken(T_FLOAT_LITERAL, lexeme, Float.parseFloat(lexeme));
-        else
-            return intToken(T_INT_LITERAL, lexeme, Integer.parseInt(lexeme));
+        SourcePos pos = ss.pos();
+
+        try {
+            if (isFloat)
+                return floatToken(T_FLOAT_LITERAL, lexeme, Float.parseFloat(lexeme));
+            else
+                return intToken(T_INT_LITERAL, lexeme, Integer.parseInt(lexeme));
+        } catch (NumberFormatException e) {
+            throw new ScanException("Invalid numeric literal: '" + lexeme + "'", pos.line(), e);
+        }
     }
 
     private Token<String> stringLiteral() {

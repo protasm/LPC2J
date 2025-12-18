@@ -1,10 +1,12 @@
 package io.github.protasm.lpc2j;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
+import io.github.protasm.lpc2j.compiler.CompileException;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
 
@@ -14,7 +16,14 @@ public class LPC2J {
     public static TokenList scan(String source) {
         Scanner scanner = new Scanner();
 
-        return scanner.scan(source);
+        try {
+            return scanner.scan(source);
+        } catch (ScanException e) {
+            System.out.println("Error scanning source");
+            System.out.println(e);
+
+            return null;
+        }
     }
 
     public static ASTObject parse(TokenList tokens) {
@@ -45,8 +54,10 @@ public class LPC2J {
             Compiler compiler = new Compiler(DEFAULT_PARENT);
 
             return compiler.compile(astObject);
-        } catch (IllegalArgumentException e) {
+        } catch (CompileException | IllegalArgumentException e) {
             System.out.println("Error compiling ASTObject");
+
+            System.out.println(e);
 
             return null;
         }

@@ -9,12 +9,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.github.protasm.lpc2j.compiler.CompileException;
 import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.console.cmd.*;
@@ -228,8 +230,9 @@ public class LPCConsole {
       sf.setBytes(bytes);
 
       return sf;
-    } catch (IllegalArgumentException e) {
+    } catch (CompileException | IllegalArgumentException e) {
       System.out.println("Error compiling fileName: " + vPathStr);
+      System.out.println(e);
 
       return null;
     }
@@ -277,8 +280,9 @@ public class LPCConsole {
       sf.setTokens(tokens);
 
       return sf;
-  } catch (IllegalArgumentException e) {
+  } catch (ScanException | IllegalArgumentException e) {
     System.out.println("Error scanning fileName: " + vPathStr);
+    System.out.println(e);
 
     return null;
   }

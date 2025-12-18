@@ -12,8 +12,18 @@ public class ParseException extends RuntimeException {
         this.line = line;
     }
 
+    public ParseException(String message, int line, Throwable cause) {
+        super(message, cause);
+
+        this.line = line;
+    }
+
     public ParseException(String message, Token<?> token) {
         this(message, token.line());
+    }
+
+    public ParseException(String message, Token<?> token, Throwable cause) {
+        this(message, token.line(), cause);
     }
 
     public ParseException(String message) {

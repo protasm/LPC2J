@@ -79,19 +79,30 @@ public class Parser {
 
     public ASTObject parse(String objName, TokenList tokens) {
         if (tokens == null)
-            return null;
+            throw new ParseException("Token list cannot be null.");
 
         this.tokens = tokens;
 
-        currObj = new ASTObject(0, objName);
+        try {
+            currObj = new ASTObject(0, objName);
 
-        declarations(); // pass 1
+            declarations(); // pass 1
 
-        definitions(); // pass 2
+            definitions(); // pass 2
 
-        typeInference(); // pass 3
+            typeInference(); // pass 3
 
-        return currObj;
+            return currObj;
+        } catch (ParseException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            Token<?> current = (this.tokens != null) ? this.tokens.current() : null;
+
+            if (current != null)
+                throw new ParseException("Unexpected parser failure: " + e.getMessage(), current, e);
+
+            throw new ParseException("Unexpected parser failure: " + e.getMessage(), -1, e);
+        }
     }
 
     private void declarations() {

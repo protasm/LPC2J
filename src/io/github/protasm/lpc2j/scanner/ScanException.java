@@ -12,6 +12,12 @@ public class ScanException extends RuntimeException {
         this.line = line;
     }
 
+    public ScanException(String message, int line, Throwable cause) {
+        super(message, cause);
+
+        this.line = line;
+    }
+
     public ScanException(String message, Token<?> token) {
         this(message, token.line());
     }

@@ -85,11 +85,19 @@ public class Compiler {
 
     public byte[] compile(ASTObject astObject) {
         if (astObject == null)
-            return null;
+            throw new CompileException("ASTObject cannot be null.");
 
-        astObject.accept(this);
+        try {
+            astObject.accept(this);
 
-        return this.cw.toByteArray();
+            return this.cw.toByteArray();
+        } catch (CompileException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            String name = (astObject.name() != null) ? astObject.name() : "<unnamed>";
+
+            throw new CompileException("Failed to compile object '" + name + "': " + e.getMessage(), e);
+        }
     }
 
     public void visit(ASTArgument arg) {

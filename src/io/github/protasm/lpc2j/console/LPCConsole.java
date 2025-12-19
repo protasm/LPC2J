@@ -47,6 +47,7 @@ public class LPCConsole {
   commands.put(new CmdDirList(), List.of("ls"));
   commands.put(new CmdDirChange(), List.of("cd"));
   commands.put(new CmdFileCat(), List.of("cat"));
+  commands.put(new CmdPreprocess(), List.of("pp", "preprocess"));
   commands.put(new CmdQuit(), List.of("q", "quit"));
   }
 

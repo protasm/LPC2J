@@ -23,8 +23,6 @@ public final class EfunWrite implements Efun {
 
     @Override
     public Object call(Object[] args) {
-        System.out.print(String.valueOf(args[0]));
-
         return null;
     }
 }

@@ -8,7 +8,7 @@ import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 public class CmdFileCat extends Command {
     @Override
     public boolean execute(LPCConsole console, String... args) {
-        VirtualFileServer basePath = console.basePath();
+        VirtualFileServer vfs = console.vfs();
 
         if (args.length == 0) {
             System.out.println("Usage: cat [<fileName.lpc> | <fileName.c>]");
@@ -18,7 +18,7 @@ public class CmdFileCat extends Command {
 
         try {
             String vPathStr = pathStrOfArg(console.vPath(), args[0]);
-            String contents = basePath.contentsOfFileAt(vPathStr);
+            String contents = vfs.contentsOfFileAt(vPathStr);
 
             if (contents == null) {
                 System.out.println("Invalid fileName: " + args[0]);

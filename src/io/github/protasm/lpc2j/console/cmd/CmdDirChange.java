@@ -8,7 +8,7 @@ import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 public class CmdDirChange extends Command {
     @Override
     public boolean execute(LPCConsole console, String... args) {
-        VirtualFileServer basePath = console.basePath();
+        VirtualFileServer vfs = console.vfs();
 
         if (args.length == 0) {
             console.setVPath(Path.of("/"));
@@ -17,7 +17,7 @@ public class CmdDirChange extends Command {
         }
 
         String vPathStr = pathStrOfArg(console.vPath(), args[0]);
-        Path newPath = basePath.dirAt(vPathStr);
+        Path newPath = vfs.dirAt(vPathStr);
 
         if (newPath != null) {
             console.setVPath(newPath);

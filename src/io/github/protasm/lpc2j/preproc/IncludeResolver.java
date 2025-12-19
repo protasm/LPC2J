@@ -4,15 +4,14 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 public interface IncludeResolver {
-    /**
-     * Resolve an include path to source text.
-     *
-     * @param includingFile absolute or virtual path of the including fileName (may be
-     *                      null for roots)
-     * @param includePath   the raw string inside #include "..." or <...>
-     * @param system        true for <...>, false for "..."
-     * @return the loaded source text
-     * @throws IOException if not found or unreadable
-     */
-    String resolve(Path includingFile, String includePath, boolean system) throws IOException;
+  /**
+   * Resolve an include path to source text.
+   *
+   * @param includingFile absolute or virtual path of the including fileName (may be null for roots)
+   * @param includePath the raw string inside #include "..." or <...>
+   * @param system true for <...>, false for "..."
+   * @return the loaded source text
+   * @throws IOException if not found or unreadable
+   */
+  String resolve(Path includingFile, String includePath, boolean system) throws IOException;
 }

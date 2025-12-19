@@ -20,12 +20,12 @@ public class CmdPreprocess extends Command {
             return true;
         }
 
-        VirtualFileServer basePath = console.basePath();
-        Path root = basePath.basePath();
+        VirtualFileServer vfs = console.vfs();
+        Path root = vfs.basePath();
 
         try {
             String vPathStr = pathStrOfArg(console.vPath(), args[0]);
-            Path vPath = basePath.fileAt(vPathStr);
+            Path vPath = vfs.fileAt(vPathStr);
 
             if (vPath == null) {
                 System.out.println("Invalid fileName: " + args[0]);
@@ -34,7 +34,7 @@ public class CmdPreprocess extends Command {
             }
 
             Path sourcePath = root.resolve(vPath).normalize();
-            String source = basePath.contentsOfFileAt(vPath.toString());
+            String source = vfs.contentsOfFileAt(vPath.toString());
 
             if (source == null) {
                 System.out.println("Unable to read fileName: " + args[0]);

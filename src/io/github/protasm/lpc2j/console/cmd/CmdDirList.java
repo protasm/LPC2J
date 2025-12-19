@@ -12,15 +12,15 @@ import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 public class CmdDirList extends Command {
     @Override
     public boolean execute(LPCConsole console, String... args) {
-        VirtualFileServer basePath = console.basePath();
+        VirtualFileServer vfs = console.vfs();
         File[] files;
 
         try {
             if (args.length == 0) {
-                files = basePath.filesIn(console.vPath().toString());
+                files = vfs.filesIn(console.vPath().toString());
             } else {
                 String vPathStr = pathStrOfArg(console.vPath(), args[0]);
-                files = basePath.filesIn(vPathStr);
+                files = vfs.filesIn(vPathStr);
             }
 
             if (files == null) {

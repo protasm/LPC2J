@@ -70,6 +70,7 @@ public class LPCConsole {
     EfunRegistry.register("destruct", EfunDestruct.INSTANCE);
     EfunRegistry.register("foo", EfunFoo.INSTANCE);
     EfunRegistry.register("environment", EfunEnvironment.INSTANCE);
+    EfunRegistry.register("this_player", EfunThisPlayer.INSTANCE);
     EfunRegistry.register("this_object", EfunThisObject.INSTANCE);
     EfunRegistry.register("set_heart_beat", EfunSetHeartBeat.INSTANCE);
     EfunRegistry.register("set_light", EfunSetLight.INSTANCE);
@@ -193,6 +194,11 @@ public class LPCConsole {
   }
 
   try {
+    Object previousPlayer = RuntimeContext.getCurrentPlayer();
+    if (previousPlayer == null) {
+      RuntimeContext.setCurrentPlayer(obj);
+    }
+
     RuntimeContext.setCurrentObject(obj);
 
     Method[] methods = obj.getClass().getMethods();
@@ -202,15 +208,18 @@ public class LPCConsole {
       return method.invoke(obj, callArgs);
     }
     }
-  } catch (InvocationTargetException e) {
-    System.out.println(e.toString());
-    e.getCause().printStackTrace();
-  } catch (IllegalAccessException e) {
-    System.out.println(e.toString());
+    } catch (InvocationTargetException e) {
+      System.out.println(e.toString());
+      e.getCause().printStackTrace();
+    } catch (IllegalAccessException e) {
+      System.out.println(e.toString());
   } catch (IllegalArgumentException e) {
     System.out.println(e.toString());
   } finally {
     RuntimeContext.clearCurrentObject();
+    if (previousPlayer == null) {
+      RuntimeContext.clearCurrentPlayer();
+    }
   }
 
   return null;

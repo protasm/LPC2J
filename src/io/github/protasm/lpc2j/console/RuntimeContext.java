@@ -6,6 +6,7 @@ package io.github.protasm.lpc2j.console;
  */
 public final class RuntimeContext {
     private static final ThreadLocal<Object> CURRENT_OBJECT = new ThreadLocal<>();
+    private static final ThreadLocal<Object> CURRENT_PLAYER = new ThreadLocal<>();
 
     private RuntimeContext() {
     }
@@ -20,5 +21,17 @@ public final class RuntimeContext {
 
     public static void clearCurrentObject() {
         CURRENT_OBJECT.remove();
+    }
+
+    public static Object getCurrentPlayer() {
+        return CURRENT_PLAYER.get();
+    }
+
+    public static void setCurrentPlayer(Object obj) {
+        CURRENT_PLAYER.set(obj);
+    }
+
+    public static void clearCurrentPlayer() {
+        CURRENT_PLAYER.remove();
     }
 }

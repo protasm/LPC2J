@@ -118,7 +118,7 @@ public class Scanner {
             throw new ScanException("Source text cannot be null.", -1);
 
         try {
-            String processed = Preprocessor.preprocess(source).source;
+            String processed = Preprocessor.preprocess(source);
 
             ss = new ScannableSource(processed);
 

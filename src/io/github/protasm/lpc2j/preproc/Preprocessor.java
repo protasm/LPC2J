@@ -22,10 +22,6 @@ import java.util.Set;
  * recursive re-expansion.
  */
 public final class Preprocessor {
-  public static final record Result(String source) {
-    // fully expanded text
-  }
-
   private static record Macro(String name, List<String> params, List<PPToken> body) {
     boolean isFunctionLike() {
       return params != null;
@@ -67,7 +63,7 @@ public final class Preprocessor {
    * <p>This helper builds a {@link Preprocessor} that rejects any attempt to resolve <code>#include
    * </code> directives, making it suitable for string-only compilation flows.
    */
-  public static Result preprocess(String source) {
+  public static String preprocess(String source) {
     IncludeResolver resolver =
         (includingFile, includePath, system) -> {
           throw new IOException("Includes are not supported without a resolver");
@@ -78,7 +74,7 @@ public final class Preprocessor {
     return pp.preprocess(null, source);
   }
 
-  public static Result preprocess(
+  public static String preprocess(
       Path sourcePath, String source, String sysInclPath, String quoteInclPath) {
     IncludeResolver resolver =
         (includingFile, includePath, system) -> {
@@ -102,7 +98,7 @@ public final class Preprocessor {
     return pp.preprocess(sourcePath, source);
   }
 
-  public Result preprocess(Path sourcePath, String source) {
+  public String preprocess(Path sourcePath, String source) {
     if (source == null)
       throw new PreprocessException("Source text cannot be null.", "<unknown>", -1);
 
@@ -122,11 +118,7 @@ public final class Preprocessor {
           "Unexpected preprocessor failure: " + e.getMessage(), file, line, e);
     }
 
-    String result = out.toString();
-
-    //        System.out.println(result); // dump fully preprocessed source
-
-    return new Result(result);
+    return out.toString(); //fully expanded source
   }
 
   /* ========================= core expansion ========================== */

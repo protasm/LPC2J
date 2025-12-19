@@ -44,9 +44,9 @@ public class CmdPreprocess extends Command {
 
             IncludeResolver resolver = includeResolver(root);
             Preprocessor pp = new Preprocessor(resolver);
-            Preprocessor.Result result = pp.preprocess(sourcePath, source);
+            String processed = pp.preprocess(sourcePath, source);
 
-            System.out.print(result.source);
+            System.out.print(processed);
         } catch (InvalidPathException e) {
             System.out.println("Error preprocessing fileName: " + args[0]);
             System.out.println(e.toString());

@@ -24,24 +24,11 @@ public final class EfunSay implements Efun {
     @Override
     public Object invoke(Object[] args) {
         Object[] a = (args == null) ? new Object[0] : args;
-
-        if (a.length != 1 && a.length != 2)
-            throw new IllegalArgumentException(
-                    "efun '" + symbol().name() + "' expects 1 or 2 arg(s); got " + a.length);
-
         return call(a);
     }
 
     @Override
     public Object call(Object[] args) {
-        if (args.length == 0)
-            return null;
-
-        String message = String.valueOf(args[0]);
-
-        // TODO: Broadcast to players sharing the caller's environment instead of stdout.
-        System.out.println(message);
-
         return null;
     }
 }

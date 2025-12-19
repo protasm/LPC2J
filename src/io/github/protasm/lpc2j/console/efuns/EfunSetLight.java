@@ -8,8 +8,6 @@ public final class EfunSetLight implements Efun {
     public static final EfunSetLight INSTANCE = new EfunSetLight();
     private static final Symbol SYM = new Symbol(LPCType.LPCINT, "set_light");
 
-    private static int lightLevel;
-
     private EfunSetLight() {
     }
 
@@ -25,14 +23,6 @@ public final class EfunSetLight implements Efun {
 
     @Override
     public synchronized Object call(Object[] args) {
-        int delta;
-        if (args[0] instanceof Number) {
-            delta = ((Number) args[0]).intValue();
-        } else {
-            delta = Integer.parseInt(String.valueOf(args[0]));
-        }
-
-        lightLevel += delta;
-        return lightLevel;
+        return null;
     }
 }

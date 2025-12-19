@@ -23,8 +23,6 @@ public final class EfunFoo implements Efun {
 
     @Override
     public Object call(Object[] args) {
-        System.out.print("foo");
-
         return null;
     }
 }

@@ -1,6 +1,5 @@
 package io.github.protasm.lpc2j.console.efuns;
 
-import io.github.protasm.lpc2j.console.RuntimeContext;
 import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -24,6 +23,6 @@ public final class EfunThisPlayer implements Efun {
 
     @Override
     public Object call(Object[] args) {
-        return RuntimeContext.getCurrentPlayer();
+        return null;
     }
 }

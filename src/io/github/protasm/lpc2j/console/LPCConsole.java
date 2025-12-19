@@ -23,7 +23,6 @@ import io.github.protasm.lpc2j.console.cmd.*;
 import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
-import io.github.protasm.lpc2j.console.RuntimeContext;
 
 public class LPCConsole {
   private final VirtualFileServer basePath;
@@ -194,13 +193,6 @@ public class LPCConsole {
   }
 
   try {
-    Object previousPlayer = RuntimeContext.getCurrentPlayer();
-    if (previousPlayer == null) {
-      RuntimeContext.setCurrentPlayer(obj);
-    }
-
-    RuntimeContext.setCurrentObject(obj);
-
     Method[] methods = obj.getClass().getMethods();
 
     for (Method method : methods) {
@@ -215,11 +207,6 @@ public class LPCConsole {
       System.out.println(e.toString());
   } catch (IllegalArgumentException e) {
     System.out.println(e.toString());
-  } finally {
-    RuntimeContext.clearCurrentObject();
-    if (previousPlayer == null) {
-      RuntimeContext.clearCurrentPlayer();
-    }
   }
 
   return null;

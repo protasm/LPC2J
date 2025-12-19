@@ -1,8 +1,5 @@
 package io.github.protasm.lpc2j.console.efuns;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -26,32 +23,12 @@ public final class EfunEnvironment implements Efun {
 
     @Override
     public Object invoke(Object[] args) {
-        Object[] a = (args == null) ? new Object[0] : args;
-
-        if (a.length != 0 && a.length != 1)
-            throw new IllegalArgumentException(
-                    "efun '" + symbol().name() + "' expects 0 or 1 arg(s); got " + a.length);
-
-        return call(a);
+        Object[] safeArgs = (args == null) ? new Object[0] : args;
+        return call(safeArgs);
     }
 
     @Override
     public Object call(Object[] args) {
-        if (args.length == 0)
-            return null;
-
-        Object target = args[0];
-
-        if (target == null)
-            return null;
-
-        try {
-            Method method = target.getClass().getMethod("environment");
-            return method.invoke(target);
-        } catch (NoSuchMethodException e) {
-            return null;
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalStateException("Failed to call environment() on object", e);
-        }
+        return null;
     }
 }

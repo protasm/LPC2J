@@ -1,11 +1,6 @@
 package io.github.protasm.lpc2j.token;
 
-public class Token<T> {
-    private final TokenType tType;
-    private final String lexeme;
-    private final T literal;
-    private final int line;
-
+public record Token<T>(TokenType type, String lexeme, T literal, int line) {
     public Token() {
         this(null, null, null, -1);
     }
@@ -18,27 +13,8 @@ public class Token<T> {
         this(null, lexeme, null, -1);
     }
 
-    public Token(TokenType tType, String lexeme, T literal, int line) {
-        this.tType = tType;
-        this.lexeme = lexeme;
-        this.literal = literal;
-        this.line = line;
-    }
-
-    public TokenType type() {
-        return tType;
-    }
-
-    public String lexeme() {
-        return lexeme;
-    }
-
     public int length() {
         return lexeme.length();
-    }
-
-    public T literal() {
-        return literal;
     }
 
     @SuppressWarnings("unchecked")
@@ -46,17 +22,13 @@ public class Token<T> {
         return (Class<T>) literal.getClass();
     }
 
-    public int line() {
-        return line;
-    }
-
     @Override
     public String toString() {
-        if (tType == TokenType.T_EOF)
-            return tType.toString();
+        if (type == TokenType.T_EOF)
+            return type.toString();
         if (literal == null)
-            return tType + "(" + lexeme + ")";
+            return type + "(" + lexeme + ")";
         else
-            return tType + "<" + literal.getClass().getSimpleName() + ">(" + lexeme + ")";
+            return type + "<" + literal.getClass().getSimpleName() + ">(" + lexeme + ")";
     }
 }

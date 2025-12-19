@@ -22,32 +22,18 @@ import java.util.Set;
  * recursive re-expansion.
  */
 public final class Preprocessor {
-  public static final class Result {
-    public final String source; // fully expanded text
-
-    public Result(String source) {
-      this.source = source;
-    }
+  public static final record Result(String source) {
+    // fully expanded text
   }
 
-  private static final class Macro {
-    final String name;
-    final List<String> params; // null for object-like
-    final List<PPToken> body; // tokenized body
-
-    Macro(String name, List<String> params, List<PPToken> body) {
-      this.name = name;
-      this.params = params;
-      this.body = body;
-    }
-
+  private static record Macro(String name, List<String> params, List<PPToken> body) {
     boolean isFunctionLike() {
       return params != null;
     }
   }
 
   /** Tiny token for preprocessing stage only. */
-  private static final class PPToken {
+  private static record PPToken(Kind kind, String lexeme) {
     enum Kind {
       IDENT,
       NUMBER,
@@ -55,14 +41,6 @@ public final class Preprocessor {
       OP,
       PUNCT,
       END
-    }
-
-    final Kind kind;
-    final String lexeme;
-
-    PPToken(Kind k, String x) {
-      kind = k;
-      lexeme = x;
     }
 
     @Override
@@ -603,7 +581,7 @@ public final class Preprocessor {
           // object-like: splice body, with hideset entry
           Set<String> nextHide = new HashSet<>(hideset);
 
-          nextHide.add(m.name);
+          nextHide.add(m.name());
 
           out.addAll(expandMacros(m.body, nextHide));
 
@@ -673,7 +651,7 @@ public final class Preprocessor {
           List<PPToken> substituted = substitute(m.body, paramMap);
           Set<String> nextHide = new HashSet<>(hideset);
 
-          nextHide.add(m.name);
+          nextHide.add(m.name());
 
           out.addAll(expandMacros(substituted, nextHide));
         }

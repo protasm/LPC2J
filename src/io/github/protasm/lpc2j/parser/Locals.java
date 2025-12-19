@@ -48,7 +48,7 @@ public class Locals {
 
             if (local.symbol().name().equals(name))
                 if (local.scopeDepth() == -1) // "sentinel" value
-                    throw new ParseException("Can't read local variable in its own initializer.");
+                    throw new ParseException("Can't read local variable in its own initializer.", local.line());
                 else
                     return local;
         }

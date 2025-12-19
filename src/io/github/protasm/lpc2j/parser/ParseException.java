@@ -37,6 +37,9 @@ public class ParseException extends RuntimeException {
 
     @Override
     public String toString() {
+        if (line < 0)
+            return String.format("ParseException: %s", getMessage());
+
         return String.format("ParseException at line %d: %s", line, getMessage());
     }
 }

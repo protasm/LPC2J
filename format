@@ -1,0 +1,3 @@
+#!/bin/zsh
+
+java -jar ~/Downloads/google-java-format-1.33.0-all-deps.jar -i $1

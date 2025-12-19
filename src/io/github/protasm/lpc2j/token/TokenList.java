@@ -76,7 +76,7 @@ public class TokenList {
             advance();
 
             if (check(T_EOF))
-                throw new ParseException("Expected " + tType + ".");
+                throw new ParseException("Expected " + tType + ".", current());
         }
     }
 

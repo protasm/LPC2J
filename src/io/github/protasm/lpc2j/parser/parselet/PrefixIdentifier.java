@@ -50,7 +50,7 @@ public class PrefixIdentifier implements PrefixParselet {
             if (efun != null) // Call
                 return new ASTExprCallEfun(line, efun, args);
 
-            throw new ParseException("Unrecognized method or function '" + identifier + "'.");
+            throw new ParseException("Unrecognized method or function '" + identifier + "'.", parser.tokens().previous());
         }
 
         // Local?
@@ -100,6 +100,6 @@ public class PrefixIdentifier implements PrefixParselet {
             else
                 return new ASTExprFieldAccess(line, field);
 
-        throw new ParseException("Unrecognized local or field '" + identifier + "'.");
+        throw new ParseException("Unrecognized local or field '" + identifier + "'.", parser.tokens().previous());
     }
 }

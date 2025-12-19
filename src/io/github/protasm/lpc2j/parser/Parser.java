@@ -274,7 +274,7 @@ public class Parser {
             } else
                 tokens.advance();
 
-        throw new ParseException("Unmatched '{' in method body.");
+                throw new ParseException("Unmatched '{' in method body.", tokens.current());
     }
 
         private ASTParameters parameters() {
@@ -362,7 +362,7 @@ public class Parser {
             Symbol symbol = new Symbol(typeToken, nameToken);
 
             if (locals.hasCollision(symbol.name()))
-                throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
+                throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.", nameToken);
 
             ASTLocal local = new ASTLocal(currLine(), symbol);
 
@@ -407,7 +407,7 @@ public class Parser {
                 case LPCVOID:
                         return new ASTStmtReturn(currLine(), null);
                 default:
-                        throw new ParseException("Unsupported implicit return type: " + currentReturnType);
+                        throw new ParseException("Unsupported implicit return type: " + currentReturnType, tokens.current());
                 }
         }
 

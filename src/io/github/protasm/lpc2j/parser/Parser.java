@@ -7,11 +7,13 @@ import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_IF;
 import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
@@ -145,7 +147,7 @@ public class Parser {
                 else if (declaration.inferredUntypedMethod())
                         throw new ParseException("Expect '(' after method name.", tokens.current());
                 else
-                        field(symbol, define); // TODO: field(s)
+                        field(symbol, define);
         }
 
         private Declaration declarationSymbol() {
@@ -173,26 +175,59 @@ public class Parser {
         }
 
     private void field(Symbol symbol, boolean define) {
+        if (define && locals == null)
+            locals = new Locals();
+
+        List<FieldDeclarator> declarators = fieldDeclarators(symbol, define);
+
         if (!define) {
-            skipFieldInit();
+            for (FieldDeclarator declarator : declarators) {
+                ASTField field = new ASTField(currLine(), currObj.name(), declarator.symbol());
 
-            ASTField field = new ASTField(currLine(), currObj.name(), symbol);
-
-            currObj.fields().put(field.symbol().name(), field);
+                currObj.fields().put(field.symbol().name(), field);
+            }
 
             return;
         }
 
-        // TODO: what about int x, y = 45, z;?
+        for (FieldDeclarator declarator : declarators) {
+            ASTField field = currObj.fields().get(declarator.symbol().name());
 
-        if (tokens.match(T_EQUAL)) {
-            ASTField field = currObj.fields().get(symbol.name());
-            ASTExpression initializer = expression();
+            if (field == null)
+                throw new ParseException("Unrecognized field '" + declarator.symbol().name() + "'.", tokens.current());
 
-            field.setInitializer(initializer);
+            field.setInitializer(declarator.initializer());
+        }
+    }
+
+    private List<FieldDeclarator> fieldDeclarators(Symbol symbol, boolean define) {
+        List<FieldDeclarator> declarators = new ArrayList<>();
+
+        declarators.add(fieldDeclarator(symbol, define));
+
+        while (tokens.match(T_COMMA)) {
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect field name.");
+            Symbol additionalSymbol = new Symbol(symbol.declaredType(), nameToken.lexeme());
+
+            declarators.add(fieldDeclarator(additionalSymbol, define));
         }
 
         tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
+
+        return declarators;
+    }
+
+    private FieldDeclarator fieldDeclarator(Symbol symbol, boolean define) {
+        ASTExpression initializer = null;
+
+        if (tokens.match(T_EQUAL)) {
+            if (define)
+                initializer = expression();
+            else
+                skipInitializer();
+        }
+
+        return new FieldDeclarator(symbol, initializer);
     }
 
         private void method(Symbol symbol, boolean define) {
@@ -222,10 +257,6 @@ public class Parser {
         if (!tokens.match(T_INHERIT))
             return;
 
-        tokens.advanceThrough(T_SEMICOLON);
-    }
-
-    private void skipFieldInit() {
         tokens.advanceThrough(T_SEMICOLON);
     }
 
@@ -308,21 +339,10 @@ public class Parser {
                 List<ASTStatement> statements = new ArrayList<>();
 
         while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-            if (tokens.match(T_TYPE)) { // local declaration //TODO: declaration(s)
-                ASTLocal local = local();
+            if (tokens.match(T_TYPE)) { // local declaration
+                Token<LPCType> typeToken = tokens.previous();
 
-                locals.add(local, true); // sets slot # and depth
-
-                // TODO: what about int x, y = 45, z;?
-
-                if (tokens.match(T_EQUAL)) { // local assignment
-                    ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
-                    ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
-
-                    statements.add(exprStmt);
-                }
-
-                tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+                locals(typeToken, statements);
             } else
                 statements.add(statement());
 
@@ -336,15 +356,27 @@ public class Parser {
                 return new ASTStmtBlock(currLine(), statements);
         }
 
-    private ASTLocal local() {
-        Token<LPCType> typeToken = tokens.previous();
-        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
-        Symbol symbol = new Symbol(typeToken, nameToken);
+    private void locals(Token<LPCType> typeToken, List<ASTStatement> statements) {
+        do {
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
+            Symbol symbol = new Symbol(typeToken, nameToken);
 
-        if (locals.hasCollision(symbol.name()))
-            throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
+            if (locals.hasCollision(symbol.name()))
+                throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.");
 
-        return new ASTLocal(currLine(), symbol);
+            ASTLocal local = new ASTLocal(currLine(), symbol);
+
+            locals.add(local, true); // sets slot # and depth
+
+            if (tokens.match(T_EQUAL)) { // local assignment
+                ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
+                ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
+
+                statements.add(exprStmt);
+            }
+        } while (tokens.match(T_COMMA));
+
+        tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
     }
 
         public ASTStatement statement() {
@@ -396,6 +428,24 @@ public class Parser {
                         return inferredUntypedMethod;
                 }
         }
+
+    private static class FieldDeclarator {
+        private final Symbol symbol;
+        private final ASTExpression initializer;
+
+        FieldDeclarator(Symbol symbol, ASTExpression initializer) {
+            this.symbol = symbol;
+            this.initializer = initializer;
+        }
+
+        Symbol symbol() {
+            return symbol;
+        }
+
+        ASTExpression initializer() {
+            return initializer;
+        }
+    }
 
     private ASTStatement ifStatement() {
         ASTExpression expr = ifCondition();
@@ -468,5 +518,40 @@ public class Parser {
                 throw new ParseException("Invalid assignment target.", tokens.current());
 
         return expr;
+    }
+
+    private void skipInitializer() {
+        int parenDepth = 0;
+        int bracketDepth = 0;
+
+        while (!tokens.isAtEnd()) {
+            TokenType type = tokens.current().type();
+
+            if (type == T_LEFT_PAREN) {
+                parenDepth++;
+                tokens.advance();
+            } else if (type == T_RIGHT_PAREN) {
+                if (parenDepth == 0 && bracketDepth == 0)
+                    break;
+
+                parenDepth--;
+                tokens.advance();
+            } else if (type == T_LEFT_BRACKET) {
+                bracketDepth++;
+                tokens.advance();
+            } else if (type == T_RIGHT_BRACKET) {
+                if (parenDepth == 0 && bracketDepth == 0)
+                    break;
+
+                bracketDepth--;
+                tokens.advance();
+            } else if ((parenDepth == 0) && (bracketDepth == 0) && (type == T_COMMA || type == T_SEMICOLON))
+                break;
+            else
+                tokens.advance();
+        }
+
+        if (tokens.isAtEnd())
+            throw new ParseException("Unterminated initializer.", tokens.current());
     }
 }

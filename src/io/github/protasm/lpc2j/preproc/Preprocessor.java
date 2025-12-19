@@ -121,6 +121,9 @@ public final class Preprocessor {
     }
 
     public Result preprocess(Path sourcePath, String source) {
+        if (source == null)
+            throw new PreprocessException("Source text cannot be null.", "<unknown>", -1);
+
         StringBuilder out = new StringBuilder();
         String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
         LineMap map = new LineMap(file, splice(source));
@@ -129,7 +132,11 @@ public final class Preprocessor {
         try {
             expandUnit(cur, out, new HashSet<>());
         } catch (PreprocessException e) {
-            System.out.println(e);
+            throw e;
+        } catch (RuntimeException e) {
+            int line = cur.line();
+
+            throw new PreprocessException("Unexpected preprocessor failure: " + e.getMessage(), file, line, e);
         }
 
         String result = out.toString();

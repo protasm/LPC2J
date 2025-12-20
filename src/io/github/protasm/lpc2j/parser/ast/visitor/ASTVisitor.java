@@ -37,7 +37,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
  * visit*} methods they care about; the default {@link #visit(ASTNode)} dispatches to the correct
  * specialization using pattern matching.
  */
-public interface AstVisitor {
+public interface ASTVisitor {
     default void visit(ASTNode node) {
         if (node == null)
             return;

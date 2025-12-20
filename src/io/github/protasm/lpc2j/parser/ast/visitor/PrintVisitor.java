@@ -30,7 +30,7 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 
-public final class PrintVisitor implements AstVisitor {
+public final class PrintVisitor implements ASTVisitor {
     private int indentLvl;
 
     public PrintVisitor() {

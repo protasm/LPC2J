@@ -1,6 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.parser.ast.visitor.AstVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.ASTVisitor;
 
 public abstract sealed class ASTNode
         permits ASTArgument,
@@ -27,7 +27,7 @@ public abstract sealed class ASTNode
         return getClass().getSimpleName();
     }
 
-    public final void accept(AstVisitor visitor) {
+    public final void accept(ASTVisitor visitor) {
         visitor.visit(this);
     }
 }

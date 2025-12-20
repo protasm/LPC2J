@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.preproc.PreprocessedSource;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
@@ -132,9 +133,9 @@ public class Scanner {
             throw new ScanException("Source text cannot be null.", -1);
 
         try {
-            String processed = preprocessor.preprocess(sourcePath, source);
+            PreprocessedSource processed = preprocessor.preprocessWithMapping(sourcePath, source);
 
-            ss = new ScannableSource(sourceName(sourcePath), processed);
+            ss = new ScannableSource(processed);
 
             TokenList tokens = new TokenList();
             Token<?> token;
@@ -366,7 +367,4 @@ public class Scanner {
         return new Token<>(T_TYPE, lexeme, type, ss.span());
     }
 
-    private static String sourceName(Path sourcePath) {
-        return (sourcePath != null) ? sourcePath.toString() : "<input>";
-    }
 }

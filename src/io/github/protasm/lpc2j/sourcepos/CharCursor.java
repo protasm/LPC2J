@@ -67,6 +67,10 @@ public final class CharCursor {
         return map.posAt(i);
     }
 
+    public SourceSpan spanFrom(int startOffset, int endOffset) {
+        return SourceSpan.from(map, startOffset, endOffset);
+    }
+
     /** Helper/convenience methods. */
     public String fileName() {
         return pos().fileName();
@@ -78,5 +82,9 @@ public final class CharCursor {
 
     public int column() {
         return pos().column();
+    }
+
+    public LineMap map() {
+        return map;
     }
 }

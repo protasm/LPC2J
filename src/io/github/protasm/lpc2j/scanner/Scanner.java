@@ -134,7 +134,7 @@ public class Scanner {
         try {
             String processed = preprocessor.preprocess(sourcePath, source);
 
-            ss = new ScannableSource(processed);
+            ss = new ScannableSource(sourceName(sourcePath), processed);
 
             TokenList tokens = new TokenList();
             Token<?> token;
@@ -158,8 +158,10 @@ public class Scanner {
 
     private Token<?> lexToken() {
 
-        if (ss.atEnd())
+        if (ss.atEnd()) {
+            ss.syncTailHead();
             return token(T_EOF);
+        }
 
         ss.syncTailHead();
 
@@ -339,34 +341,32 @@ public class Scanner {
     }
 
     private Token<Object> token(TokenType type) {
-        SourcePos pos = ss.pos();
-        return new Token<>(type, ss.read(), null, pos.line());
+        return new Token<>(type, ss.read(), null, ss.span());
     }
 
     private Token<String> errorToken(String message) {
-        SourcePos pos = ss.pos();
-        return new Token<>(T_ERROR, message, null, pos.line());
+        return new Token<>(T_ERROR, message, null, ss.span());
     }
 
     private Token<Integer> intToken(TokenType type, String lexeme, Integer i) {
-        SourcePos pos = ss.pos();
-        return new Token<>(type, lexeme, i, pos.line());
+        return new Token<>(type, lexeme, i, ss.span());
     }
 
     private Token<Float> floatToken(TokenType type, String lexeme, Float f) {
-        SourcePos pos = ss.pos();
-        return new Token<>(type, lexeme, f, pos.line());
+        return new Token<>(type, lexeme, f, ss.span());
     }
 
     private Token<String> stringToken(TokenType type, String literal) {
-        SourcePos pos = ss.pos();
-        return new Token<>(type, ss.read(), literal, pos.line());
+        return new Token<>(type, ss.read(), literal, ss.span());
     }
 
     private Token<LPCType> typeToken(String lexeme) {
         LPCType type = lpcTypeWords.get(lexeme);
-        SourcePos pos = ss.pos();
 
-        return new Token<>(T_TYPE, lexeme, type, pos.line());
+        return new Token<>(T_TYPE, lexeme, type, ss.span());
+    }
+
+    private static String sourceName(Path sourcePath) {
+        return (sourcePath != null) ? sourcePath.toString() : "<input>";
     }
 }

@@ -4,5 +4,6 @@ public enum CompilationStage {
     SCAN,
     PARSE,
     ANALYZE,
+    LOWER,
     COMPILE
 }

@@ -138,40 +138,25 @@ public class Parser {
         return parentToken.lexeme();
     }
 
-        private void property(boolean define) {
-                Declaration declaration = declarationSymbol();
-                Symbol symbol = declaration.symbol();
+    private void property(boolean define) {
+                Symbol symbol = declarationSymbol();
 
                 if (tokens.match(T_LEFT_PAREN))
                         method(symbol, define);
-                else if (declaration.inferredUntypedMethod())
-                        throw new ParseException("Expect '(' after method name.", tokens.current());
                 else
                         field(symbol, define);
         }
 
-        private Declaration declarationSymbol() {
+        private Symbol declarationSymbol() {
                 if (tokens.check(T_TYPE)) {
                         Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect property type.");
                         Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
                         Symbol symbol = new Symbol(typeToken, nameToken);
 
-                        if (options.requireUntyped() && tokens.check(T_LEFT_PAREN))
-                                throw new ParseException("Method declarations must omit return types when --require-untyped is set.", typeToken);
-
-                        return new Declaration(symbol, false);
+                        return symbol;
                 }
 
-                if (options.requireUntyped() && tokens.check(T_IDENTIFIER) && (tokens.peek(1).type() == T_LEFT_PAREN)) {
-                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect method name.");
-                        Symbol symbol = new Symbol(LPCType.LPCMIXED, nameToken.lexeme());
-
-                        return new Declaration(symbol, true);
-                }
-
-                String message = options.requireUntyped() ? "Expect method name." : "Expect property type.";
-
-                throw new ParseException(message, tokens.current());
+                throw new ParseException("Expect property type.", tokens.current());
         }
 
     private void field(Symbol symbol, boolean define) {
@@ -284,21 +269,9 @@ public class Parser {
                         return params;
 
                 do {
-                        Symbol symbol;
-
-                        if (options.requireUntyped()) {
-                                if (tokens.check(T_TYPE))
-                                        throw new ParseException("Method parameters must be untyped when --require-untyped is set.", tokens.current());
-
-                                Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-
-                                symbol = new Symbol(LPCType.LPCMIXED, nameToken.lexeme());
-                        } else {
-                                Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
-                                Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-
-                                symbol = new Symbol(typeToken, nameToken);
-                        }
+                        Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
+                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
+                        Symbol symbol = new Symbol(typeToken, nameToken);
 
                         ASTParameter param = new ASTParameter(currLine(), symbol);
                         ASTLocal local = new ASTLocal(currLine(), symbol);
@@ -333,25 +306,31 @@ public class Parser {
         return args;
     }
 
-        private ASTStmtBlock block(boolean allowImplicitReturn) {
+        private ASTStmtBlock block(boolean isMethodBody) {
                 locals.beginScope();
 
                 List<ASTStatement> statements = new ArrayList<>();
 
-        while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-            if (tokens.match(T_TYPE)) { // local declaration
-                Token<LPCType> typeToken = tokens.previous();
+                while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
+                        if (tokens.match(T_TYPE)) { // local declaration
+                                Token<LPCType> typeToken = tokens.previous();
 
-                locals(typeToken, statements);
-            } else
-                statements.add(statement());
+                                locals(typeToken, statements);
+                        } else
+                                statements.add(statement());
 
-                tokens.consume(T_RIGHT_BRACE, "Expect '}' after method body.");
+                tokens.consume(T_RIGHT_BRACE, isMethodBody ? "Expect '}' after method body."
+                                : "Expect '}' after block.");
 
                 locals.endScope();
 
-                if (allowImplicitReturn && needsImplicitReturn(statements))
-                        statements.add(implicitReturn());
+                if (isMethodBody && needsImplicitReturn(statements)) {
+                        if (currentReturnType == LPCType.LPCVOID)
+                                statements.add(implicitReturn());
+                        else
+                                throw new ParseException("Non-void methods must end with an explicit return statement.",
+                                                tokens.previous());
+                }
 
                 return new ASTStmtBlock(currLine(), statements);
         }
@@ -411,22 +390,22 @@ public class Parser {
                 }
         }
 
-        private static class Declaration {
-                private final Symbol symbol;
-                private final boolean inferredUntypedMethod;
+        private boolean isReturnTypeCompatible(LPCType expected, LPCType actual) {
+                if (expected == LPCType.LPCMIXED)
+                        return true;
 
-                Declaration(Symbol symbol, boolean inferredUntypedMethod) {
-                        this.symbol = symbol;
-                        this.inferredUntypedMethod = inferredUntypedMethod;
-                }
+                if (actual == null)
+                        return false;
 
-                Symbol symbol() {
-                        return symbol;
-                }
+                if ((expected == LPCType.LPCINT && actual == LPCType.LPCSTATUS)
+                                || (expected == LPCType.LPCSTATUS && actual == LPCType.LPCINT))
+                        return true;
 
-                boolean inferredUntypedMethod() {
-                        return inferredUntypedMethod;
-                }
+                if (actual == LPCType.LPCNULL)
+                        return expected == LPCType.LPCOBJECT || expected == LPCType.LPCSTRING
+                                        || expected == LPCType.LPCMIXED;
+
+                return expected == actual;
         }
 
     private static class FieldDeclarator {
@@ -468,10 +447,27 @@ public class Parser {
     }
 
     private ASTStmtReturn returnStatement() {
-        if (tokens.match(T_SEMICOLON))
+        Token<?> returnToken = tokens.previous();
+
+        if (tokens.match(T_SEMICOLON)) {
+            if (currentReturnType != LPCType.LPCVOID)
+                throw new ParseException(
+                        "Non-void methods must return a value of type " + currentReturnType + ".", returnToken);
+
             return new ASTStmtReturn(currLine(), null);
+        }
 
         ASTExpression expr = expression();
+
+        if (currentReturnType == LPCType.LPCVOID)
+            throw new ParseException("Void methods cannot return a value.", tokens.previous());
+
+        LPCType returnType = expr.lpcType();
+
+        if (!isReturnTypeCompatible(currentReturnType, returnType))
+            throw new ParseException(
+                    "Return type mismatch: expected " + currentReturnType + " but found " + returnType + ".",
+                    tokens.previous());
 
         tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
 

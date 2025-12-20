@@ -288,12 +288,10 @@ public class LPCConsole {
   }
 
   public static void main(String[] args) {
-    boolean requireUntyped = false;
     String basePathArg = null;
 
     for (String arg : args) {
-      if ("--require-untyped".equals(arg)) requireUntyped = true;
-      else if (basePathArg == null) basePathArg = arg;
+      if (basePathArg == null) basePathArg = arg;
       else {
         System.out.println("Error: unexpected argument '" + arg + "'.");
         printUsage();
@@ -309,13 +307,13 @@ public class LPCConsole {
       System.exit(-1);
     }
 
-    ParserOptions parserOptions = new ParserOptions(requireUntyped);
+    ParserOptions parserOptions = ParserOptions.defaults();
     LPCConsole console = new LPCConsole(basePathArg, parserOptions);
 
     console.repl();
   }
 
   private static void printUsage() {
-    System.out.println("Usage: LPCConsole [--require-untyped] <base path>");
+    System.out.println("Usage: LPCConsole <base path>");
   }
 }

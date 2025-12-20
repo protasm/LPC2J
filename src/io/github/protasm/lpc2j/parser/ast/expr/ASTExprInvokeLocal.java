@@ -31,6 +31,11 @@ public final class ASTExprInvokeLocal extends ASTExpression {
         return args;
     }
 
+    /** Prefer {@link #arguments()} for consistency with other call expressions. */
+    public ASTArguments arguments() {
+        return args;
+    }
+
     @Override
     public LPCType lpcType() {
         return lpcType;

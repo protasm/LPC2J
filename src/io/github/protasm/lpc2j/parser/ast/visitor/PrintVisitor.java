@@ -102,7 +102,7 @@ public final class PrintVisitor implements ASTVisitor {
                 String.format("%s([%s] slot=%d, methodName=%s)", expr.className(), expr.lpcType(), expr.slot(),
                         expr.methodName()));
         indentLvl++;
-        expr.args().accept(this);
+        expr.arguments().accept(this);
         indentLvl--;
     }
 

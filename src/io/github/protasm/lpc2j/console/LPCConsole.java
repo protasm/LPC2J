@@ -15,6 +15,9 @@ import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.pipeline.CompilationProblem;
+import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
+import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
 import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
@@ -239,6 +242,16 @@ public class LPCConsole {
     }
 
     try {
+      SemanticAnalyzer analyzer = new SemanticAnalyzer();
+      SemanticAnalysisResult analysisResult = analyzer.analyze(sf.astObject());
+
+      if (!analysisResult.succeeded()) {
+        for (CompilationProblem problem : analysisResult.problems()) {
+          System.out.println(problem.getMessage());
+        }
+        return null;
+      }
+
       Compiler compiler = new Compiler("java/lang/Object");
       byte[] bytes = compiler.compile(sf.astObject());
 

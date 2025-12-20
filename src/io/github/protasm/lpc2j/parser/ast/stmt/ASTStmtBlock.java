@@ -21,6 +21,10 @@ public class ASTStmtBlock extends ASTStatement implements Iterable<ASTStatement>
         return statements.size();
     }
 
+    public List<ASTStatement> statements() {
+        return statements;
+    }
+
     @Override
     public Iterator<ASTStatement> iterator() {
         return statements.iterator();

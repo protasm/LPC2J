@@ -8,6 +8,9 @@ import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
+import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
+import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
+import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.token.TokenList;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,7 @@ public final class CompilationPipeline {
         List<CompilationProblem> problems = new ArrayList<>();
         TokenList tokens = null;
         ASTObject astObject = null;
+        SemanticModel semanticModel = null;
         byte[] bytecode = null;
 
         Scanner scanner = new Scanner();
@@ -38,7 +42,7 @@ public final class CompilationPipeline {
             problems.add(
                     new CompilationProblem(
                             CompilationStage.SCAN, "Error scanning source", e));
-            return new CompilationResult(tokens, astObject, bytecode, problems);
+            return new CompilationResult(tokens, astObject, semanticModel, bytecode, problems);
         }
 
         Parser parser = new Parser(options);
@@ -48,7 +52,22 @@ public final class CompilationPipeline {
             problems.add(
                     new CompilationProblem(
                             CompilationStage.PARSE, "Error parsing tokens", e));
-            return new CompilationResult(tokens, astObject, bytecode, problems);
+            return new CompilationResult(tokens, astObject, semanticModel, bytecode, problems);
+        }
+
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        try {
+            SemanticAnalysisResult analysisResult = analyzer.analyze(astObject);
+            semanticModel = analysisResult.semanticModel();
+            problems.addAll(analysisResult.problems());
+
+            if (!analysisResult.succeeded())
+                return new CompilationResult(tokens, astObject, semanticModel, bytecode, problems);
+        } catch (IllegalArgumentException e) {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE, "Error analyzing ASTObject", e));
+            return new CompilationResult(tokens, astObject, semanticModel, bytecode, problems);
         }
 
         Compiler compiler = new Compiler(parentInternalName);
@@ -60,6 +79,6 @@ public final class CompilationPipeline {
                             CompilationStage.COMPILE, "Error compiling ASTObject", e));
         }
 
-        return new CompilationResult(tokens, astObject, bytecode, problems);
+        return new CompilationResult(tokens, astObject, semanticModel, bytecode, problems);
     }
 }

@@ -5,20 +5,28 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.token.Token;
 
 public class Symbol {
-    private final LPCType declaredType;
+    private final String declaredTypeName;
+    private LPCType declaredType;
     private LPCType lpcType;
     private final String name;
 
     public Symbol(LPCType lpcType, String name) {
-        this.declaredType = lpcType;
-        this.lpcType = lpcType;
-        this.name = name;
+        this((lpcType != null) ? lpcType.name().toLowerCase() : null, lpcType, name);
     }
 
-    public Symbol(Token<LPCType> typeToken, Token<String> nameToken) {
-        declaredType = typeToken.literal();
-        lpcType = declaredType;
-        name = nameToken.lexeme();
+    public Symbol(String declaredTypeName, String name) {
+        this(declaredTypeName, null, name);
+    }
+
+    public Symbol(Token<String> typeToken, Token<String> nameToken) {
+        this((typeToken != null) ? typeToken.lexeme() : null, null, nameToken.lexeme());
+    }
+
+    private Symbol(String declaredTypeName, LPCType declaredType, String name) {
+        this.declaredTypeName = declaredTypeName;
+        this.declaredType = declaredType;
+        this.lpcType = declaredType;
+        this.name = name;
     }
 
     public LPCType lpcType() {
@@ -27,6 +35,20 @@ public class Symbol {
 
     public LPCType declaredType() {
         return declaredType;
+    }
+
+    public String declaredTypeName() {
+        return declaredTypeName;
+    }
+
+    public void resolveDeclaredType(LPCType resolved) {
+        if (resolved == null)
+            return;
+
+        this.declaredType = resolved;
+
+        if (this.lpcType == null)
+            this.lpcType = resolved;
     }
 
     public void setLpcType(LPCType lpcType) {

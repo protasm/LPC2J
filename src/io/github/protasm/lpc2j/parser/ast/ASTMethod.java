@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast;
 
 import io.github.protasm.lpc2j.compiler.Compiler;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
 import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
@@ -11,6 +12,7 @@ public class ASTMethod extends ASTNode {
     private final Symbol symbol;
     private ASTParameters parameters;
     private ASTStmtBlock body;
+    private final java.util.List<ASTLocal> locals;
 
     public ASTMethod(int line, String ownerName, Symbol symbol) {
         super(line);
@@ -20,6 +22,7 @@ public class ASTMethod extends ASTNode {
 
         parameters = null;
         body = null;
+        locals = new java.util.ArrayList<>();
     }
 
     public String ownerName() {
@@ -44,6 +47,14 @@ public class ASTMethod extends ASTNode {
 
     public void setBody(ASTStmtBlock body) {
         this.body = body;
+    }
+
+    public java.util.List<ASTLocal> locals() {
+        return locals;
+    }
+
+    public void addLocal(ASTLocal local) {
+        locals.add(local);
     }
 
     public String descriptor() {

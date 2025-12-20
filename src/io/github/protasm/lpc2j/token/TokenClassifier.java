@@ -1,27 +1,15 @@
 package io.github.protasm.lpc2j.token;
 
-import io.github.protasm.lpc2j.parser.type.LPCType;
 import java.util.Map;
 
 /**
- * Re-classifies identifier tokens into language keywords or type tokens.
+ * Re-classifies identifier tokens into language keywords.
  *
  * <p>The scanner intentionally treats all alpha-numeric sequences as {@link TokenType#T_IDENTIFIER}.
  * This classifier runs after scanning to keep lexing free of language semantics while still
  * providing the parser with the token categories it expects.</p>
  */
 public final class TokenClassifier {
-    private static final Map<String, LPCType> TYPE_KEYWORDS =
-            Map.of(
-                    "int", LPCType.LPCINT,
-                    "float", LPCType.LPCFLOAT,
-                    "mapping", LPCType.LPCMAPPING,
-                    "mixed", LPCType.LPCMIXED,
-                    "object", LPCType.LPCOBJECT,
-                    "status", LPCType.LPCSTATUS,
-                    "string", LPCType.LPCSTRING,
-                    "void", LPCType.LPCVOID);
-
     private static final Map<String, TokenType> RESERVED_KEYWORDS =
             Map.of(
                     "else", TokenType.T_ELSE,
@@ -51,12 +39,6 @@ public final class TokenClassifier {
             }
 
             String lexeme = token.lexeme();
-
-            LPCType typeKeyword = TYPE_KEYWORDS.get(lexeme);
-            if (typeKeyword != null) {
-                classified.add(new Token<>(TokenType.T_TYPE, lexeme, typeKeyword, token.span()));
-                continue;
-            }
 
             TokenType keyword = RESERVED_KEYWORDS.get(lexeme);
             if (keyword != null) {

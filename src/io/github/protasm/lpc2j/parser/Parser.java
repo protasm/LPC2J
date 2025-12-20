@@ -17,7 +17,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
-import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
+import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,6 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
-import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -55,6 +54,7 @@ public class Parser {
         private ASTObject currObj;
         private Locals locals;
         private LPCType currentReturnType;
+        private ASTMethod currentMethod;
         private final ParserOptions options;
 
         public Parser() {
@@ -94,8 +94,6 @@ public class Parser {
 
             definitions(); // pass 2
 
-            typeInference(); // pass 3
-
             return currObj;
         } catch (ParseException e) {
             throw e;
@@ -125,10 +123,6 @@ public class Parser {
             property(true);
     }
 
-    private void typeInference() {
-        currObj.accept(new TypeInferenceVisitor(), LPCType.LPCNULL);
-    }
-
     private String inherit() {
         if (!tokens.match(T_INHERIT))
             return null;
@@ -150,10 +144,10 @@ public class Parser {
         }
 
         private Symbol declarationSymbol() {
-                if (tokens.check(T_TYPE)) {
-                        Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect property type.");
+                if (tokens.check(T_IDENTIFIER)) {
+                        Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect property type.");
                         Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
-                        Symbol symbol = new Symbol(typeToken, nameToken);
+                        Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
 
                         return symbol;
                 }
@@ -194,7 +188,7 @@ public class Parser {
 
         while (tokens.match(T_COMMA)) {
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect field name.");
-            Symbol additionalSymbol = new Symbol(symbol.declaredType(), nameToken.lexeme());
+            Symbol additionalSymbol = new Symbol(symbol.declaredTypeName(), nameToken.lexeme());
 
             declarators.add(fieldDeclarator(additionalSymbol, define));
         }
@@ -232,12 +226,15 @@ public class Parser {
 
                 locals = new Locals();
                 currentReturnType = symbol.lpcType();
+                currentMethod = method;
 
                 method.setParameters(parameters());
 
                 tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");
 
                 method.setBody(block(true));
+
+                currentMethod = null;
         }
 
     private void skipInherit() {
@@ -271,9 +268,9 @@ public class Parser {
                         return params;
 
                 do {
-                        Token<LPCType> typeToken = tokens.consume(T_TYPE, "Expect parameter type.");
+                        Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect parameter type.");
                         Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-                        Symbol symbol = new Symbol(typeToken, nameToken);
+                        Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
 
                         ASTParameter param = new ASTParameter(currLine(), symbol);
                         ASTLocal local = new ASTLocal(currLine(), symbol);
@@ -314,8 +311,8 @@ public class Parser {
                 List<ASTStatement> statements = new ArrayList<>();
 
                 while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
-                        if (tokens.match(T_TYPE)) { // local declaration
-                                Token<LPCType> typeToken = tokens.previous();
+                        if (startsLocalDeclaration()) { // local declaration
+                                Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect local type.");
 
                                 locals(typeToken, statements);
                         } else
@@ -326,21 +323,16 @@ public class Parser {
 
                 locals.endScope();
 
-                if (isMethodBody && needsImplicitReturn(statements)) {
-                        if (currentReturnType == LPCType.LPCVOID)
-                                statements.add(implicitReturn());
-                        else
-                                throw new ParseException("Non-void methods must end with an explicit return statement.",
-                                                tokens.previous());
-                }
+                if (isMethodBody && needsImplicitReturn(statements) && currentReturnType == LPCType.LPCVOID)
+                        statements.add(implicitReturn());
 
                 return new ASTStmtBlock(currLine(), statements);
         }
 
-    private void locals(Token<LPCType> typeToken, List<ASTStatement> statements) {
+    private void locals(Token<String> typeToken, List<ASTStatement> statements) {
         do {
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
-            Symbol symbol = new Symbol(typeToken, nameToken);
+            Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
 
             if (locals.hasCollision(symbol.name()))
                 throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.", nameToken);
@@ -348,6 +340,8 @@ public class Parser {
             ASTLocal local = new ASTLocal(currLine(), symbol);
 
             locals.add(local, true); // sets slot # and depth
+            if (currentMethod != null)
+                currentMethod.addLocal(local);
 
             if (tokens.match(T_EQUAL)) { // local assignment
                 ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
@@ -394,24 +388,6 @@ public class Parser {
                 }
         }
 
-        private boolean isReturnTypeCompatible(LPCType expected, LPCType actual) {
-                if (expected == LPCType.LPCMIXED)
-                        return true;
-
-                if (actual == null)
-                        return false;
-
-                if ((expected == LPCType.LPCINT && actual == LPCType.LPCSTATUS)
-                                || (expected == LPCType.LPCSTATUS && actual == LPCType.LPCINT))
-                        return true;
-
-                if (actual == LPCType.LPCNULL)
-                        return expected == LPCType.LPCOBJECT || expected == LPCType.LPCSTRING
-                                        || expected == LPCType.LPCMIXED;
-
-                return expected == actual;
-        }
-
     private static class FieldDeclarator {
         private final Symbol symbol;
         private final ASTExpression initializer;
@@ -451,27 +427,11 @@ public class Parser {
     }
 
     private ASTStmtReturn returnStatement() {
-        Token<?> returnToken = tokens.previous();
-
         if (tokens.match(T_SEMICOLON)) {
-            if (currentReturnType != LPCType.LPCVOID)
-                throw new ParseException(
-                        "Non-void methods must return a value of type " + currentReturnType + ".", returnToken);
-
             return new ASTStmtReturn(currLine(), null);
         }
 
         ASTExpression expr = expression();
-
-        if (currentReturnType == LPCType.LPCVOID)
-            throw new ParseException("Void methods cannot return a value.", tokens.previous());
-
-        LPCType returnType = expr.lpcType();
-
-        if (!isReturnTypeCompatible(currentReturnType, returnType))
-            throw new ParseException(
-                    "Return type mismatch: expected " + currentReturnType + " but found " + returnType + ".",
-                    tokens.previous());
 
         tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
 
@@ -553,5 +513,14 @@ public class Parser {
 
         if (tokens.isAtEnd())
             throw new ParseException("Unterminated initializer.", tokens.current());
+    }
+
+    private boolean startsLocalDeclaration() {
+        if (!tokens.check(T_IDENTIFIER))
+            return false;
+
+        Token<?> next = tokens.peek(1);
+
+        return next.type() == T_IDENTIFIER;
     }
 }

@@ -39,12 +39,12 @@ public final class SemanticAnalyzer {
         List<CompilationProblem> problems = new ArrayList<>();
         SemanticScope objectScope = new SemanticScope();
 
-        for (ASTField field : astObject.fields().values()) {
+        for (ASTField field : astObject.fields()) {
             resolveSymbolType(field.symbol(), field.line(), problems);
             objectScope.declare(field.symbol());
         }
 
-        for (ASTMethod method : astObject.methods().values()) {
+        for (ASTMethod method : astObject.methods()) {
             resolveSymbolType(method.symbol(), method.line(), problems);
             objectScope.declare(method.symbol());
 
@@ -112,18 +112,18 @@ public final class SemanticAnalyzer {
         scope.declare(symbol);
     }
 
-    private void validateReturns(ASTStmtBlock block, LPCType expected, List<CompilationProblem> problems) {
-        for (ASTStatement statement : block) {
-            if (statement instanceof ASTStmtReturn stmtReturn) {
-                checkReturnCompatibility(stmtReturn, expected, problems);
-            } else if (statement instanceof ASTStmtIfThenElse stmtIf) {
-                validateReturns(stmtIf.thenBranch(), expected, problems);
+    private void validateReturns(ASTStatement statement, LPCType expected, List<CompilationProblem> problems) {
+        if (statement instanceof ASTStmtReturn stmtReturn) {
+            checkReturnCompatibility(stmtReturn, expected, problems);
+        } else if (statement instanceof ASTStmtIfThenElse stmtIf) {
+            validateReturns(stmtIf.thenBranch(), expected, problems);
 
-                if (stmtIf.elseBranch() != null)
-                    validateReturns(stmtIf.elseBranch(), expected, problems);
-            } else if (statement instanceof ASTStmtExpression) {
-                // Expressions are validated by the type inference visitor.
-            } else if (statement instanceof ASTStmtBlock nested) {
+            if (stmtIf.elseBranch() != null)
+                validateReturns(stmtIf.elseBranch(), expected, problems);
+        } else if (statement instanceof ASTStmtExpression) {
+            // Expressions are validated by the type inference visitor.
+        } else if (statement instanceof ASTStmtBlock block) {
+            for (ASTStatement nested : block) {
                 validateReturns(nested, expected, problems);
             }
         }

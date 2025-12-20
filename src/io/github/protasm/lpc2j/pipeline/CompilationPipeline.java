@@ -15,15 +15,22 @@ import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
 import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.token.TokenList;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public final class CompilationPipeline {
     private final String parentInternalName;
+    private final RuntimeContext runtimeContext;
 
     public CompilationPipeline(String parentInternalName) {
+        this(parentInternalName, new RuntimeContext(null));
+    }
+
+    public CompilationPipeline(String parentInternalName, RuntimeContext runtimeContext) {
         this.parentInternalName = parentInternalName;
+        this.runtimeContext = (runtimeContext != null) ? runtimeContext : new RuntimeContext(null);
     }
 
     public CompilationResult run(String source) {
@@ -39,7 +46,7 @@ public final class CompilationPipeline {
         TypedIR typedIr = null;
         byte[] bytecode = null;
 
-        Scanner scanner = new Scanner();
+        Scanner scanner = new Scanner(runtimeContext.newPreprocessor());
         try {
             tokens = scanner.scan(source);
         } catch (ScanException e) {
@@ -49,7 +56,7 @@ public final class CompilationPipeline {
             return new CompilationResult(tokens, astObject, semanticModel, typedIr, bytecode, problems);
         }
 
-        Parser parser = new Parser(options);
+        Parser parser = new Parser(runtimeContext, options);
         try {
             astObject = parser.parse("<input>", tokens);
         } catch (ParseException | IllegalArgumentException e) {
@@ -59,7 +66,7 @@ public final class CompilationPipeline {
             return new CompilationResult(tokens, astObject, semanticModel, typedIr, bytecode, problems);
         }
 
-        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        SemanticAnalyzer analyzer = new SemanticAnalyzer(runtimeContext);
         try {
             SemanticAnalysisResult analysisResult = analyzer.analyze(astObject);
             semanticModel = analysisResult.semanticModel();

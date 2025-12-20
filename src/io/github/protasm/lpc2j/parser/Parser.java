@@ -43,6 +43,8 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.preproc.Preprocessor;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenClassifier;
@@ -56,12 +58,22 @@ public class Parser {
         private LPCType currentReturnType;
         private ASTMethod currentMethod;
         private final ParserOptions options;
+        private final RuntimeContext runtimeContext;
 
         public Parser() {
-                this(ParserOptions.defaults());
+                this(new RuntimeContext(Preprocessor.rejectingResolver()), ParserOptions.defaults());
         }
 
         public Parser(ParserOptions options) {
+                this(new RuntimeContext(Preprocessor.rejectingResolver()), options);
+        }
+
+        public Parser(RuntimeContext runtimeContext) {
+                this(runtimeContext, ParserOptions.defaults());
+        }
+
+        public Parser(RuntimeContext runtimeContext, ParserOptions options) {
+                this.runtimeContext = (runtimeContext != null) ? runtimeContext : new RuntimeContext(Preprocessor.rejectingResolver());
                 this.options = (options == null) ? ParserOptions.defaults() : options;
         }
 
@@ -75,6 +87,10 @@ public class Parser {
 
     public Locals locals() {
         return this.locals;
+    }
+
+    public RuntimeContext runtimeContext() {
+        return runtimeContext;
     }
 
     public int currLine() {

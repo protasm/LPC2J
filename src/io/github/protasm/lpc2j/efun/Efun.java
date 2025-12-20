@@ -1,21 +1,28 @@
 package io.github.protasm.lpc2j.efun;
 
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 
 public interface Efun {
-    Symbol symbol();
+    EfunSignature signature();
 
-    int arity();
+    Object call(RuntimeContext context, Object[] args);
 
-    Object call(Object[] args);
+    default Symbol symbol() {
+        return signature().symbol();
+    }
 
-    default Object invoke(Object[] args) {
+    default int arity() {
+        return signature().arity();
+    }
+
+    default Object invoke(RuntimeContext context, Object[] args) {
         Object[] a = (args == null) ? new Object[0] : args;
 
         if (a.length != arity())
             throw new IllegalArgumentException(
                     "efun '" + symbol().name() + "' expects " + arity() + " arg(s); got " + a.length);
 
-        return call(a);
+        return call(context, a);
     }
 }

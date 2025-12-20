@@ -21,7 +21,7 @@ public class CmdLoad extends Command {
             return true;
         }
 
-        console.objects().put(sf.dotName(), sf.lpcObject());
+        console.registerObject(sf.dotName(), sf.lpcObject());
 
         System.out.println(sf.dotName() + " loaded.");
 

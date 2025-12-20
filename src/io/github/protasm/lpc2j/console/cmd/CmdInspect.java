@@ -19,7 +19,7 @@ public class CmdInspect extends Command {
         }
 
         String objName = args[0];
-        Object obj = console.objects().get(objName);
+        Object obj = console.getObject(objName);
 
         if (obj == null) {
             System.out.println("Object not found: " + objName);

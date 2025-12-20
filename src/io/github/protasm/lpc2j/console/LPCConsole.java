@@ -7,7 +7,6 @@ import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.console.ConsoleConfig;
-import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.ir.IRLowerer;
 import io.github.protasm.lpc2j.ir.IRLoweringResult;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
@@ -22,6 +21,8 @@ import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
 import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
 import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import io.github.protasm.lpc2j.runtime.RuntimeContextHolder;
 import io.github.protasm.lpc2j.token.TokenList;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -34,12 +35,11 @@ import java.util.Map;
 
 public class LPCConsole {
   private final VirtualFileServer vfs;
+  private final RuntimeContext runtimeContext;
   private Path vPath;
   private final ParserOptions parserOptions;
-  private final IncludeResolver includeResolver;
   private final ConsoleConfig config;
 
-  private final Map<String, Object> objects;
   private final java.util.Scanner inputScanner;
 
   private static Map<Command, List<String>> commands = new LinkedHashMap<>();
@@ -69,26 +69,28 @@ public class LPCConsole {
     this.vfs = new VirtualFileServer(basePathStr);
     this.parserOptions = (parserOptions == null) ? ParserOptions.defaults() : parserOptions;
     this.config = ConsoleConfig.load(vfs.basePath());
-    this.includeResolver =
+    IncludeResolver includeResolver =
         new SearchPathIncludeResolver(vfs.basePath(), config.includeDirs());
+    this.runtimeContext = new RuntimeContext(includeResolver);
     this.vPath = Path.of("/");
 
-    objects = new LinkedHashMap<>();
     inputScanner = new java.util.Scanner(System.in);
+    RuntimeContextHolder.setCurrent(runtimeContext);
 
     // Register Efuns
-    EfunRegistry.register("add_action", EfunAddAction.INSTANCE);
-    EfunRegistry.register("add_verb", EfunAddVerb.INSTANCE);
-    EfunRegistry.register("call_other", EfunCallOther.INSTANCE);
-    EfunRegistry.register("destruct", EfunDestruct.INSTANCE);
-    EfunRegistry.register("foo", EfunFoo.INSTANCE);
-    EfunRegistry.register("environment", EfunEnvironment.INSTANCE);
-    EfunRegistry.register("this_player", EfunThisPlayer.INSTANCE);
-    EfunRegistry.register("this_object", EfunThisObject.INSTANCE);
-    EfunRegistry.register("set_heart_beat", EfunSetHeartBeat.INSTANCE);
-    EfunRegistry.register("set_light", EfunSetLight.INSTANCE);
-    EfunRegistry.register("say", EfunSay.INSTANCE);
-    EfunRegistry.register("write", EfunWrite.INSTANCE);
+    runtimeContext.registerEfun(EfunAddAction.INSTANCE);
+    runtimeContext.registerEfun(EfunAddVerb.INSTANCE);
+    runtimeContext.registerEfun(EfunCallOther.INSTANCE);
+    runtimeContext.registerEfun(EfunDestruct.INSTANCE);
+    runtimeContext.registerEfun(EfunFoo.INSTANCE);
+    runtimeContext.registerEfun(EfunEnvironment.INSTANCE);
+    runtimeContext.registerEfun(EfunRandom.INSTANCE);
+    runtimeContext.registerEfun(EfunThisPlayer.INSTANCE);
+    runtimeContext.registerEfun(EfunThisObject.INSTANCE);
+    runtimeContext.registerEfun(EfunSetHeartBeat.INSTANCE);
+    runtimeContext.registerEfun(EfunSetLight.INSTANCE);
+    runtimeContext.registerEfun(EfunSay.INSTANCE);
+    runtimeContext.registerEfun(EfunWrite.INSTANCE);
   }
 
   public VirtualFileServer vfs() {
@@ -120,11 +122,23 @@ public class LPCConsole {
   }
 
   public Map<String, Object> objects() {
-    return objects;
+    return runtimeContext.objectsView();
+  }
+
+  public void registerObject(String name, Object object) {
+    runtimeContext.registerObject(name, object);
+  }
+
+  public Object getObject(String name) {
+    return runtimeContext.getObject(name);
+  }
+
+  public boolean hasObject(String name) {
+    return runtimeContext.objects().containsKey(name);
   }
 
   public IncludeResolver includeResolver() {
-    return includeResolver;
+    return runtimeContext.includeResolver();
   }
 
   public static Map<Command, List<String>> commands() {
@@ -171,6 +185,7 @@ public class LPCConsole {
   }
 
   public FSSourceFile load(String vPathStr) {
+    RuntimeContextHolder.setCurrent(runtimeContext);
     FSSourceFile sf = compile(vPathStr);
 
     if (sf == null) {
@@ -206,7 +221,8 @@ public class LPCConsole {
   }
 
   public Object call(String className, String methodName, Object[] callArgs) {
-    Object obj = objects.get(className);
+    RuntimeContextHolder.setCurrent(runtimeContext);
+    Object obj = runtimeContext.getObject(className);
 
     if (obj == null) {
       System.out.println("Error: Object '" + className + "' not loaded.");
@@ -244,7 +260,7 @@ public class LPCConsole {
     }
 
     try {
-      SemanticAnalyzer analyzer = new SemanticAnalyzer();
+      SemanticAnalyzer analyzer = new SemanticAnalyzer(runtimeContext);
       SemanticAnalysisResult analysisResult = analyzer.analyze(sf.astObject());
 
       if (!analysisResult.succeeded()) {
@@ -284,7 +300,7 @@ public class LPCConsole {
     if (sf == null) return null;
 
     try {
-      Parser parser = new Parser(parserOptions);
+      Parser parser = new Parser(runtimeContext, parserOptions);
       ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
 
       sf.setASTObject(astObject);
@@ -310,7 +326,7 @@ public class LPCConsole {
 
       if (!success) throw new IllegalArgumentException();
 
-      Preprocessor preprocessor = new Preprocessor(includeResolver);
+      Preprocessor preprocessor = runtimeContext.newPreprocessor();
       Scanner scanner = new Scanner(preprocessor);
       Path sourcePath = vfs.basePath().resolve(resolved).normalize();
 

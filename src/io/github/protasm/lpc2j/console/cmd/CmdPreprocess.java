@@ -1,7 +1,5 @@
 package io.github.protasm.lpc2j.console.cmd;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
@@ -42,7 +40,7 @@ public class CmdPreprocess extends Command {
                 return true;
             }
 
-            IncludeResolver resolver = includeResolver(root);
+            IncludeResolver resolver = console.includeResolver();
             Preprocessor pp = new Preprocessor(resolver);
             String processed = pp.preprocess(sourcePath, source);
 
@@ -55,30 +53,6 @@ public class CmdPreprocess extends Command {
         }
 
         return true;
-    }
-
-    private IncludeResolver includeResolver(Path root) {
-        Path normalizedRoot = root.normalize();
-
-        return (includingFile, includePath, system) -> {
-            if (!system && (includingFile != null)) {
-                Path parent = includingFile.getParent();
-
-                if (parent != null) {
-                    Path candidate = parent.resolve(includePath).normalize();
-
-                    if (candidate.startsWith(normalizedRoot) && Files.isRegularFile(candidate))
-                        return Files.readString(candidate);
-                }
-            }
-
-            Path fallback = normalizedRoot.resolve(includePath).normalize();
-
-            if (fallback.startsWith(normalizedRoot) && Files.isRegularFile(fallback))
-                return Files.readString(fallback);
-
-            throw new IOException("cannot include '" + includePath + "'");
-        };
     }
 
     @Override

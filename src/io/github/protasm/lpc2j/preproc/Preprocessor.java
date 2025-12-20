@@ -45,6 +45,11 @@ public final class Preprocessor {
     }
   }
 
+  private static final IncludeResolver REJECTING_INCLUDES =
+      (includingFile, includePath, system) -> {
+        throw new IOException("Includes are not supported without a resolver");
+      };
+
   private final IncludeResolver resolver;
   private final Map<String, Macro> macros = new HashMap<>();
 
@@ -64,12 +69,7 @@ public final class Preprocessor {
    * </code> directives, making it suitable for string-only compilation flows.
    */
   public static String preprocess(String source) {
-    IncludeResolver resolver =
-        (includingFile, includePath, system) -> {
-          throw new IOException("Includes are not supported without a resolver");
-        };
-
-    Preprocessor pp = new Preprocessor(resolver);
+    Preprocessor pp = new Preprocessor(REJECTING_INCLUDES);
 
     return pp.preprocess(null, source);
   }
@@ -96,6 +96,18 @@ public final class Preprocessor {
     Preprocessor pp = new Preprocessor(resolver);
 
     return pp.preprocess(sourcePath, source);
+  }
+
+  public static String preprocess(
+      Path sourcePath, String source, Path baseIncludePath, List<Path> systemIncludePaths) {
+    Preprocessor pp =
+        new Preprocessor(new SearchPathIncludeResolver(baseIncludePath, systemIncludePaths));
+
+    return pp.preprocess(sourcePath, source);
+  }
+
+  public static IncludeResolver rejectingResolver() {
+    return REJECTING_INCLUDES;
   }
 
   public String preprocess(Path sourcePath, String source) {

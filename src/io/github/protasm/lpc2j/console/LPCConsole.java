@@ -1,29 +1,19 @@
 package io.github.protasm.lpc2j.console;
 
-import io.github.protasm.lpc2j.compiler.CompileException;
-import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.console.cmd.*;
 import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.console.ConsoleConfig;
-import io.github.protasm.lpc2j.ir.IRLowerer;
-import io.github.protasm.lpc2j.ir.IRLoweringResult;
-import io.github.protasm.lpc2j.preproc.IncludeResolver;
-import io.github.protasm.lpc2j.preproc.Preprocessor;
-import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
-import io.github.protasm.lpc2j.parser.ParseException;
-import io.github.protasm.lpc2j.parser.Parser;
-import io.github.protasm.lpc2j.parser.ParserOptions;
-import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
-import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
-import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
-import io.github.protasm.lpc2j.scanner.ScanException;
-import io.github.protasm.lpc2j.scanner.Scanner;
+import io.github.protasm.lpc2j.pipeline.CompilationResult;
+import io.github.protasm.lpc2j.pipeline.CompilationStage;
+import io.github.protasm.lpc2j.parser.ParserOptions;
+import io.github.protasm.lpc2j.preproc.IncludeResolver;
+import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.runtime.RuntimeContextHolder;
-import io.github.protasm.lpc2j.token.TokenList;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -32,10 +22,12 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class LPCConsole {
   private final VirtualFileServer vfs;
   private final RuntimeContext runtimeContext;
+  private final CompilationPipeline pipeline;
   private Path vPath;
   private final ParserOptions parserOptions;
   private final ConsoleConfig config;
@@ -72,10 +64,10 @@ public class LPCConsole {
     IncludeResolver includeResolver =
         new SearchPathIncludeResolver(vfs.basePath(), config.includeDirs());
     this.runtimeContext = new RuntimeContext(includeResolver);
+    this.pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
     this.vPath = Path.of("/");
 
     inputScanner = new java.util.Scanner(System.in);
-    RuntimeContextHolder.setCurrent(runtimeContext);
 
     // Register Efuns
     runtimeContext.registerEfun(EfunAddAction.INSTANCE);
@@ -185,7 +177,138 @@ public class LPCConsole {
   }
 
   public FSSourceFile load(String vPathStr) {
-    RuntimeContextHolder.setCurrent(runtimeContext);
+    return withRuntimeContext(() -> doLoad(vPathStr));
+  }
+
+  public Object call(String className, String methodName, Object[] callArgs) {
+    return withRuntimeContext(() -> doCall(className, methodName, callArgs));
+  }
+
+  public FSSourceFile compile(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (!result.succeeded()) {
+      printProblems(result.getProblems());
+      return null;
+    }
+
+    return sf;
+  }
+
+  public FSSourceFile parse(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (sf.astObject() == null) {
+      printProblems(result.getProblems());
+      return null;
+    }
+
+    return sf;
+  }
+
+  public FSSourceFile scan(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (sf.tokens() == null) {
+      printProblems(result.getProblems());
+      return null;
+    }
+
+    if (!result.getProblems().isEmpty()) {
+      printProblems(result.getProblems());
+    }
+
+    return sf;
+  }
+
+  public static void main(String[] args) {
+    String basePathArg = null;
+
+    for (String arg : args) {
+      if (basePathArg == null) basePathArg = arg;
+      else {
+        System.out.println("Error: unexpected argument '" + arg + "'.");
+        printUsage();
+
+        System.exit(-1);
+      }
+    }
+
+    if (basePathArg == null) {
+      System.out.println("Error: missing base path.");
+      printUsage();
+
+      System.exit(-1);
+    }
+
+    ParserOptions parserOptions = ParserOptions.defaults();
+    LPCConsole console = new LPCConsole(basePathArg, parserOptions);
+
+    console.repl();
+  }
+
+  private static void printUsage() {
+    System.out.println("Usage: LPCConsole <base path>");
+  }
+
+  private FSSourceFile prepareSourceFile(String vPathStr) {
+    try {
+      Path resolved = vfs.fileAt(vPathStr);
+
+      if (resolved == null) throw new IllegalArgumentException();
+
+      FSSourceFile sf = new FSSourceFile(resolved);
+
+      boolean success = vfs.read(sf);
+
+      if (!success) throw new IllegalArgumentException();
+
+      return sf;
+    } catch (IllegalArgumentException e) {
+      System.out.println("Error: cannot read file '" + vPathStr + "'.");
+      return null;
+    }
+  }
+
+  private CompilationResult runPipeline(FSSourceFile sf) {
+    Path sourcePath = vfs.basePath().resolve(sf.vPath()).normalize();
+
+    CompilationResult result = pipeline.run(sourcePath, sf.source(), sf.slashName(), parserOptions);
+
+    if (result.getTokens() != null) {
+      sf.setTokens(result.getTokens());
+    }
+
+    if (result.getAstObject() != null) {
+      sf.setASTObject(result.getAstObject());
+    }
+
+    if (result.getBytecode() != null) {
+      sf.setBytes(result.getBytecode());
+    }
+
+    return result;
+  }
+
+  private void printProblems(List<CompilationProblem> problems) {
+    for (CompilationProblem problem : problems) {
+      System.out.println(problem.getStage() + ": " + problem.getMessage());
+      if (problem.getThrowable() != null) {
+        System.out.println(problem.getThrowable());
+      }
+    }
+  }
+
+  private FSSourceFile doLoad(String vPathStr) {
     FSSourceFile sf = compile(vPathStr);
 
     if (sf == null) {
@@ -220,8 +343,7 @@ public class LPCConsole {
     }
   }
 
-  public Object call(String className, String methodName, Object[] callArgs) {
-    RuntimeContextHolder.setCurrent(runtimeContext);
+  private Object doCall(String className, String methodName, Object[] callArgs) {
     Object obj = runtimeContext.getObject(className);
 
     if (obj == null) {
@@ -252,124 +374,13 @@ public class LPCConsole {
     return null;
   }
 
-  public FSSourceFile compile(String vPathStr) {
-    FSSourceFile sf = parse(vPathStr);
-
-    if (sf == null) {
-      return null;
-    }
-
+  private <T> T withRuntimeContext(Supplier<T> supplier) {
+    RuntimeContext previous = RuntimeContextHolder.current();
+    RuntimeContextHolder.setCurrent(runtimeContext);
     try {
-      SemanticAnalyzer analyzer = new SemanticAnalyzer(runtimeContext);
-      SemanticAnalysisResult analysisResult = analyzer.analyze(sf.astObject());
-
-      if (!analysisResult.succeeded()) {
-        for (CompilationProblem problem : analysisResult.problems()) {
-          System.out.println(problem.getMessage());
-        }
-        return null;
-      }
-
-      IRLowerer lowerer = new IRLowerer("java/lang/Object");
-      IRLoweringResult loweringResult = lowerer.lower(analysisResult.semanticModel());
-
-      if (!loweringResult.succeeded()) {
-        for (CompilationProblem problem : loweringResult.problems()) {
-          System.out.println(problem.getMessage());
-        }
-        return null;
-      }
-
-      Compiler compiler = new Compiler("java/lang/Object");
-      byte[] bytes = compiler.compile(loweringResult.typedIr());
-
-      sf.setBytes(bytes);
-
-      return sf;
-    } catch (CompileException | IllegalArgumentException e) {
-      System.out.println("Error compiling fileName: " + vPathStr);
-      System.out.println(e);
-
-      return null;
+      return supplier.get();
+    } finally {
+      RuntimeContextHolder.setCurrent(previous);
     }
-  }
-
-  public FSSourceFile parse(String vPathStr) {
-    FSSourceFile sf = scan(vPathStr);
-
-    if (sf == null) return null;
-
-    try {
-      Parser parser = new Parser(runtimeContext, parserOptions);
-      ASTObject astObject = parser.parse(sf.slashName(), sf.tokens());
-
-      sf.setASTObject(astObject);
-
-      return sf;
-    } catch (ParseException | IllegalArgumentException e) {
-      System.out.println("Error parsing fileName: " + vPathStr);
-      System.out.println(e);
-
-      return null;
-    }
-  }
-
-  public FSSourceFile scan(String vPathStr) {
-    try {
-      Path resolved = vfs.fileAt(vPathStr);
-
-      if (resolved == null) throw new IllegalArgumentException();
-
-      FSSourceFile sf = new FSSourceFile(resolved);
-
-      boolean success = vfs.read(sf);
-
-      if (!success) throw new IllegalArgumentException();
-
-      Preprocessor preprocessor = runtimeContext.newPreprocessor();
-      Scanner scanner = new Scanner(preprocessor);
-      Path sourcePath = vfs.basePath().resolve(resolved).normalize();
-
-      TokenList tokens = scanner.scan(sourcePath, sf.source());
-
-      sf.setTokens(tokens);
-
-      return sf;
-    } catch (ScanException | IllegalArgumentException e) {
-      System.out.println("Error scanning fileName: " + vPathStr);
-      System.out.println(e);
-
-      return null;
-    }
-  }
-
-  public static void main(String[] args) {
-    String basePathArg = null;
-
-    for (String arg : args) {
-      if (basePathArg == null) basePathArg = arg;
-      else {
-        System.out.println("Error: unexpected argument '" + arg + "'.");
-        printUsage();
-
-        System.exit(-1);
-      }
-    }
-
-    if (basePathArg == null) {
-      System.out.println("Error: missing base path.");
-      printUsage();
-
-      System.exit(-1);
-    }
-
-    ParserOptions parserOptions = ParserOptions.defaults();
-    LPCConsole console = new LPCConsole(basePathArg, parserOptions);
-
-    console.repl();
-  }
-
-  private static void printUsage() {
-    System.out.println("Usage: LPCConsole <base path>");
   }
 }

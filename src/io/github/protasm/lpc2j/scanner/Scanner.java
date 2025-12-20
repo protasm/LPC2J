@@ -6,19 +6,14 @@ import static io.github.protasm.lpc2j.token.TokenType.T_COLON;
 import static io.github.protasm.lpc2j.token.TokenType.T_COMMA;
 import static io.github.protasm.lpc2j.token.TokenType.T_DBL_AMP;
 import static io.github.protasm.lpc2j.token.TokenType.T_DBL_PIPE;
-import static io.github.protasm.lpc2j.token.TokenType.T_ELSE;
 import static io.github.protasm.lpc2j.token.TokenType.T_EOF;
 import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_ERROR;
-import static io.github.protasm.lpc2j.token.TokenType.T_FALSE;
 import static io.github.protasm.lpc2j.token.TokenType.T_FLOAT_LITERAL;
-import static io.github.protasm.lpc2j.token.TokenType.T_FOR;
 import static io.github.protasm.lpc2j.token.TokenType.T_GREATER;
 import static io.github.protasm.lpc2j.token.TokenType.T_GREATER_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
-import static io.github.protasm.lpc2j.token.TokenType.T_IF;
-import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
 import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACKET;
@@ -28,11 +23,9 @@ import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_MINUS;
-import static io.github.protasm.lpc2j.token.TokenType.T_NIL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_PLUS;
-import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
@@ -44,77 +37,30 @@ import static io.github.protasm.lpc2j.token.TokenType.T_STAR;
 import static io.github.protasm.lpc2j.token.TokenType.T_STAR_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
-import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
-import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
-import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
-
-import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.preproc.PreprocessedSource;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
-import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 
 public class Scanner {
     private static final char EOL = '\n';
-    private static final Map<String, LPCType> lpcTypeWords;
-    private static final Map<String, TokenType> reservedWords;
-    private static final Map<Character, TokenType> oneCharLexemes;
     private ScannableSource ss;
     private final Preprocessor preprocessor;
 
-    static {
-        lpcTypeWords = new HashMap<>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put("int", LPCType.LPCINT);
-                put("float", LPCType.LPCFLOAT);
-                put("mapping", LPCType.LPCMAPPING);
-                put("mixed", LPCType.LPCMIXED);
-                put("object", LPCType.LPCOBJECT);
-                put("status", LPCType.LPCSTATUS);
-                put("string", LPCType.LPCSTRING);
-                put("void", LPCType.LPCVOID);
-            }
-        };
-
-        reservedWords = new HashMap<>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put("else", T_ELSE);
-                put("false", T_FALSE);
-                put("for", T_FOR);
-                put("if", T_IF);
-                put("inherit", T_INHERIT);
-                put("nil", T_NIL);
-                put("return", T_RETURN);
-                put("true", T_TRUE);
-                put("while", T_WHILE);
-            }
-        };
-
-        oneCharLexemes = new HashMap<>() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                put('(', T_LEFT_PAREN);
-                put(')', T_RIGHT_PAREN);
-                put('{', T_LEFT_BRACE);
-                put('}', T_RIGHT_BRACE);
-                put('[', T_LEFT_BRACKET);
-                put(']', T_RIGHT_BRACKET);
-                put(',', T_COMMA);
-                put(';', T_SEMICOLON);
-            }
-        };
-    }
+    private static final Map<Character, TokenType> oneCharLexemes =
+            Map.of(
+                    '(', T_LEFT_PAREN,
+                    ')', T_RIGHT_PAREN,
+                    '{', T_LEFT_BRACE,
+                    '}', T_RIGHT_BRACE,
+                    '[', T_LEFT_BRACKET,
+                    ']', T_RIGHT_BRACKET,
+                    ',', T_COMMA,
+                    ';', T_SEMICOLON);
 
     public Scanner() {
         this(new Preprocessor(Preprocessor.rejectingResolver()));
@@ -270,17 +216,7 @@ public class Scanner {
         while (isAlphaNumeric(ss.peek()))
             ss.advance();
 
-        String str = ss.read();
-
-        if (lpcTypeWords.keySet().contains(str))
-            return typeToken(str);
-
-        TokenType type = reservedWords.get(str);
-
-        if (type == null)
-            type = T_IDENTIFIER;
-
-        return token(type);
+        return token(T_IDENTIFIER);
     }
 
     private Token<?> number() {
@@ -300,15 +236,13 @@ public class Scanner {
 
         String lexeme = ss.read();
 
-        SourcePos pos = ss.pos();
-
         try {
             if (isFloat)
                 return floatToken(T_FLOAT_LITERAL, lexeme, Float.parseFloat(lexeme));
             else
                 return intToken(T_INT_LITERAL, lexeme, Integer.parseInt(lexeme));
         } catch (NumberFormatException e) {
-            throw new ScanException("Invalid numeric literal: '" + lexeme + "'", pos.line(), e);
+            return errorToken("Invalid numeric literal: '" + lexeme + "'");
         }
     }
 
@@ -359,12 +293,6 @@ public class Scanner {
 
     private Token<String> stringToken(TokenType type, String literal) {
         return new Token<>(type, ss.read(), literal, ss.span());
-    }
-
-    private Token<LPCType> typeToken(String lexeme) {
-        LPCType type = lpcTypeWords.get(lexeme);
-
-        return new Token<>(T_TYPE, lexeme, type, ss.span());
     }
 
 }

@@ -46,6 +46,7 @@ import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenClassifier;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.token.TokenList;
 
@@ -84,7 +85,7 @@ public class Parser {
         if (tokens == null)
             throw new ParseException("Token list cannot be null.");
 
-        this.tokens = tokens;
+        this.tokens = TokenClassifier.classify(tokens);
 
         try {
             currObj = new ASTObject(0, objName);

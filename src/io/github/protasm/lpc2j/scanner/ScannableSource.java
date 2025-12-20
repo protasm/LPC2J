@@ -2,6 +2,7 @@ package io.github.protasm.lpc2j.scanner;
 
 import io.github.protasm.lpc2j.sourcepos.LineMap;
 import io.github.protasm.lpc2j.sourcepos.SourcePos;
+import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 
 /**
  * Lightweight wrapper around source text used by {@link Scanner}.
@@ -16,10 +17,10 @@ class ScannableSource {
     private int head;
     private int tail;
 
-    ScannableSource(String source) {
+    ScannableSource(String fileName, String source) {
         this.source = source;
 
-        this.map = new LineMap("<input>", source);
+        this.map = new LineMap(fileName, source);
         this.head = 0;
         this.tail = 0;
     }
@@ -87,5 +88,9 @@ class ScannableSource {
 
     SourcePos pos() {
         return map.posAt(tail);
+    }
+
+    SourceSpan span() {
+        return SourceSpan.from(map, tail, head);
     }
 }

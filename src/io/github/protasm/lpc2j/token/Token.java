@@ -1,34 +1,35 @@
 package io.github.protasm.lpc2j.token;
 
-public record Token<T>(TokenType type, String lexeme, T literal, int line) {
-    public Token() {
-        this(null, null, null, -1);
-    }
+import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 
-    public Token(TokenType tType) {
-        this(tType, null, null, -1);
-    }
-
-    public Token(String lexeme) {
-        this(null, lexeme, null, -1);
+public record Token<T>(TokenType type, String lexeme, T literal, SourceSpan span) {
+    public Token {
+        if ((literal != null) && (type != null) && !type.clazz().isInstance(literal))
+            throw new IllegalArgumentException(
+                    String.format("literal %s is not an instance of %s", literal.getClass(), type.clazz()));
     }
 
     public int length() {
-        return lexeme.length();
+        return (lexeme != null) ? lexeme.length() : 0;
     }
 
     @SuppressWarnings("unchecked")
     public Class<T> literalType() {
-        return (Class<T>) literal.getClass();
+        return literal != null ? (Class<T>) literal.getClass() : (Class<T>) Object.class;
     }
 
     @Override
     public String toString() {
         if (type == TokenType.T_EOF)
             return type.toString();
+
         if (literal == null)
             return type + "(" + lexeme + ")";
-        else
-            return type + "<" + literal.getClass().getSimpleName() + ">(" + lexeme + ")";
+
+        return type + "<" + literal.getClass().getSimpleName() + ">(" + lexeme + ")";
+    }
+
+    public int line() {
+        return (span != null) ? span.startLine() : -1;
     }
 }

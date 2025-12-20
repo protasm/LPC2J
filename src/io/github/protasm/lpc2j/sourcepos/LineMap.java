@@ -39,6 +39,10 @@ public final class LineMap {
         return source.length();
     }
 
+    public String fileName() {
+        return fileName;
+    }
+
     public char charAt(int i) {
         return ((i >= 0) && (i < source.length())) ? source.charAt(i) : '\0';
     }
@@ -59,7 +63,7 @@ public final class LineMap {
                     int line = mid + 1;
                     int col = (offset - start) + 1;
 
-                    return new SourcePos(fileName, line, col);
+                    return new SourcePos(fileName, line, col, offset);
                 }
 
                 lo = mid + 1;
@@ -67,6 +71,6 @@ public final class LineMap {
                 hi = mid - 1;
         }
 
-        return new SourcePos(fileName, 1, 1); // fallback
+        return new SourcePos(fileName, 1, 1, Math.max(0, Math.min(offset, source.length()))); // fallback
     }
 }

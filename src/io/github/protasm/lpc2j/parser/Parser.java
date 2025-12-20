@@ -44,6 +44,7 @@ import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.token.TokenList;
@@ -374,11 +375,13 @@ public class Parser {
         }
 
         private ASTStmtReturn implicitReturn() {
+                SourceSpan span = (tokens != null) ? tokens.previous().span() : null;
+
                 switch (currentReturnType) {
                 case LPCINT:
                 case LPCSTATUS:
                         return new ASTStmtReturn(currLine(), new ASTExprLiteralInteger(currLine(),
-                                        new Token<Integer>(TokenType.T_INT_LITERAL, "0", 0, currLine())));
+                                        new Token<Integer>(TokenType.T_INT_LITERAL, "0", 0, span)));
                 case LPCSTRING:
                 case LPCOBJECT:
                 case LPCMIXED:

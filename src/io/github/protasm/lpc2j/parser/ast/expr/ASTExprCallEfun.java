@@ -24,8 +24,12 @@ public final class ASTExprCallEfun extends ASTExpression {
         return arguments;
     }
 
+    public io.github.protasm.lpc2j.efun.EfunSignature signature() {
+        return efun.signature();
+    }
+
     @Override
     public LPCType lpcType() {
-        return efun.symbol().lpcType();
+        return efun.signature().returnType();
     }
 }

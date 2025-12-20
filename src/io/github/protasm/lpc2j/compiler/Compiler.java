@@ -359,22 +359,22 @@ public final class Compiler {
     }
 
     private void emitEfunCall(MethodVisitor mv, String internalName, IRMethod method, IREfunCall efunCall) {
-        mv.visitLdcInsn(efunCall.name());
         mv.visitMethodInsn(
                 INVOKESTATIC,
-                "io/github/protasm/lpc2j/efun/EfunRegistry",
-                "lookup",
-                "(Ljava/lang/String;)Lio/github/protasm/lpc2j/efun/Efun;",
+                "io/github/protasm/lpc2j/runtime/RuntimeContextHolder",
+                "requireCurrent",
+                "()Lio/github/protasm/lpc2j/runtime/RuntimeContext;",
                 false);
-
+        mv.visitLdcInsn(efunCall.name());
+        pushInt(mv, efunCall.arguments().size());
         emitArgumentsArray(mv, internalName, method, efunCall.arguments());
 
         mv.visitMethodInsn(
-                INVOKEINTERFACE,
-                "io/github/protasm/lpc2j/efun/Efun",
-                "invoke",
-                "([Ljava/lang/Object;)Ljava/lang/Object;",
-                true);
+                INVOKEVIRTUAL,
+                "io/github/protasm/lpc2j/runtime/RuntimeContext",
+                "invokeEfun",
+                "(Ljava/lang/String;I[Ljava/lang/Object;)Ljava/lang/Object;",
+                false);
 
         emitCoerceToRuntimeTypeIfNeeded(mv, RuntimeTypes.MIXED, efunCall.type());
     }

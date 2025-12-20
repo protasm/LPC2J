@@ -1,28 +1,27 @@
 package io.github.protasm.lpc2j.console.efuns;
 
 import io.github.protasm.lpc2j.efun.Efun;
+import io.github.protasm.lpc2j.efun.EfunSignature;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import java.util.List;
 
 public final class EfunAddAction implements Efun {
     public static final EfunAddAction INSTANCE = new EfunAddAction();
-    private static final Symbol SYM = new Symbol(LPCType.LPCVOID, "add_action");
+    private static final EfunSignature SIGNATURE =
+            new EfunSignature(new Symbol(LPCType.LPCVOID, "add_action"), List.of(LPCType.LPCMIXED));
 
     private EfunAddAction() {
     }
 
     @Override
-    public Symbol symbol() {
-        return SYM;
+    public EfunSignature signature() {
+        return SIGNATURE;
     }
 
     @Override
-    public int arity() {
-        return 1;
-    }
-
-    @Override
-    public Object call(Object[] args) {
+    public Object call(RuntimeContext context, Object[] args) {
         // TODO: Implement action registration when command handling is available
         return null;
     }

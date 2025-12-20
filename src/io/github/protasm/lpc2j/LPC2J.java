@@ -16,6 +16,7 @@ import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
 import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
 
 public class LPC2J {
   private static final String DEFAULT_PARENT = "java/lang/Object";
@@ -38,10 +39,15 @@ public class LPC2J {
   }
 
   public static ASTObject parse(TokenList tokens, ParserOptions parserOptions) {
+    return parse(tokens, parserOptions, new RuntimeContext(null));
+  }
+
+  public static ASTObject parse(
+      TokenList tokens, ParserOptions parserOptions, RuntimeContext runtimeContext) {
     if (tokens == null) return null;
 
     try {
-      Parser parser = new Parser(parserOptions);
+      Parser parser = new Parser(runtimeContext, parserOptions);
 
       return parser.parse("<input>", tokens);
     } catch (ParseException | IllegalArgumentException e) {
@@ -53,10 +59,15 @@ public class LPC2J {
   }
 
   public static byte[] compile(ASTObject astObject) {
+    return compile(astObject, new RuntimeContext(null));
+  }
+
+  public static byte[] compile(ASTObject astObject, RuntimeContext runtimeContext) {
     if (astObject == null) return null;
 
     try {
-      SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
+      SemanticAnalysisResult analysis =
+          new SemanticAnalyzer(runtimeContext).analyze(astObject);
       if (!analysis.succeeded()) {
         for (CompilationProblem problem : analysis.problems()) {
           System.out.println(problem.getMessage());
@@ -96,7 +107,13 @@ public class LPC2J {
   }
 
   public static byte[] compile(String source, ParserOptions parserOptions) {
-    CompilationResult result = compileWithDiagnostics(source, parserOptions);
+    return compile(source, parserOptions, new RuntimeContext(null));
+  }
+
+  public static byte[] compile(
+      String source, ParserOptions parserOptions, RuntimeContext runtimeContext) {
+    CompilationResult result =
+        compileWithDiagnostics(source, parserOptions, runtimeContext);
     if (!result.succeeded()) {
       printProblems(result);
       return null;
@@ -106,12 +123,17 @@ public class LPC2J {
   }
 
   public static CompilationResult compileWithDiagnostics(String source) {
-    return compileWithDiagnostics(source, ParserOptions.defaults());
+    return compileWithDiagnostics(source, ParserOptions.defaults(), new RuntimeContext(null));
   }
 
   public static CompilationResult compileWithDiagnostics(
-      String source, ParserOptions parserOptions) {
-    CompilationPipeline pipeline = new CompilationPipeline(DEFAULT_PARENT);
+      String source, RuntimeContext runtimeContext) {
+    return compileWithDiagnostics(source, ParserOptions.defaults(), runtimeContext);
+  }
+
+  public static CompilationResult compileWithDiagnostics(
+      String source, ParserOptions parserOptions, RuntimeContext runtimeContext) {
+    CompilationPipeline pipeline = new CompilationPipeline(DEFAULT_PARENT, runtimeContext);
     return pipeline.run(source, parserOptions);
   }
 

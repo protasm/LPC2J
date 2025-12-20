@@ -8,7 +8,6 @@ import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 
 import io.github.protasm.lpc2j.efun.Efun;
-import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
@@ -45,7 +44,7 @@ public class PrefixIdentifier implements PrefixParselet {
                 return new ASTExprCallMethod(line, method, args);
 
             // Efun?
-            Efun efun = EfunRegistry.lookup(identifier);
+            Efun efun = parser.runtimeContext().resolveEfun(identifier, args.size());
 
             if (efun != null) // Call
                 return new ASTExprCallEfun(line, efun, args);

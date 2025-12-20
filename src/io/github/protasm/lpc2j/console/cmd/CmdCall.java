@@ -43,8 +43,8 @@ public class CmdCall extends Command {
             }
 
             // Loaded object?
-            if (console.objects().containsKey(strArg)) {
-                objArgs[i] = console.objects().get(strArg);
+            if (console.hasObject(strArg)) {
+                objArgs[i] = console.getObject(strArg);
 
                 continue;
             }

@@ -6,7 +6,11 @@ import io.github.protasm.lpc2j.console.cmd.*;
 import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
+import io.github.protasm.lpc2j.console.ConsoleConfig;
 import io.github.protasm.lpc2j.efun.EfunRegistry;
+import io.github.protasm.lpc2j.preproc.IncludeResolver;
+import io.github.protasm.lpc2j.preproc.Preprocessor;
+import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
@@ -27,6 +31,8 @@ public class LPCConsole {
   private final VirtualFileServer vfs;
   private Path vPath;
   private final ParserOptions parserOptions;
+  private final IncludeResolver includeResolver;
+  private final ConsoleConfig config;
 
   private final Map<String, Object> objects;
   private final java.util.Scanner inputScanner;
@@ -57,6 +63,9 @@ public class LPCConsole {
   public LPCConsole(String basePathStr, ParserOptions parserOptions) {
     this.vfs = new VirtualFileServer(basePathStr);
     this.parserOptions = (parserOptions == null) ? ParserOptions.defaults() : parserOptions;
+    this.config = ConsoleConfig.load(vfs.basePath());
+    this.includeResolver =
+        new SearchPathIncludeResolver(vfs.basePath(), config.includeDirs());
     this.vPath = Path.of("/");
 
     objects = new LinkedHashMap<>();
@@ -107,6 +116,10 @@ public class LPCConsole {
 
   public Map<String, Object> objects() {
     return objects;
+  }
+
+  public IncludeResolver includeResolver() {
+    return includeResolver;
   }
 
   public static Map<Command, List<String>> commands() {
@@ -272,9 +285,11 @@ public class LPCConsole {
 
       if (!success) throw new IllegalArgumentException();
 
-      Scanner scanner = new Scanner();
+      Preprocessor preprocessor = new Preprocessor(includeResolver);
+      Scanner scanner = new Scanner(preprocessor);
+      Path sourcePath = vfs.basePath().resolve(resolved).normalize();
 
-      TokenList tokens = scanner.scan(sf.source());
+      TokenList tokens = scanner.scan(sourcePath, sf.source());
 
       sf.setTokens(tokens);
 

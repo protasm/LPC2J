@@ -48,6 +48,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
 import static io.github.protasm.lpc2j.token.TokenType.T_TYPE;
 import static io.github.protasm.lpc2j.token.TokenType.T_WHILE;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +65,7 @@ public class Scanner {
     private static final Map<String, TokenType> reservedWords;
     private static final Map<Character, TokenType> oneCharLexemes;
     private ScannableSource ss;
+    private final Preprocessor preprocessor;
 
     static {
         lpcTypeWords = new HashMap<>() {
@@ -113,12 +115,24 @@ public class Scanner {
         };
     }
 
+    public Scanner() {
+        this(new Preprocessor(Preprocessor.rejectingResolver()));
+    }
+
+    public Scanner(Preprocessor preprocessor) {
+        this.preprocessor = preprocessor;
+    }
+
     public TokenList scan(String source) {
+        return scan(null, source);
+    }
+
+    public TokenList scan(Path sourcePath, String source) {
         if (source == null)
             throw new ScanException("Source text cannot be null.", -1);
 
         try {
-            String processed = Preprocessor.preprocess(source);
+            String processed = preprocessor.preprocess(sourcePath, source);
 
             ss = new ScannableSource(processed);
 

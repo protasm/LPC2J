@@ -2,6 +2,7 @@ package io.github.protasm.lpc2j.preproc;
 
 import io.github.protasm.lpc2j.sourcepos.CharCursor;
 import io.github.protasm.lpc2j.sourcepos.LineMap;
+import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +30,7 @@ public final class Preprocessor {
   }
 
   /** Tiny token for preprocessing stage only. */
-  private static record PPToken(Kind kind, String lexeme) {
+  private static record PPToken(Kind kind, String lexeme, LineMap map, int startOffset, int endOffset) {
     enum Kind {
       IDENT,
       NUMBER,
@@ -43,7 +44,13 @@ public final class Preprocessor {
     public String toString() {
       return lexeme;
     }
+
+    SourceSpan span() {
+      return SourceSpan.from(map, startOffset, endOffset);
+    }
   }
+
+  private record TokenizedLine(List<PPToken> tokens, SourceSpan newlineSpan) {}
 
   private static final IncludeResolver REJECTING_INCLUDES =
       (includingFile, includePath, system) -> {
@@ -69,9 +76,13 @@ public final class Preprocessor {
    * </code> directives, making it suitable for string-only compilation flows.
    */
   public static String preprocess(String source) {
+    return preprocessWithMapping(source).source();
+  }
+
+  public static PreprocessedSource preprocessWithMapping(String source) {
     Preprocessor pp = new Preprocessor(REJECTING_INCLUDES);
 
-    return pp.preprocess(null, source);
+    return pp.preprocessWithMapping(null, source);
   }
 
   public static String preprocess(
@@ -95,7 +106,7 @@ public final class Preprocessor {
 
     Preprocessor pp = new Preprocessor(resolver);
 
-    return pp.preprocess(sourcePath, source);
+    return pp.preprocessWithMapping(sourcePath, source).source();
   }
 
   public static String preprocess(
@@ -103,7 +114,7 @@ public final class Preprocessor {
     Preprocessor pp =
         new Preprocessor(new SearchPathIncludeResolver(baseIncludePath, systemIncludePaths));
 
-    return pp.preprocess(sourcePath, source);
+    return pp.preprocessWithMapping(sourcePath, source).source();
   }
 
   public static IncludeResolver rejectingResolver() {
@@ -111,10 +122,14 @@ public final class Preprocessor {
   }
 
   public String preprocess(Path sourcePath, String source) {
+    return preprocessWithMapping(sourcePath, source).source();
+  }
+
+  public PreprocessedSource preprocessWithMapping(Path sourcePath, String source) {
     if (source == null)
       throw new PreprocessException("Source text cannot be null.", "<unknown>", -1);
 
-    StringBuilder out = new StringBuilder();
+    PreprocessedSourceBuilder out = new PreprocessedSourceBuilder();
     String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
     LineMap map = new LineMap(file, splice(source));
     CharCursor cur = new CharCursor(map);
@@ -130,12 +145,12 @@ public final class Preprocessor {
           "Unexpected preprocessor failure: " + e.getMessage(), file, line, e);
     }
 
-    return out.toString(); //fully expanded source
+    return out.build(); // fully expanded source + mapping
   }
 
   /* ========================= core expansion ========================== */
 
-  private void expandUnit(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+  private void expandUnit(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     while (!cc.end()) {
       // buffer leading horizontal ws (not newline)
       StringBuilder bolWs = new StringBuilder();
@@ -157,13 +172,17 @@ public final class Preprocessor {
       }
 
       // not a directive: emit the ws we consumed and expand the rest of the line
-      out.append(bolWs);
+      if (!bolWs.isEmpty()) {
+        String ws = bolWs.toString();
+        int startOffset = cc.index() - ws.length();
+        out.append(ws, cc.map(), startOffset, cc.index());
+      }
 
       copyLineWithExpansion(cc, out);
     }
   }
 
-  private void handleDirective(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+  private void handleDirective(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     int directiveLine = cc.line();
 
     cc.advance(); // consume '#'
@@ -177,7 +196,7 @@ public final class Preprocessor {
     switch (name) {
       case "include" -> doInclude(cc, out, includeGuard);
       case "define" -> doDefine(cc);
-      case "undef" -> doUndef(cc);
+      case "undef" -> doUndef(cc, out);
       case "ifdef" -> doIfdef(cc, out, true);
       case "ifndef" -> doIfdef(cc, out, false);
       case "if" -> doIf(cc, out);
@@ -191,7 +210,7 @@ public final class Preprocessor {
     }
   }
 
-  private void doInclude(CharCursor cc, StringBuilder out, Set<String> includeGuard) {
+  private void doInclude(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     skipWhitespaceExceptNewline(cc);
 
     char q = cc.peek();
@@ -269,13 +288,13 @@ public final class Preprocessor {
     }
 
     // body = rest of line (tokenized)
-    List<PPToken> body = tokenizeUntilNewline(cc);
+    List<PPToken> body = tokenizeUntilNewline(cc).tokens();
 
     macros.put(name, new Macro(name, params, body));
     // keep newline (already consumed by tokenizer)
   }
 
-  private void doUndef(CharCursor cc) {
+  private void doUndef(CharCursor cc, PreprocessedSourceBuilder out) {
     skipWhitespaceExceptNewline(cc);
 
     String name = readIdent(cc);
@@ -284,10 +303,10 @@ public final class Preprocessor {
 
     macros.remove(name);
 
-    skipRestOfLine(cc, new StringBuilder()); // drop to EOL
+    skipRestOfLine(cc, out); // drop to EOL
   }
 
-  private void doIfdef(CharCursor cc, StringBuilder out, boolean positive) {
+  private void doIfdef(CharCursor cc, PreprocessedSourceBuilder out, boolean positive) {
     skipWhitespaceExceptNewline(cc);
 
     String name = readIdent(cc);
@@ -302,22 +321,22 @@ public final class Preprocessor {
     handleConditional(cc, out, cond);
   }
 
-  private void doIf(CharCursor cc, StringBuilder out) {
+  private void doIf(CharCursor cc, PreprocessedSourceBuilder out) {
     // Evaluate simple integer expression with defined(NAME)
-    List<PPToken> expr = tokenizeUntilNewline(cc);
+    List<PPToken> expr = tokenizeUntilNewline(cc).tokens();
     boolean cond = evalIfExpr(expr);
 
     handleConditional(cc, out, cond);
   }
 
-  private void handleConditional(CharCursor cc, StringBuilder out, boolean firstBranch) {
+  private void handleConditional(CharCursor cc, PreprocessedSourceBuilder out, boolean firstBranch) {
     // Consume blocks until matching #endif
     boolean taken = false;
 
     while (true) {
       if (!taken && firstBranch) {
         // Expand this block
-        expandConditionalBlock(cc, out);
+          expandConditionalBlock(cc, out);
 
         taken = true;
       } else
@@ -334,7 +353,7 @@ public final class Preprocessor {
       String name = readIdent(cc);
 
       if ("elif".equals(name)) {
-        List<PPToken> expr = tokenizeUntilNewline(cc);
+        List<PPToken> expr = tokenizeUntilNewline(cc).tokens();
 
         firstBranch = evalIfExpr(expr);
 
@@ -353,7 +372,7 @@ public final class Preprocessor {
     }
   }
 
-  private void expandConditionalBlock(CharCursor cc, StringBuilder out) {
+  private void expandConditionalBlock(CharCursor cc, PreprocessedSourceBuilder out) {
     while (!cc.end()) {
       if (isStartOfDirective(cc)) {
         // Lookahead to see if this is an #elif/#else/#endif to end this block
@@ -397,7 +416,7 @@ public final class Preprocessor {
 
         if ("if".equals(name) || "ifdef".equals(name) || "ifndef".equals(name)) {
           // nested: skip it fully
-          skipRestOfLine(cc, new StringBuilder());
+          skipRestOfLine(cc);
 
           skipConditionalBlock(cc);
 
@@ -428,13 +447,18 @@ public final class Preprocessor {
    * ========================= line copying + expansion ==========================
    */
 
-  private void copyLineWithExpansion(CharCursor cc, StringBuilder out) {
-    List<PPToken> toks = tokenizeUntilNewline(cc);
-    List<PPToken> expanded = expandMacros(toks, new HashSet<>());
+  private void copyLineWithExpansion(CharCursor cc, PreprocessedSourceBuilder out) {
+    TokenizedLine toks = tokenizeUntilNewline(cc);
+    List<PPToken> expanded = expandMacros(toks.tokens(), new HashSet<>());
 
-    for (PPToken t : expanded) out.append(t.lexeme);
+    for (PPToken t : expanded) out.append(t.lexeme(), t.map(), t.startOffset(), t.endOffset());
 
-    out.append('\n'); // keep line numbers stable
+    if (toks.newlineSpan() != null) {
+      int newlineStart = toks.newlineSpan().startOffset();
+      int newlineEnd = Math.max(newlineStart + 1, toks.newlineSpan().endOffset());
+
+      out.append("\n", cc.map(), newlineStart, newlineEnd);
+    }
   }
 
   /*
@@ -442,22 +466,36 @@ public final class Preprocessor {
    * ==========================
    */
 
-  private List<PPToken> tokenizeUntilNewline(CharCursor s) {
+  private TokenizedLine tokenizeUntilNewline(CharCursor s) {
     List<PPToken> out = new ArrayList<>();
+    SourceSpan newlineSpan = null;
 
     while (!s.end()) {
+      int startOffset = s.index();
       char c = s.peek();
 
       if (c == '\n') {
         s.advance();
+        newlineSpan = s.spanFrom(startOffset, s.index());
 
         break;
       }
 
       if ((c == '/') && s.canPeekNext() && (s.peekNext() == '/')) { // // comment
-        while (!s.end() && (s.advance() != '\n')) {
-          // just advance
+        int newlineStart = -1;
+
+        while (!s.end()) {
+          int at = s.index();
+          char consumed = s.advance();
+
+          if (consumed == '\n') {
+            newlineStart = at;
+            break;
+          }
         }
+
+        if (newlineStart >= 0)
+          newlineSpan = s.spanFrom(newlineStart, s.index());
 
         break;
       }
@@ -481,37 +519,42 @@ public final class Preprocessor {
       }
 
       if (Character.isWhitespace(c)) {
-        out.add(new PPToken(PPToken.Kind.PUNCT, String.valueOf(s.advance())));
+        s.advance();
+        out.add(new PPToken(PPToken.Kind.PUNCT, String.valueOf(c), s.map(), startOffset, s.index()));
 
         continue;
       }
 
       if ((c == '"') || (c == '\'')) {
-        out.add(readString(s));
+        out.add(readString(s, startOffset));
 
         continue;
       }
 
       if (Character.isLetter(c) || (c == '_')) {
-        out.add(readIdentTok(s));
+        out.add(readIdentTok(s, startOffset));
 
         continue;
       }
 
       if (Character.isDigit(c)) {
-        out.add(readNumberTok(s));
+        out.add(readNumberTok(s, startOffset));
 
         continue;
       }
 
       // operators/punctuators (keep as single chars; good enough for macro re-expand)
-      out.add(new PPToken(PPToken.Kind.OP, String.valueOf(s.advance())));
+      s.advance();
+      out.add(new PPToken(PPToken.Kind.OP, String.valueOf(c), s.map(), startOffset, s.index()));
     }
 
-    return out;
+    if (newlineSpan == null)
+      newlineSpan = s.spanFrom(s.index(), s.index());
+
+    return new TokenizedLine(out, newlineSpan);
   }
 
-  private PPToken readIdentTok(CharCursor s) {
+  private PPToken readIdentTok(CharCursor s, int startOffset) {
     StringBuilder sb = new StringBuilder();
 
     while (!s.end()) {
@@ -521,10 +564,10 @@ public final class Preprocessor {
       else break;
     }
 
-    return new PPToken(PPToken.Kind.IDENT, sb.toString());
+    return new PPToken(PPToken.Kind.IDENT, sb.toString(), s.map(), startOffset, s.index());
   }
 
-  private PPToken readNumberTok(CharCursor s) {
+  private PPToken readNumberTok(CharCursor s, int startOffset) {
     StringBuilder sb = new StringBuilder();
 
     while (!s.end() && Character.isDigit(s.peek())) sb.append(s.advance());
@@ -535,10 +578,10 @@ public final class Preprocessor {
       while (!s.end() && Character.isDigit(s.peek())) sb.append(s.advance());
     }
 
-    return new PPToken(PPToken.Kind.NUMBER, sb.toString());
+    return new PPToken(PPToken.Kind.NUMBER, sb.toString(), s.map(), startOffset, s.index());
   }
 
-  private PPToken readString(CharCursor s) {
+  private PPToken readString(CharCursor s, int startOffset) {
     StringBuilder sb = new StringBuilder();
     char q = s.advance(); // opening
 
@@ -553,21 +596,41 @@ public final class Preprocessor {
 
       if ((c == '\\') && !s.end()) sb.append(s.advance());
     }
-    return new PPToken(PPToken.Kind.STRING, sb.toString());
+    return new PPToken(PPToken.Kind.STRING, sb.toString(), s.map(), startOffset, s.index());
   }
 
-  private void skipRestOfLine(CharCursor s, StringBuilder out) {
+  private void skipRestOfLine(CharCursor s, PreprocessedSourceBuilder out) {
+    int newlineStart = -1;
+
+    while (!s.end()) {
+      char c = s.advance();
+
+      if (c == '\n') {
+        newlineStart = s.index() - 1;
+        break;
+      }
+    }
+
+    int startOffset = (newlineStart >= 0) ? newlineStart : s.index();
+    out.append("\n", s.map(), startOffset, startOffset + 1); // preserve line count
+  }
+
+  private void skipRestOfLine(CharCursor s) {
     while (!s.end() && (s.advance() != '\n')) {
       // just advance
     }
-
-    out.append('\n'); // preserve line count
   }
 
   /* ========================= macros ========================== */
 
   private void defineObject(String name, String body) {
-    macros.put(name, new Macro(name, null, List.of(new PPToken(PPToken.Kind.IDENT, body))));
+    macros.put(name, new Macro(name, null, List.of(syntheticToken(body))));
+  }
+
+  private PPToken syntheticToken(String body) {
+    LineMap map = new LineMap("<built-in>", body);
+
+    return new PPToken(PPToken.Kind.IDENT, body, map, 0, body.length());
   }
 
   private List<PPToken> expandMacros(List<PPToken> in, Set<String> hideset) {
@@ -689,7 +752,9 @@ public final class Preprocessor {
       int i = 0;
 
       PPToken la() {
-        return i < expr.size() ? expr.get(i) : new PPToken(PPToken.Kind.END, "");
+        return i < expr.size()
+            ? expr.get(i)
+            : new PPToken(PPToken.Kind.END, "", new LineMap("<expr>", ""), 0, 0);
       }
 
       PPToken eat() {

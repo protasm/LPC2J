@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.scanner;
 
-import io.github.protasm.lpc2j.sourcepos.LineMap;
+import io.github.protasm.lpc2j.preproc.PreprocessedSource;
+import io.github.protasm.lpc2j.sourcepos.SourceMapper;
 import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 
@@ -8,19 +9,18 @@ import io.github.protasm.lpc2j.sourcepos.SourceSpan;
  * Lightweight wrapper around source text used by {@link Scanner}.
  * 
  * It maintains a current head index and a tail index marking the start of the
- * current lexeme. The line/column information is provided via {@link LineMap}
+ * current lexeme. The line/column information is provided via {@link SourceMapper}
  * and exposed as {@link SourcePos} objects.
  */
 class ScannableSource {
     private final String source;
-    private final LineMap map;
+    private final SourceMapper mapper;
     private int head;
     private int tail;
 
-    ScannableSource(String fileName, String source) {
-        this.source = source;
-
-        this.map = new LineMap(fileName, source);
+    ScannableSource(PreprocessedSource source) {
+        this.source = source.source();
+        this.mapper = source.mapper();
         this.head = 0;
         this.tail = 0;
     }
@@ -87,10 +87,10 @@ class ScannableSource {
     }
 
     SourcePos pos() {
-        return map.posAt(tail);
+        return mapper.originalPos(tail);
     }
 
     SourceSpan span() {
-        return SourceSpan.from(map, tail, head);
+        return mapper.originalSpan(tail, head);
     }
 }

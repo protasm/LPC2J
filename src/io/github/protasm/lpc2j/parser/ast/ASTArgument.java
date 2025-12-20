@@ -1,7 +1,5 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-
 public final class ASTArgument extends ASTNode {
     private final ASTExpression expression;
 

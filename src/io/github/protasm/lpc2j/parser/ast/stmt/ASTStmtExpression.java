@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.parser.ast.stmt;
 
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 
 public final class ASTStmtExpression extends ASTStatement {
     private final ASTExpression expression;

@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.parser.parselet;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralTrue;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 
 public class PrefixLiteral implements PrefixParselet {
     @Override

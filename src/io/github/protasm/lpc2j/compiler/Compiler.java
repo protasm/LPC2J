@@ -65,14 +65,14 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
-import io.github.protasm.lpc2j.parser.ast.visitor.AstVisitor;
+import io.github.protasm.lpc2j.parser.ast.visitor.ASTVisitor;
 import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.runtime.Truth;
 
-public class Compiler implements AstVisitor {
+public class Compiler implements ASTVisitor {
         private final String defaultParentName;
         private final ClassWriter cw;
         private MethodVisitor mv; // current method

@@ -33,7 +33,7 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
 /** Propagates contextual type hints through the AST to enrich symbol metadata. */
-public final class TypeInferenceVisitor implements AstVisitor {
+public final class TypeInferenceVisitor implements ASTVisitor {
     private Symbol currentMethodSymbol;
     private LPCType expectedType;
 

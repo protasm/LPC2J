@@ -15,9 +15,8 @@ public enum TokenType {
     T_GREATER(Object.class), T_GREATER_EQUAL(Object.class), T_LESS(Object.class), T_LESS_EQUAL(Object.class),
     T_EQUAL_EQUAL(Object.class), T_BANG_EQUAL(Object.class),
 
-    // All types words (int, string, etc.) are initially
-    // scanned as T_TYPE with the LPCType stored as the
-    // Token's literal.
+    // All type words (int, string, etc.) are classified as
+    // T_TYPE with the LPCType stored as the Token's literal.
     T_TYPE(LPCType.class),
 
     // Identifier and literals

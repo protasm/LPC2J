@@ -59,7 +59,7 @@ Keywords are not available for use as identifiers. 【F:src/io/github/protasm/lp
 - **String literals**: double-quoted with `"` delimiters; backslash escapes are copied verbatim by the scanner. 【F:src/io/github/protasm/lpc2j/scanner/Scanner.java†L238-L252】
 - **Boolean literals**: `true` and `false`. 【F:src/io/github/protasm/lpc2j/parser/parselet/PrefixLiteral.java†L10-L30】
 - **Float literals**: tokenized but rejected by the current parser; they are reserved for future numeric widening. 【F:src/io/github/protasm/lpc2j/parser/parselet/PrefixNumber.java†L10-L33】
-- **Nil literal**: tokenized as `nil` but not lowered to an AST; use implicit `null` returns instead. 【F:src/io/github/protasm/lpc2j/parser/parselet/PrefixLiteral.java†L18-L26】
+- **Nil literal**: tokenized as `nil` but not lowered to an AST; use explicit `return null;` for reference types instead. 【F:src/io/github/protasm/lpc2j/parser/parselet/PrefixLiteral.java†L18-L26】
 
 ## 3. Types, Values, and Variables
 
@@ -76,7 +76,7 @@ The type keywords map to JVM types as follows:
 - `float` → tokenized but not compiled in expressions (reserved)
 - `mapping` → tokenized only (no code generation yet)
 
-The compiler infers types when declarations omit them (e.g., untyped methods) by propagating contextual expectations across assignments, returns, and parameter use. 【F:src/io/github/protasm/lpc2j/parser/type/LPCType.java†L8-L34】【F:src/io/github/protasm/lpc2j/parser/ast/visitor/TypeInferenceVisitor.java†L17-L118】
+Type inference propagates declared types across assignments, returns, and parameter use to validate expressions and keep symbol metadata consistent. 【F:src/io/github/protasm/lpc2j/parser/type/LPCType.java†L8-L34】【F:src/io/github/protasm/lpc2j/parser/ast/visitor/TypeInferenceVisitor.java†L17-L118】
 
 ### 3.2 Truthiness and boolean contexts
 
@@ -94,21 +94,21 @@ Each source file defines exactly one LPC object. An optional leading `inherit "p
 
 ### 4.2 Declarations
 
-- **Fields**: Declared with a type keyword followed by one or more identifiers, optionally initialized (`int a = 1, b;`). Initializers are evaluated in the constructor. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L136-L207】【F:src/io/github/protasm/lpc2j/compiler/Compiler.java†L482-L519】
-- **Methods**: Declared with an optional return type; when parser options require untyped methods, the type must be omitted and defaults to `mixed`. Parameters follow the same typing rule. Methods are compiled as public instance methods. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L209-L275】
-- **Locals**: Declared inside blocks with an explicit type; optional initializer uses assignment syntax. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L277-L332】
+- **Fields**: Declared with a type keyword followed by one or more identifiers, optionally initialized (`int a = 1, b;`). Initializers are evaluated in the constructor. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L141-L215】【F:src/io/github/protasm/lpc2j/compiler/Compiler.java†L482-L519】
+- **Methods**: Declared with an explicit return type and explicitly typed parameters. Non-`void` methods must end with a correctly typed return statement; `void` methods may fall through with an implicit `return;`. Methods are compiled as public instance methods. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L141-L239】【F:src/io/github/protasm/lpc2j/parser/Parser.java†L309-L471】【F:src/io/github/protasm/lpc2j/compiler/Compiler.java†L402-L470】
+- **Locals**: Declared inside blocks with an explicit type; optional initializer uses assignment syntax. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L338-L359】
 
 ## 5. Statements
 
 The statement forms currently accepted are:
 
-- **Block**: `{ ... }` with optional trailing implicit return insertion (see §8.2).
+- **Block**: `{ ... }` with optional trailing implicit `return;` insertion for `void` methods only (see §8.2).
 - **Local declaration** inside a block.
 - **If/else**: `if (expr) stmt [else stmt]`.
 - **Return**: `return;` or `return expr;`.
 - **Expression statement**: any expression followed by `;`.
 
-Loops (`for`, `while`) are tokenized but not parsed yet. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L334-L406】
+Loops (`for`, `while`) are tokenized but not parsed yet. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L361-L370】
 
 ## 6. Expressions and Operators
 
@@ -154,7 +154,7 @@ Each LPC object becomes a public Java class with private fields and public metho
 
 ### 8.2 Returns and fallthrough
 
-LPC permits falling off the end of a method. The compiler emits a default return matching the declared or inferred return type: `0` for `int/status`, `null` for reference and `mixed`, and `return` for `void`. Parser-level implicit returns insert these defaults when a block ends without an explicit `return`. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L345-L372】【F:src/io/github/protasm/lpc2j/compiler/Compiler.java†L402-L470】
+`void` methods may fall off the end of their bodies; the parser inserts an implicit `return;` and the compiler emits a `RETURN` opcode. Methods with any other declared return type must end with an explicit, correctly typed `return` statement. 【F:src/io/github/protasm/lpc2j/parser/Parser.java†L309-L471】【F:src/io/github/protasm/lpc2j/compiler/Compiler.java†L402-L470】
 
 ### 8.3 Truthiness and logical control flow
 

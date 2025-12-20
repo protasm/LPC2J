@@ -6,6 +6,9 @@ import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
+import io.github.protasm.lpc2j.pipeline.CompilationProblem;
+import io.github.protasm.lpc2j.pipeline.CompilationResult;
 import io.github.protasm.lpc2j.scanner.ScanException;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.token.TokenList;
@@ -68,9 +71,30 @@ public class LPC2J {
     }
 
     public static byte[] compile(String source, ParserOptions parserOptions) {
-        TokenList tokens = scan(source);
-        ASTObject astObject = parse(tokens, parserOptions);
+        CompilationResult result = compileWithDiagnostics(source, parserOptions);
+        if (!result.succeeded()) {
+            printProblems(result);
+            return null;
+        }
 
-        return compile(astObject);
+        return result.getBytecode();
+    }
+
+    public static CompilationResult compileWithDiagnostics(String source) {
+        return compileWithDiagnostics(source, ParserOptions.defaults());
+    }
+
+    public static CompilationResult compileWithDiagnostics(String source, ParserOptions parserOptions) {
+        CompilationPipeline pipeline = new CompilationPipeline(DEFAULT_PARENT);
+        return pipeline.run(source, parserOptions);
+    }
+
+    private static void printProblems(CompilationResult result) {
+        for (CompilationProblem problem : result.getProblems()) {
+            System.out.println(problem.getMessage());
+            if (problem.getThrowable() != null) {
+                System.out.println(problem.getThrowable());
+            }
+        }
     }
 }

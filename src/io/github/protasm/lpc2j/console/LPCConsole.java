@@ -8,6 +8,8 @@ import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.console.ConsoleConfig;
 import io.github.protasm.lpc2j.efun.EfunRegistry;
+import io.github.protasm.lpc2j.ir.IRLowerer;
+import io.github.protasm.lpc2j.ir.IRLoweringResult;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
@@ -252,8 +254,18 @@ public class LPCConsole {
         return null;
       }
 
+      IRLowerer lowerer = new IRLowerer("java/lang/Object");
+      IRLoweringResult loweringResult = lowerer.lower(analysisResult.semanticModel());
+
+      if (!loweringResult.succeeded()) {
+        for (CompilationProblem problem : loweringResult.problems()) {
+          System.out.println(problem.getMessage());
+        }
+        return null;
+      }
+
       Compiler compiler = new Compiler("java/lang/Object");
-      byte[] bytes = compiler.compile(sf.astObject());
+      byte[] bytes = compiler.compile(loweringResult.typedIr());
 
       sf.setBytes(bytes);
 

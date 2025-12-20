@@ -2,6 +2,8 @@ package io.github.protasm.lpc2j;
 
 import io.github.protasm.lpc2j.compiler.CompileException;
 import io.github.protasm.lpc2j.compiler.Compiler;
+import io.github.protasm.lpc2j.ir.IRLowerer;
+import io.github.protasm.lpc2j.ir.IRLoweringResult;
 import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
@@ -65,9 +67,21 @@ public class LPC2J {
         return null;
       }
 
+      IRLowerer lowerer = new IRLowerer(DEFAULT_PARENT);
+      IRLoweringResult loweringResult = lowerer.lower(analysis.semanticModel());
+      if (!loweringResult.succeeded()) {
+        for (CompilationProblem problem : loweringResult.problems()) {
+          System.out.println(problem.getMessage());
+          if (problem.getThrowable() != null) {
+            System.out.println(problem.getThrowable());
+          }
+        }
+        return null;
+      }
+
       Compiler compiler = new Compiler(DEFAULT_PARENT);
 
-      return compiler.compile(astObject);
+      return compiler.compile(loweringResult.typedIr());
     } catch (CompileException | IllegalArgumentException e) {
       System.out.println("Error compiling ASTObject");
 

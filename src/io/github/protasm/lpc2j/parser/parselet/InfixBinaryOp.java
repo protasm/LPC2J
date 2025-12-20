@@ -18,7 +18,7 @@ import io.github.protasm.lpc2j.parser.ParseRule;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.PrattParser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.token.Token;
 
 public class InfixBinaryOp implements InfixParselet {

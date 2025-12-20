@@ -11,6 +11,8 @@ import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
@@ -25,8 +27,6 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.parser.ast.stmt.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -68,11 +68,11 @@ public interface AstVisitor {
         case ASTExprOpBinary exprOpBinary -> visitExprOpBinary(exprOpBinary);
         case ASTExprOpUnary exprOpUnary -> visitExprOpUnary(exprOpUnary);
         case ASTExpression expression -> visitExpression(expression);
-        case ASTStatement statement -> visitStatement(statement);
         case ASTStmtBlock stmtBlock -> visitStmtBlock(stmtBlock);
         case ASTStmtExpression stmtExpression -> visitStmtExpression(stmtExpression);
         case ASTStmtIfThenElse stmtIfThenElse -> visitStmtIfThenElse(stmtIfThenElse);
         case ASTStmtReturn stmtReturn -> visitStmtReturn(stmtReturn);
+        case ASTStatement statement -> visitStatement(statement);
         default -> throw new IllegalStateException("Unhandled AST node: " + node.getClass().getName());
         }
     }

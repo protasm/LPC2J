@@ -1,7 +1,5 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-
 public final class ASTField extends ASTNode {
     private final String ownerName;
     private final Symbol symbol;

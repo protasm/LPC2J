@@ -2,7 +2,7 @@ package io.github.protasm.lpc2j.parser.parselet;
 
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.token.Token;
 
 public class PrefixString implements PrefixParselet {

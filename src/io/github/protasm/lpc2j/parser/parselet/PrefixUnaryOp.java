@@ -6,7 +6,7 @@ import static io.github.protasm.lpc2j.parser.type.UnaryOpType.UOP_NOT;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.PrattParser;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.token.TokenType;
 
 public class PrefixUnaryOp implements PrefixParselet {

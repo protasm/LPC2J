@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.type.LPCType;

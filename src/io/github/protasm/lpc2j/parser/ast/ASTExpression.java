@@ -1,6 +1,5 @@
-package io.github.protasm.lpc2j.parser.ast.expr;
+package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.parser.ast.ASTNode;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public abstract non-sealed class ASTExpression extends ASTNode {

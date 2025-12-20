@@ -16,6 +16,7 @@ import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -38,7 +39,20 @@ public final class CompilationPipeline {
     }
 
     public CompilationResult run(String source, ParserOptions parserOptions) {
+        return run(null, source, null, parserOptions);
+    }
+
+    public CompilationResult run(Path sourcePath, String source, ParserOptions parserOptions) {
+        return run(sourcePath, source, null, parserOptions);
+    }
+
+    public CompilationResult run(
+            Path sourcePath, String source, String sourceName, ParserOptions parserOptions) {
         ParserOptions options = Objects.requireNonNull(parserOptions, "parserOptions");
+        String parseName =
+                (sourceName != null)
+                        ? sourceName
+                        : (sourcePath != null ? sourcePath.toString() : "<input>");
         List<CompilationProblem> problems = new ArrayList<>();
         TokenList tokens = null;
         ASTObject astObject = null;
@@ -48,7 +62,7 @@ public final class CompilationPipeline {
 
         Scanner scanner = new Scanner(runtimeContext.newPreprocessor());
         try {
-            tokens = scanner.scan(source);
+            tokens = scanner.scan(sourcePath, source);
         } catch (ScanException e) {
             problems.add(
                     new CompilationProblem(
@@ -58,7 +72,7 @@ public final class CompilationPipeline {
 
         Parser parser = new Parser(runtimeContext, options);
         try {
-            astObject = parser.parse("<input>", tokens);
+            astObject = parser.parse(parseName, tokens);
         } catch (ParseException | IllegalArgumentException e) {
             problems.add(
                     new CompilationProblem(

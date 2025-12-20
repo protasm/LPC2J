@@ -29,187 +29,193 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
-import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 
-public class TypeInferenceVisitor {
+/** Propagates contextual type hints through the AST to enrich symbol metadata. */
+public final class TypeInferenceVisitor implements AstVisitor {
     private Symbol currentMethodSymbol;
-    public void visit(ASTExprFieldStore expr, LPCType lpcType) {
-        lpcType = expr.lpcType(); // pass down type of assignment target
+    private LPCType expectedType;
 
-        expr.field().accept(this, lpcType);
-        expr.value().accept(this, lpcType);
+    public void visitWithExpectedType(ASTObject astObject, LPCType lpcType) {
+        withExpectation(lpcType, () -> astObject.accept(this));
+    }
 
+    @Override
+    public void visitExprFieldStore(ASTExprFieldStore expr) {
+        LPCType assignmentType = expr.lpcType();
+        withExpectation(assignmentType, () -> expr.field().accept(this));
+        withExpectation(assignmentType, () -> expr.value().accept(this));
         updateSymbolType(expr.field().symbol(), expr.value().lpcType());
     }
 
-    public void visit(ASTExprInvokeLocal expr, LPCType lpcType) {
-        expr.setLPCType(lpcType);
+    @Override
+    public void visitExprInvokeLocal(ASTExprInvokeLocal expr) {
+        expr.setLPCType(expectedType);
     }
 
-    public void visit(ASTExprLocalStore expr, LPCType lpcType) {
-        lpcType = expr.lpcType(); // pass down type of assignment target
-
-        expr.local().accept(this, lpcType);
-        expr.value().accept(this, lpcType);
-
+    @Override
+    public void visitExprLocalStore(ASTExprLocalStore expr) {
+        LPCType assignmentType = expr.lpcType();
+        withExpectation(assignmentType, () -> expr.local().accept(this));
+        withExpectation(assignmentType, () -> expr.value().accept(this));
         updateSymbolType(expr.local().symbol(), expr.value().lpcType());
     }
 
-    public void visit(ASTMethod method, LPCType lpcType) {
+    @Override
+    public void visitMethod(ASTMethod method) {
         Symbol prevMethodSymbol = currentMethodSymbol;
-
         currentMethodSymbol = method.symbol();
-        lpcType = currentMethodSymbol.lpcType(); // pass down method return type
-
-        method.body().accept(this, lpcType);
-
+        withExpectation(currentMethodSymbol.lpcType(), () -> method.body().accept(this));
         currentMethodSymbol = prevMethodSymbol;
     }
 
-    public void visit(ASTMethods methods, LPCType lpcType) {
+    @Override
+    public void visitMethods(ASTMethods methods) {
         for (ASTMethod method : methods)
-            method.accept(this, lpcType);
+            method.accept(this);
     }
 
-    public void visit(ASTObject object, LPCType lpcType) {
-        object.methods().accept(this, lpcType);
+    @Override
+    public void visitObject(ASTObject object) {
+        object.methods().accept(this);
     }
 
-    public void visit(ASTStmtBlock stmt, LPCType lpcType) {
+    @Override
+    public void visitStmtBlock(ASTStmtBlock stmt) {
         for (ASTStatement statement : stmt)
-            statement.accept(this, lpcType);
+            statement.accept(this);
     }
 
-    public void visit(ASTStmtExpression stmt, LPCType lpcType) {
-        lpcType = null; // pass down null where expression value is ignored
-
-        stmt.expression().accept(this, lpcType);
+    @Override
+    public void visitStmtExpression(ASTStmtExpression stmt) {
+        withExpectation(null, () -> stmt.expression().accept(this));
     }
 
-    public void visit(ASTStmtIfThenElse stmt, LPCType lpcType) {
-        stmt.condition().accept(this, LPCType.LPCSTATUS);
-        stmt.thenBranch().accept(this, lpcType);
-
+    @Override
+    public void visitStmtIfThenElse(ASTStmtIfThenElse stmt) {
+        withExpectation(LPCType.LPCSTATUS, () -> stmt.condition().accept(this));
+        stmt.thenBranch().accept(this);
         if (stmt.elseBranch() != null)
-            stmt.elseBranch().accept(this, lpcType);
+            stmt.elseBranch().accept(this);
     }
 
-    public void visit(ASTStmtReturn stmt, LPCType lpcType) {
+    @Override
+    public void visitStmtReturn(ASTStmtReturn stmt) {
         if (stmt.returnValue() != null) {
-            stmt.returnValue().accept(this, lpcType);
+            withExpectation(expectedType, () -> stmt.returnValue().accept(this));
             updateSymbolType(currentMethodSymbol, stmt.returnValue().lpcType());
         }
     }
 
-    public void visit(ASTArguments astArguments, LPCType lpcType) {
+    @Override
+    public void visitArguments(ASTArguments astArguments) {
         for (ASTArgument arg : astArguments)
-            arg.accept(this, null);
+            arg.accept(this);
     }
 
-    public void visit(ASTExprFieldAccess astExprFieldAccess, LPCType lpcType) {
-        updateSymbolType(astExprFieldAccess.field().symbol(), lpcType);
+    @Override
+    public void visitExprFieldAccess(ASTExprFieldAccess astExprFieldAccess) {
+        updateSymbolType(astExprFieldAccess.field().symbol(), expectedType);
     }
 
-    public void visit(ASTExprCallMethod astExprCall, LPCType lpcType) {
-        astExprCall.arguments().accept(this, null);
+    @Override
+    public void visitExprCallMethod(ASTExprCallMethod astExprCall) {
+        astExprCall.arguments().accept(this);
     }
 
-    public void visit(ASTExprCallEfun astExprCallEfun, LPCType lpcTyp) {
-        astExprCallEfun.arguments().accept(this, null);
+    @Override
+    public void visitExprCallEfun(ASTExprCallEfun astExprCallEfun) {
+        astExprCallEfun.arguments().accept(this);
     }
 
-    public void visit(ASTExprLiteralFalse astExprLiteralFalse, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+    @Override
+    public void visitExprLiteralFalse(ASTExprLiteralFalse expr) {
+        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
-    public void visit(ASTExprLiteralInteger astExprLiteralInteger, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+    @Override
+    public void visitExprLiteralInteger(ASTExprLiteralInteger expr) {
+        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
-    public void visit(ASTExprLiteralString astExprLiteralString, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+    @Override
+    public void visitExprLiteralString(ASTExprLiteralString expr) {
+        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
-    public void visit(ASTExprLiteralTrue astExprLiteralTrue, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+    @Override
+    public void visitExprLiteralTrue(ASTExprLiteralTrue expr) {
+        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
-    public void visit(ASTExprLocalAccess astExprLocalAccess, LPCType lpcType) {
-        updateSymbolType(astExprLocalAccess.local().symbol(), lpcType);
+    @Override
+    public void visitExprLocalAccess(ASTExprLocalAccess astExprLocalAccess) {
+        updateSymbolType(astExprLocalAccess.local().symbol(), expectedType);
     }
 
-    public void visit(ASTExprNull astExprNull, LPCType lpcType) {
-        // TODO Auto-generated method stub
-
+    @Override
+    public void visitExprNull(ASTExprNull expr) {
+        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
-    public void visit(ASTExprOpBinary astExprOpBinary, LPCType lpcType) {
-        LPCType operandExpectation = expectedBinaryOperandType(astExprOpBinary, lpcType);
-
-        astExprOpBinary.left().accept(this, operandExpectation);
-        astExprOpBinary.right().accept(this, operandExpectation);
+    @Override
+    public void visitExprOpBinary(ASTExprOpBinary expr) {
+        LPCType operandExpectation = expectedBinaryOperandType(expr, expectedType);
+        withExpectation(operandExpectation, () -> expr.left().accept(this));
+        withExpectation(operandExpectation, () -> expr.right().accept(this));
     }
 
-    public void visit(ASTExprOpUnary astExprOpUnary, LPCType lpcType) {
-        LPCType operandExpectation = astExprOpUnary.operator() == UnaryOpType.UOP_NOT ? LPCType.LPCSTATUS
-                : LPCType.LPCINT;
-
-        astExprOpUnary.right().accept(this, operandExpectation);
+    @Override
+    public void visitExprOpUnary(ASTExprOpUnary expr) {
+        LPCType operandExpectation =
+                expr.operator() == UnaryOpType.UOP_NOT ? LPCType.LPCSTATUS : LPCType.LPCINT;
+        withExpectation(operandExpectation, () -> expr.right().accept(this));
     }
 
-    public void visit(ASTArgument astArgument, LPCType lpcType) {
-        astArgument.expression().accept(this, lpcType);
+    @Override
+    public void visitArgument(ASTArgument astArgument) {
+        astArgument.expression().accept(this);
     }
 
-    public void visit(ASTField astField, LPCType lpcType) {
-        updateSymbolType(astField.symbol(), lpcType);
+    @Override
+    public void visitField(ASTField astField) {
+        updateSymbolType(astField.symbol(), expectedType);
     }
 
-    public void visit(ASTFields astFields, LPCType lpcType) {
-        // TODO Auto-generated method stub
+    @Override
+    public void visitFields(ASTFields astFields) {}
 
+    @Override
+    public void visitParameter(ASTParameter astParameter) {
+        updateSymbolType(astParameter.symbol(), expectedType);
     }
 
-    public void visit(ASTParameter astParameter, LPCType lpcType) {
-        updateSymbolType(astParameter.symbol(), lpcType);
-    }
-
-    public void visit(ASTParameters astParameters, LPCType lpcType) {
+    @Override
+    public void visitParameters(ASTParameters astParameters) {
         for (ASTParameter param : astParameters)
-            param.accept(this, param.symbol().lpcType());
+            withExpectation(param.symbol().lpcType(), () -> param.accept(this));
     }
 
     private LPCType expectedBinaryOperandType(ASTExprOpBinary expr, LPCType context) {
-        switch (expr.operator()) {
-        case BOP_ADD:
-            return (expr.left().lpcType() == LPCType.LPCSTRING || expr.right().lpcType() == LPCType.LPCSTRING
-                    || context == LPCType.LPCSTRING) ? LPCType.LPCSTRING : LPCType.LPCINT;
-        case BOP_SUB:
-        case BOP_MULT:
-        case BOP_DIV:
-        case BOP_GT:
-        case BOP_GE:
-        case BOP_LT:
-        case BOP_LE:
-        case BOP_EQ:
-        case BOP_NE:
-        case BOP_AND:
-        case BOP_OR:
-            return LPCType.LPCINT;
-        default:
-            return context;
-        }
+        return switch (expr.operator()) {
+        case BOP_ADD -> (expr.left().lpcType() == LPCType.LPCSTRING || expr.right().lpcType() == LPCType.LPCSTRING
+                || context == LPCType.LPCSTRING) ? LPCType.LPCSTRING : LPCType.LPCINT;
+        case BOP_SUB, BOP_MULT, BOP_DIV, BOP_GT, BOP_GE, BOP_LT, BOP_LE, BOP_EQ, BOP_NE, BOP_AND, BOP_OR -> LPCType.LPCINT;
+        default -> context;
+        };
     }
 
     private void updateSymbolType(Symbol symbol, LPCType candidate) {
         if (symbol == null || candidate == null)
             return;
-
         symbol.setLpcType(candidate);
+    }
+
+    private void withExpectation(LPCType lpcType, Runnable runnable) {
+        LPCType prev = expectedType;
+        expectedType = lpcType;
+        runnable.run();
+        expectedType = prev;
     }
 }

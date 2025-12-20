@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public abstract class ASTListNode<T> extends ASTNode implements Iterable<T> {
+public abstract non-sealed class ASTListNode<T> extends ASTNode implements Iterable<T> {
     protected List<T> nodes;
 
     public ASTListNode(int line) {

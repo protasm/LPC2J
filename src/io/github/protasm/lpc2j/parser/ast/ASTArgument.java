@@ -1,12 +1,8 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExpression;
-import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
-import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
-import io.github.protasm.lpc2j.parser.type.LPCType;
 
-public class ASTArgument extends ASTNode {
+public final class ASTArgument extends ASTNode {
     private final ASTExpression expression;
 
     public ASTArgument(int line, ASTExpression expr) {
@@ -17,20 +13,5 @@ public class ASTArgument extends ASTNode {
 
     public ASTExpression expression() {
         return expression;
-    }
-
-    @Override
-    public void accept(Compiler visitor) {
-        visitor.visit(this);
-    }
-
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-        visitor.visit(this, lpcType);
-    }
-
-    @Override
-    public void accept(PrintVisitor visitor) {
-        visitor.visit(this);
     }
 }

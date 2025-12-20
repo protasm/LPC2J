@@ -1,11 +1,6 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
-import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
-import io.github.protasm.lpc2j.parser.type.LPCType;
-
-public class ASTLocal extends ASTNode {
+public final class ASTLocal extends ASTNode {
     private final Symbol symbol;
     private int slot;
     private int scopeDepth;
@@ -41,20 +36,5 @@ public class ASTLocal extends ASTNode {
 
     public String descriptor() {
         return symbol.descriptor();
-    }
-
-    @Override
-    public void accept(Compiler visitor) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
-    public void accept(PrintVisitor visitor) {
-        visitor.visit(this);
     }
 }

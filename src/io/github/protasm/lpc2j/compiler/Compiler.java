@@ -65,13 +65,14 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.ast.visitor.AstVisitor;
 import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.JType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.runtime.Truth;
 
-public class Compiler {
+public class Compiler implements AstVisitor {
         private final String defaultParentName;
         private final ClassWriter cw;
         private MethodVisitor mv; // current method
@@ -100,7 +101,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTArgument arg) {
+    @Override
+    public void visitArgument(ASTArgument arg) {
         arg.expression().accept(this);
 
         LPCType type = arg.expression().lpcType();
@@ -124,7 +126,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTArguments args) {
+    @Override
+    public void visitArguments(ASTArguments args) {
         pushInt(args.size()); // Push array length
 
         mv.visitTypeInsn(ANEWARRAY, "java/lang/Object"); // Create Object[]
@@ -140,7 +143,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTExprCallMethod expr) {
+    @Override
+    public void visitExprCallMethod(ASTExprCallMethod expr) {
         ASTMethod method = expr.method();
         ASTArguments args = expr.arguments();
 
@@ -161,7 +165,8 @@ public class Compiler {
 //            mv.visitInsn(Opcodes.POP);
     }
 
-    public void visit(ASTExprCallEfun expr) {
+    @Override
+    public void visitExprCallEfun(ASTExprCallEfun expr) {
         Efun efun = expr.efun();
         ASTArguments args = expr.arguments();
 
@@ -192,14 +197,16 @@ public class Compiler {
                 "([Ljava/lang/Object;)Ljava/lang/Object;", true);
     }
 
-    public void visit(ASTExprFieldAccess expr) {
+    @Override
+    public void visitExprFieldAccess(ASTExprFieldAccess expr) {
         ASTField field = expr.field();
 
         mv.visitVarInsn(ALOAD, 0);
         mv.visitFieldInsn(GETFIELD, field.ownerName(), field.symbol().name(), field.descriptor());
     }
 
-    public void visit(ASTExprFieldStore expr) {
+    @Override
+    public void visitExprFieldStore(ASTExprFieldStore expr) {
         ASTField field = expr.field();
         ASTExpression value = expr.value();
 
@@ -213,7 +220,8 @@ public class Compiler {
         mv.visitFieldInsn(PUTFIELD, field.ownerName(), field.symbol().name(), field.symbol().descriptor());
     }
 
-    public void visit(ASTExprInvokeLocal expr) {
+    @Override
+    public void visitExprInvokeLocal(ASTExprInvokeLocal expr) {
         ASTArguments args = expr.args();
 
         // Load target object
@@ -244,25 +252,30 @@ public class Compiler {
         invokeReturnValue(expr.lpcType());
     }
 
-    public void visit(ASTExprLiteralFalse expr) {
+    @Override
+    public void visitExprLiteralFalse(ASTExprLiteralFalse expr) {
         mv.visitInsn(Opcodes.ICONST_0);
     }
 
-    public void visit(ASTExprLiteralInteger expr) {
+    @Override
+    public void visitExprLiteralInteger(ASTExprLiteralInteger expr) {
         Integer value = expr.value();
 
         pushInt(value);
     }
 
-    public void visit(ASTExprLiteralString expr) {
+    @Override
+    public void visitExprLiteralString(ASTExprLiteralString expr) {
         mv.visitLdcInsn(expr.value());
     }
 
-    public void visit(ASTExprLiteralTrue expr) {
+    @Override
+    public void visitExprLiteralTrue(ASTExprLiteralTrue expr) {
         mv.visitInsn(Opcodes.ICONST_1);
     }
 
-    public void visit(ASTExprLocalAccess expr) {
+    @Override
+    public void visitExprLocalAccess(ASTExprLocalAccess expr) {
         ASTLocal local = expr.local();
 
         switch (local.symbol().lpcType()) {
@@ -280,7 +293,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTExprLocalStore expr) {
+    @Override
+    public void visitExprLocalStore(ASTExprLocalStore expr) {
         ASTLocal local = expr.local();
         ASTExpression value = expr.value();
 
@@ -305,11 +319,13 @@ public class Compiler {
         }
     }
 
-        public void visit(ASTExprNull expr) {
-                mv.visitInsn(ACONST_NULL);
-        }
+    @Override
+    public void visitExprNull(ASTExprNull expr) {
+        mv.visitInsn(ACONST_NULL);
+    }
 
-    public void visit(ASTExprOpBinary expr) {
+    @Override
+    public void visitExprOpBinary(ASTExprOpBinary expr) {
         ASTExpression left = expr.left();
         ASTExpression right = expr.right();
         BinaryOpType operator = expr.operator();
@@ -408,7 +424,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTExprOpUnary expr) {
+    @Override
+    public void visitExprOpUnary(ASTExprOpUnary expr) {
         ASTExpression right = expr.right();
         UnaryOpType operator = expr.operator();
 
@@ -450,7 +467,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTField field) {
+    @Override
+    public void visitField(ASTField field) {
         FieldVisitor fv = cw.visitField(ACC_PRIVATE, field.symbol().name(), field.descriptor(), null, null);
 
         // initializer bytecode deferred to constructor
@@ -458,28 +476,32 @@ public class Compiler {
         fv.visitEnd();
     }
 
-    public void visit(ASTFields fields) {
+    @Override
+    public void visitFields(ASTFields fields) {
         for (ASTField field : fields)
             field.accept(this);
     }
 
-    public void visit(ASTLocal local) {
+    @Override
+    public void visitLocal(ASTLocal local) {
         // TODO Auto-generated method stub
     }
 
-        public void visit(ASTMethod method) {
-                currentReturnType = method.symbol().lpcType();
+    @Override
+    public void visitMethod(ASTMethod method) {
+        currentReturnType = method.symbol().lpcType();
 
-                method.body().accept(this);
+        method.body().accept(this);
 
-                // LPC allows falling off the end of a function. Ensure a
-                // default return value is emitted so the generated bytecode
-                // always has a terminating return instruction that matches the
-                // declared return type.
-                emitDefaultReturn();
-        }
+        // LPC allows falling off the end of a function. Ensure a
+        // default return value is emitted so the generated bytecode
+        // always has a terminating return instruction that matches the
+        // declared return type.
+        emitDefaultReturn();
+    }
 
-    public void visit(ASTMethods methods) {
+    @Override
+    public void visitMethods(ASTMethods methods) {
         for (ASTMethod method : methods) {
             mv = cw.visitMethod( // current method
                     ACC_PUBLIC, method.symbol().name(), method.descriptor(), null, null);
@@ -493,7 +515,8 @@ public class Compiler {
         }
     }
 
-    public void visit(ASTObject object) {
+    @Override
+    public void visitObject(ASTObject object) {
         String parentName;
 
         if (object.parentName() != null)
@@ -510,12 +533,14 @@ public class Compiler {
         object.methods().accept(this);
     }
 
-    public void visit(ASTStmtBlock stmt) {
+    @Override
+    public void visitStmtBlock(ASTStmtBlock stmt) {
         for (ASTStatement statement : stmt)
             statement.accept(this);
     }
 
-    public void visit(ASTStmtExpression stmt) {
+    @Override
+    public void visitStmtExpression(ASTStmtExpression stmt) {
         stmt.expression().accept(this);
 
         // Expression statements should not leave stray values on the stack. Most
@@ -527,7 +552,8 @@ public class Compiler {
             mv.visitInsn(Opcodes.POP);
     }
 
-    public void visit(ASTStmtIfThenElse stmt) {
+    @Override
+    public void visitStmtIfThenElse(ASTStmtIfThenElse stmt) {
         Label elseLabel = new Label();
         Label endLabel = new Label();
         ASTExpression condition = stmt.condition();
@@ -557,64 +583,65 @@ public class Compiler {
         mv.visitLabel(endLabel);
     }
 
-        public void visit(ASTStmtReturn stmt) {
-                ASTExpression returnValue = stmt.returnValue();
+    @Override
+    public void visitStmtReturn(ASTStmtReturn stmt) {
+        ASTExpression returnValue = stmt.returnValue();
 
-                if (returnValue == null) {
-                        emitDefaultReturn();
-                        return;
-                }
-
-                returnValue.accept(this);
-
-                // Ensure the emitted return opcode matches the declared (or
-                // inferred) method return type, not just the expression type
-                // of this particular return statement. This keeps the JVM
-                // verifier happy even when an LPC function is implicitly
-                // "mixed" but returns a primitive value.
-                coerceAssignmentValue(currentReturnType, returnValue);
-
-                LPCType returnType = currentReturnType != null ? currentReturnType : returnValue.lpcType();
-
-                switch (returnType) {
-                case LPCINT:
-                case LPCSTATUS:
-                        mv.visitInsn(Opcodes.IRETURN);
-                        break;
-                case LPCNULL:
-                        mv.visitInsn(Opcodes.ARETURN);
-                        break;
-                case LPCMIXED:
-                case LPCSTRING:
-                case LPCOBJECT:
-                        mv.visitInsn(Opcodes.ARETURN);
-                        break;
-                default:
-                        throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
-                }
+        if (returnValue == null) {
+            emitDefaultReturn();
+            return;
         }
 
-        private void emitDefaultReturn() {
-                switch (currentReturnType) {
-                case LPCINT:
-                case LPCSTATUS:
-                        mv.visitInsn(Opcodes.ICONST_0);
-                        mv.visitInsn(Opcodes.IRETURN);
-                        break;
-                case LPCSTRING:
-                case LPCOBJECT:
-                case LPCMIXED:
-                case LPCNULL:
-                        mv.visitInsn(Opcodes.ACONST_NULL);
-                        mv.visitInsn(Opcodes.ARETURN);
-                        break;
-                case LPCVOID:
-                        mv.visitInsn(Opcodes.RETURN);
-                        break;
-                default:
-                        throw new UnsupportedOperationException("Unsupported implicit return type: " + currentReturnType);
-                }
+        returnValue.accept(this);
+
+        // Ensure the emitted return opcode matches the declared (or
+        // inferred) method return type, not just the expression type
+        // of this particular return statement. This keeps the JVM
+        // verifier happy even when an LPC function is implicitly
+        // "mixed" but returns a primitive value.
+        coerceAssignmentValue(currentReturnType, returnValue);
+
+        LPCType returnType = currentReturnType != null ? currentReturnType : returnValue.lpcType();
+
+        switch (returnType) {
+        case LPCINT:
+        case LPCSTATUS:
+            mv.visitInsn(Opcodes.IRETURN);
+            break;
+        case LPCNULL:
+            mv.visitInsn(Opcodes.ARETURN);
+            break;
+        case LPCMIXED:
+        case LPCSTRING:
+        case LPCOBJECT:
+            mv.visitInsn(Opcodes.ARETURN);
+            break;
+        default:
+            throw new UnsupportedOperationException("Unsupported return value type: " + returnValue.lpcType());
         }
+    }
+
+    private void emitDefaultReturn() {
+        switch (currentReturnType) {
+        case LPCINT:
+        case LPCSTATUS:
+            mv.visitInsn(Opcodes.ICONST_0);
+            mv.visitInsn(Opcodes.IRETURN);
+            break;
+        case LPCSTRING:
+        case LPCOBJECT:
+        case LPCMIXED:
+        case LPCNULL:
+            mv.visitInsn(Opcodes.ACONST_NULL);
+            mv.visitInsn(Opcodes.ARETURN);
+            break;
+        case LPCVOID:
+            mv.visitInsn(Opcodes.RETURN);
+            break;
+        default:
+            throw new UnsupportedOperationException("Unsupported implicit return type: " + currentReturnType);
+        }
+    }
 
     private void constructor(ASTObject object, String parentName) {
         mv = cw.visitMethod( // current method
@@ -874,11 +901,13 @@ public class Compiler {
             mv.visitLdcInsn(value);
     }
 
-    public void visit(ASTParameter param) {
+    @Override
+    public void visitParameter(ASTParameter param) {
         // TODO Auto-generated method stub
     }
 
-    public void visit(ASTParameters params) {
+    @Override
+    public void visitParameters(ASTParameters params) {
         // TODO Auto-generated method stub
     }
 }

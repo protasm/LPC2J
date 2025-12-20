@@ -91,11 +91,11 @@ public final class CompilationPipeline {
 
         Compiler compiler = new Compiler(parentInternalName);
         try {
-            bytecode = compiler.compile(astObject);
+            bytecode = compiler.compile(typedIr);
         } catch (CompileException | IllegalArgumentException e) {
             problems.add(
                     new CompilationProblem(
-                            CompilationStage.COMPILE, "Error compiling ASTObject", e));
+                            CompilationStage.COMPILE, "Error compiling typed IR", e));
         }
 
         return new CompilationResult(tokens, astObject, semanticModel, typedIr, bytecode, problems);

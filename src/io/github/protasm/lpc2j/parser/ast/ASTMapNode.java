@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public abstract class ASTMapNode<T> extends ASTNode implements Iterable<T> {
+public abstract non-sealed class ASTMapNode<T> extends ASTNode implements Iterable<T> {
     protected Map<String, T> nodes;
 
     public ASTMapNode(int line) {

@@ -4,7 +4,9 @@
  * <p>Contains node definitions for objects, fields, methods, parameters, and supporting symbols. Each
  * node participates in multiple visitor passes (printing, type inference, compilation) and retains
  * minimal decoration such as source line numbers and inferred {@link
- * io.github.protasm.lpc2j.parser.type.LPCType} values.</p>
+ * io.github.protasm.lpc2j.parser.type.LPCType} values. Traversal is unified through the sealed
+ * {@link io.github.protasm.lpc2j.parser.ast.visitor.AstVisitor} dispatcher instead of per-node
+ * overloads.</p>
  *
  * <p>Invariants include stable ownership metadata (e.g., object and method names) and visitor support
  * via {@link io.github.protasm.lpc2j.compiler.Compiler} and {@link

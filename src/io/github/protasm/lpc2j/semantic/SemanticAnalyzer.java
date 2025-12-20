@@ -70,7 +70,7 @@ public final class SemanticAnalyzer {
 
         // Run the legacy type inference pass after declared types have been resolved so that it
         // can propagate contextual information without depending on scanner classification.
-        astObject.accept(new TypeInferenceVisitor(), LPCType.LPCNULL);
+        new TypeInferenceVisitor().visitWithExpectedType(astObject, LPCType.LPCNULL);
 
         return new SemanticAnalysisResult(new SemanticModel(astObject, objectScope), problems);
     }

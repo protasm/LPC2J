@@ -1,12 +1,9 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
-import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.token.Token;
 
-public class ASTExprLiteralInteger extends ASTExpression {
+public final class ASTExprLiteralInteger extends ASTExpression {
     private final Integer value;
 
     public ASTExprLiteralInteger(int line, Token<Integer> token) {
@@ -22,20 +19,5 @@ public class ASTExprLiteralInteger extends ASTExpression {
     @Override
     public LPCType lpcType() {
         return LPCType.LPCINT;
-    }
-
-    @Override
-    public void accept(Compiler visitor) {
-        visitor.visit(this);
-    }
-
-    @Override
-    public void accept(TypeInferenceVisitor visitor, LPCType lpcType) {
-        visitor.visit(this, lpcType);
-    }
-
-    @Override
-    public void accept(PrintVisitor visitor) {
-        visitor.visit(this);
     }
 }

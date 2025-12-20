@@ -1,11 +1,18 @@
 package io.github.protasm.lpc2j.parser.ast;
 
-import io.github.protasm.lpc2j.compiler.Compiler;
-import io.github.protasm.lpc2j.parser.ast.visitor.PrintVisitor;
-import io.github.protasm.lpc2j.parser.ast.visitor.TypeInferenceVisitor;
-import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.parser.ast.visitor.AstVisitor;
 
-public abstract class ASTNode {
+public abstract sealed class ASTNode
+        permits ASTArgument,
+                ASTExpression,
+                ASTField,
+                ASTListNode,
+                ASTLocal,
+                ASTMapNode,
+                ASTMethod,
+                ASTObject,
+                ASTParameter,
+                ASTStatement {
     protected final int line;
 
     public ASTNode(int line) {
@@ -20,9 +27,7 @@ public abstract class ASTNode {
         return getClass().getSimpleName();
     }
 
-    public abstract void accept(Compiler visitor);
-
-    public abstract void accept(TypeInferenceVisitor visitor, LPCType lpcType);
-
-    public abstract void accept(PrintVisitor visitor);
+    public final void accept(AstVisitor visitor) {
+        visitor.visit(this);
+    }
 }

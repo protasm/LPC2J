@@ -1,3 +1,0 @@
-#!/bin/zsh
-
-java -cp "out:libs/*" io.github.protasm.lpc2j.console.LPCConsole "/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/test"

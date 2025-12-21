@@ -376,6 +376,11 @@ public final class Compiler {
                 "(Ljava/lang/String;I[Ljava/lang/Object;)Ljava/lang/Object;",
                 false);
 
+        if (efunCall.type() != null && efunCall.type().kind() == RuntimeValueKind.VOID) {
+            mv.visitInsn(POP);
+            return;
+        }
+
         emitCoerceToRuntimeTypeIfNeeded(mv, RuntimeTypes.MIXED, efunCall.type());
     }
 
@@ -409,6 +414,10 @@ public final class Compiler {
                 "invoke",
                 "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
                 false);
+        if (dynamicInvoke.type() != null && dynamicInvoke.type().kind() == RuntimeValueKind.VOID) {
+            mv.visitInsn(POP);
+            return;
+        }
         emitCoerceToRuntimeTypeIfNeeded(mv, RuntimeTypes.MIXED, dynamicInvoke.type());
     }
 

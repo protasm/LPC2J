@@ -48,18 +48,21 @@ public class CmdCompile extends Command {
         }
 
         Path classFile = console.vfs().basePath().resolve(sf.classPath()).normalize();
+        String displayClassPath = Path.of("/").resolve(sf.classPath()).normalize().toString();
 
         try {
             Process process =
-                    new ProcessBuilder("javap", "-c", classFile.toString()).redirectErrorStream(true).start();
+                    new ProcessBuilder("javap", "-classpath", console.vfs().basePath().toString(), "-c", sf.dotName())
+                            .redirectErrorStream(true)
+                            .start();
             String output;
             try (InputStream stream = process.getInputStream()) {
                 output = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
             }
             int exit = process.waitFor();
 
-            System.out.println("javap -c " + classFile + ":");
-            System.out.println(output);
+            System.out.println("javap -c " + displayClassPath + ":");
+            System.out.println(output.replace(console.vfs().basePath().toString(), "/"));
             if (exit != 0) {
                 System.out.println("javap exited with code " + exit);
             }

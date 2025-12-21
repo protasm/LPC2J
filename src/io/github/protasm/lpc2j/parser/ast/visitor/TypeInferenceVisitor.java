@@ -205,6 +205,9 @@ public final class TypeInferenceVisitor implements ASTVisitor {
         if (symbol == null || candidate == null)
             return;
 
+        if (symbol.declaredTypeName() == null && symbol.declaredType() == LPCType.LPCMIXED)
+            return;
+
         LPCType existing = symbol.lpcType();
 
         if (candidate == LPCType.LPCSTATUS

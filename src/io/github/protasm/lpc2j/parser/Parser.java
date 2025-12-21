@@ -17,7 +17,6 @@ import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
-import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,9 +30,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
@@ -42,10 +39,8 @@ import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
 import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
-import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
-import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenClassifier;
 import io.github.protasm.lpc2j.token.TokenType;
@@ -55,7 +50,6 @@ public class Parser {
         private TokenList tokens;
         private ASTObject currObj;
         private Locals locals;
-        private LPCType currentReturnType;
         private ASTMethod currentMethod;
         private final ParserOptions options;
         private final RuntimeContext runtimeContext;
@@ -151,25 +145,30 @@ public class Parser {
     }
 
     private void property(boolean define) {
-                Symbol symbol = declarationSymbol();
+        Symbol symbol = declarationSymbol();
+        boolean hasType = symbol.declaredTypeName() != null;
 
-                if (tokens.match(T_LEFT_PAREN))
-                        method(symbol, define);
-                else
-                        field(symbol, define);
+        if (tokens.match(T_LEFT_PAREN))
+            method(symbol, define);
+        else if (hasType)
+            field(symbol, define);
+        else
+            throw new ParseException("Untyped declarations must be functions.", tokens.current());
+    }
+
+    private Symbol declarationSymbol() {
+        if (!tokens.check(T_IDENTIFIER))
+            throw new ParseException("Expect property type or name.", tokens.current());
+
+        Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect property type or name.");
+
+        if (tokens.check(T_IDENTIFIER)) {
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
+            return new Symbol(firstToken.lexeme(), nameToken.lexeme());
         }
 
-        private Symbol declarationSymbol() {
-                if (tokens.check(T_IDENTIFIER)) {
-                        Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect property type.");
-                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
-                        Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
-
-                        return symbol;
-                }
-
-                throw new ParseException("Expect property type.", tokens.current());
-        }
+        return new Symbol((String) null, firstToken.lexeme());
+    }
 
     private void field(Symbol symbol, boolean define) {
         if (define && locals == null)
@@ -241,7 +240,6 @@ public class Parser {
                 ASTMethod method = currObj.methods().get(symbol.name());
 
                 locals = new Locals();
-                currentReturnType = symbol.lpcType();
                 currentMethod = method;
 
                 method.setParameters(parameters());
@@ -278,15 +276,24 @@ public class Parser {
     }
 
         private ASTParameters parameters() {
-                ASTParameters params = new ASTParameters(currLine());
+        ASTParameters params = new ASTParameters(currLine());
 
-                if (tokens.match(T_RIGHT_PAREN)) // No parameters
-                        return params;
+        if (tokens.match(T_RIGHT_PAREN)) // No parameters
+            return params;
 
-                do {
-                        Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect parameter type.");
-                        Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-                        Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
+        do {
+            Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect parameter name or type.");
+            Token<String> nameToken = null;
+            String declaredType = null;
+
+            if (tokens.check(T_IDENTIFIER)) {
+                nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
+                declaredType = firstToken.lexeme();
+            } else {
+                nameToken = firstToken;
+            }
+
+            Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
 
                         ASTParameter param = new ASTParameter(currLine(), symbol);
                         ASTLocal local = new ASTLocal(currLine(), symbol);
@@ -339,9 +346,6 @@ public class Parser {
 
                 locals.endScope();
 
-                if (isMethodBody && needsImplicitReturn(statements) && currentReturnType == LPCType.LPCVOID)
-                        statements.add(implicitReturn());
-
                 return new ASTStmtBlock(currLine(), statements);
         }
 
@@ -379,29 +383,6 @@ public class Parser {
                         return block(false);
                 else
                         return expressionStatement();
-        }
-
-        private boolean needsImplicitReturn(List<ASTStatement> statements) {
-                return statements.isEmpty() || !(statements.get(statements.size() - 1) instanceof ASTStmtReturn);
-        }
-
-        private ASTStmtReturn implicitReturn() {
-                SourceSpan span = (tokens != null) ? tokens.previous().span() : null;
-
-                switch (currentReturnType) {
-                case LPCINT:
-                case LPCSTATUS:
-                        return new ASTStmtReturn(currLine(), new ASTExprLiteralInteger(currLine(),
-                                        new Token<Integer>(TokenType.T_INT_LITERAL, "0", 0, span)));
-                case LPCSTRING:
-                case LPCOBJECT:
-                case LPCMIXED:
-                        return new ASTStmtReturn(currLine(), new ASTExprNull(currLine()));
-                case LPCVOID:
-                        return new ASTStmtReturn(currLine(), null);
-                default:
-                        throw new ParseException("Unsupported implicit return type: " + currentReturnType, tokens.current());
-                }
         }
 
     private static class FieldDeclarator {

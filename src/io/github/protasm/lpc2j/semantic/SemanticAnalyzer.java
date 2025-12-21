@@ -16,6 +16,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
@@ -30,6 +31,8 @@ import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenType;
 
 /** Performs semantic analysis on a parsed AST and produces a typed model. */
 public final class SemanticAnalyzer {
@@ -108,11 +111,15 @@ public final class SemanticAnalyzer {
         LPCType resolved = typeResolver.resolve(symbol.declaredTypeName());
 
         if (resolved == null) {
-            problems.add(
-                    new CompilationProblem(
-                            CompilationStage.ANALYZE,
-                            "Unknown type '" + symbol.declaredTypeName() + "' for symbol '" + symbol.name() + "'",
-                            null));
+            if (symbol.declaredTypeName() != null) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Unknown type '" + symbol.declaredTypeName() + "' for symbol '" + symbol.name() + "'",
+                                null));
+            }
+
+            symbol.resolveDeclaredType(LPCType.LPCMIXED);
             return;
         }
 
@@ -153,13 +160,21 @@ public final class SemanticAnalyzer {
     }
 
     private void ensureImplicitReturn(ASTMethod method) {
-        if (method.body() == null || method.symbol().lpcType() != LPCType.LPCVOID)
+        if (method.body() == null)
             return;
 
         List<ASTStatement> statements = method.body().statements();
 
         if (statements.isEmpty() || !(statements.get(statements.size() - 1) instanceof ASTStmtReturn))
-            statements.add(new ASTStmtReturn(method.body().line(), null));
+            statements.add(new ASTStmtReturn(method.body().line(), defaultReturnValue(method)));
+    }
+
+    private ASTExpression defaultReturnValue(ASTMethod method) {
+        if (method.symbol().lpcType() == LPCType.LPCVOID)
+            return null;
+
+        return new ASTExprLiteralInteger(
+                method.body().line(), new Token<>(TokenType.T_INT_LITERAL, "0", 0, null));
     }
 
     private void checkReturnCompatibility(

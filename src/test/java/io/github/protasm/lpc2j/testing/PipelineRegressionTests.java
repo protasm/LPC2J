@@ -8,7 +8,11 @@ import io.github.protasm.lpc2j.ir.IRMethod;
 import io.github.protasm.lpc2j.ir.IRReturn;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
+import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.parser.ast.ASTParameter;
+import io.github.protasm.lpc2j.parser.ast.ASTStatement;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
@@ -17,6 +21,7 @@ import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.scanner.Scanner;
 import io.github.protasm.lpc2j.semantic.SemanticAnalysisResult;
 import io.github.protasm.lpc2j.semantic.SemanticAnalyzer;
+import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.sourcepos.SourceMapper;
 import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
@@ -40,6 +45,8 @@ public final class PipelineRegressionTests {
                 new TestCase("preprocessor tracks include/macro mapping", PipelineRegressionTests::preprocessorMappingIsPreserved),
                 new TestCase("scanner spans honor preprocessor mapping", PipelineRegressionTests::scannerSpansReflectMappedFiles),
                 new TestCase("semantic analysis surfaces type mismatches", PipelineRegressionTests::semanticAnalysisReportsReturnMismatch),
+                new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
+                new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass));
 
@@ -124,6 +131,41 @@ public final class PipelineRegressionTests {
         assertTrue(
                 analysis.problems().stream().anyMatch(p -> p.getMessage().contains("Return type mismatch")),
                 "return type mismatch should be reported");
+    }
+
+    private static void parserAcceptsTypedAndUntypedFunctions() {
+        String source = "foo(bar) { return bar; }\nint typed(string name) { return 1; }\n";
+
+        TokenList tokens = new Scanner().scan(source);
+        Parser parser = new Parser();
+        ASTObject astObject = parser.parse("ParsingSample", tokens);
+
+        assertEquals(2, astObject.methods().size(), "both methods should be parsed");
+        assertTrue(astObject.methods().get("foo") != null, "untyped method should exist");
+        assertTrue(astObject.methods().get("typed") != null, "typed method should exist");
+    }
+
+    private static void semanticDefaultsUntypedFunctionsToMixed() {
+        String source = "legacy(x) { x = 5; }\n";
+        TokenList tokens = new Scanner().scan(source);
+        Parser parser = new Parser();
+        ASTObject astObject = parser.parse("LegacySample", tokens);
+
+        SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
+        assertTrue(analysis.succeeded(), "semantic analysis should succeed for untyped methods");
+
+        ASTMethod method = astObject.methods().get("legacy");
+        ASTParameter parameter = method.parameters().get(0);
+        ASTStatement lastStatement = method.body().statements().get(method.body().statements().size() - 1);
+
+        assertEquals(LPCType.LPCMIXED, method.symbol().lpcType(), "untyped method should default to mixed return type");
+        assertEquals(
+                LPCType.LPCMIXED, parameter.symbol().lpcType(), "untyped parameter should default to mixed type");
+        assertTrue(lastStatement instanceof ASTStmtReturn, "implicit return should be synthesized");
+        assertEquals(
+                LPCType.LPCINT,
+                ((ASTStmtReturn) lastStatement).returnValue().lpcType(),
+                "implicit return should follow legacy 'return 0' semantics");
     }
 
     private static void irLoweringBuildsBinaryReturn() {

@@ -1,7 +1,6 @@
 package io.github.protasm.lpc2j.console.cmd;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.nio.file.InvalidPathException;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -30,8 +29,6 @@ public class CmdDirList extends Command {
                 return true;
             }
 
-            files = validFiles(files);
-
             if (files.length > 0) {
                 printFiles(files);
             }
@@ -40,12 +37,6 @@ public class CmdDirList extends Command {
         }
 
         return true;
-    }
-
-    private File[] validFiles(File[] files) {
-        FileFilter ff = file -> file.isDirectory() || file.getName().endsWith(".lpc") || file.getName().endsWith(".c");
-
-        return Arrays.stream(files).filter(ff::accept).toArray(File[]::new);
     }
 
     private void printFiles(File[] files) {

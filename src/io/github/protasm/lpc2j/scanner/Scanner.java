@@ -40,6 +40,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
 
 import java.nio.file.Path;
 import java.util.Map;
+import io.github.protasm.lpc2j.sourcepos.SourceSpan;
 import io.github.protasm.lpc2j.preproc.PreprocessException;
 import io.github.protasm.lpc2j.preproc.PreprocessedSource;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
@@ -98,7 +99,7 @@ public class Scanner {
                     tokens.add(token);
             } while ((token == null) || (token.type() != T_EOF));
 
-            return tokens;
+            return mergeStringLiterals(tokens);
         } catch (PreprocessException e) {
             throw new ScanException("Failed to scan source: " + e.getMessage(), e.getLine(), e);
         } catch (ScanException e) {
@@ -108,6 +109,37 @@ public class Scanner {
 
             throw new ScanException("Failed to scan source: " + e.getMessage(), line, e);
         }
+    }
+
+    private TokenList mergeStringLiterals(TokenList tokens) {
+        TokenList merged = new TokenList();
+
+        for (int i = 0; i < tokens.size(); i++) {
+            Token<?> token = tokens.get(i);
+
+            if (token.type() != T_STRING_LITERAL) {
+                merged.add(token);
+                continue;
+            }
+
+            StringBuilder lexeme = new StringBuilder(token.lexeme());
+            StringBuilder literal = new StringBuilder(token.literal().toString());
+            SourceSpan span = token.span();
+
+            int j = i + 1;
+            while (j < tokens.size() && tokens.get(j).type() == T_STRING_LITERAL) {
+                Token<?> next = tokens.get(j);
+                lexeme.append(next.lexeme());
+                literal.append(next.literal().toString());
+                span = (span != null && next.span() != null) ? SourceSpan.encompassing(span, next.span()) : span;
+                j++;
+            }
+
+            merged.add(new Token<>(T_STRING_LITERAL, lexeme.toString(), literal.toString(), span));
+            i = j - 1;
+        }
+
+        return merged;
     }
 
     private Token<?> lexToken() {

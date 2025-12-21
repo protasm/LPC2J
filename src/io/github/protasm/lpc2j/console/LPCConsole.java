@@ -38,10 +38,11 @@ public class LPCConsole {
 
   static {
     commands.put(new CmdHelp(), List.of("h", "help"));
+    commands.put(new CmdPreprocess(), List.of("pp", "preprocess"));
     commands.put(new CmdScan(), List.of("s", "scan"));
     commands.put(new CmdParse(), List.of("p", "parse"));
-    commands.put(new CmdCompile(), List.of("c", "compile"));
     commands.put(new CmdAnalyze(), List.of("a", "analyze"));
+    commands.put(new CmdCompile(), List.of("c", "compile"));
     commands.put(new CmdLoad(), List.of("l", "load"));
     commands.put(new CmdListObjects(), List.of("o", "objects"));
     commands.put(new CmdInspect(), List.of("i", "inspect"));
@@ -50,7 +51,6 @@ public class LPCConsole {
     commands.put(new CmdDirList(), List.of("ls"));
     commands.put(new CmdDirChange(), List.of("cd"));
     commands.put(new CmdFileCat(), List.of("cat"));
-    commands.put(new CmdPreprocess(), List.of("pp", "preprocess"));
     commands.put(new CmdQuit(), List.of("q", "quit"));
   }
 

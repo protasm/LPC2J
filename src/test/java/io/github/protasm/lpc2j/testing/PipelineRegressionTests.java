@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.testing;
 
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
+import io.github.protasm.lpc2j.console.ConsoleConfig;
 import io.github.protasm.lpc2j.ir.IRBlock;
 import io.github.protasm.lpc2j.ir.IRBinaryOperation;
 import io.github.protasm.lpc2j.ir.IRLowerer;
@@ -16,6 +17,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
+import io.github.protasm.lpc2j.preproc.IncludeResolution;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.PreprocessedSource;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
@@ -30,6 +32,7 @@ import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +57,7 @@ public final class PipelineRegressionTests {
                 new TestCase("dynamic invoke results coerce to integers", PipelineRegressionTests::dynamicInvokeResultsCoerceToIntegers),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
+                new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
         List<String> failures = new ArrayList<>();
@@ -80,10 +84,13 @@ public final class PipelineRegressionTests {
 
     private static void preprocessorMappingIsPreserved() {
         IncludeResolver resolver =
-                (includingFile, includePath, system) -> switch (includePath) {
-                    case "defs.h" -> "#define VALUE 7\nint inc = VALUE;\n";
-                    default -> throw new IllegalArgumentException("Unexpected include: " + includePath);
-                };
+                (includingFile, includePath, system) ->
+                    switch (includePath) {
+                      case "defs.h" ->
+                          new IncludeResolution(
+                              "#define VALUE 7\nint inc = VALUE;\n", Path.of("defs.h"), "defs.h");
+                      default -> throw new IllegalArgumentException("Unexpected include: " + includePath);
+                    };
 
         String source = "#include \"defs.h\"\nint x = VALUE;\n";
         Preprocessor preprocessor = new Preprocessor(resolver);
@@ -107,10 +114,13 @@ public final class PipelineRegressionTests {
 
     private static void scannerSpansReflectMappedFiles() {
         IncludeResolver resolver =
-                (includingFile, includePath, system) -> switch (includePath) {
-                    case "defs.h" -> "#define VALUE 7\nint inc = VALUE;\n";
-                    default -> throw new IllegalArgumentException("Unexpected include: " + includePath);
-                };
+                (includingFile, includePath, system) ->
+                    switch (includePath) {
+                      case "defs.h" ->
+                          new IncludeResolution(
+                              "#define VALUE 7\nint inc = VALUE;\n", Path.of("defs.h"), "defs.h");
+                      default -> throw new IllegalArgumentException("Unexpected include: " + includePath);
+                    };
 
         String source = "#include \"defs.h\"\nint x = VALUE;\n";
         Scanner scanner = new Scanner(new Preprocessor(resolver));
@@ -198,7 +208,7 @@ public final class PipelineRegressionTests {
     private static void codegenRoundTripProducesWorkingClass() throws Exception {
         String source = "int add(int a, int b) { return a + b; }\n";
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
-        CompilationResult result = pipeline.run(null, source, "regression/Add", ParserOptions.defaults());
+        CompilationResult result = pipeline.run(null, source, "regression/Add", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
             throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
@@ -229,7 +239,7 @@ public final class PipelineRegressionTests {
                 + "}\n";
 
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
-        CompilationResult result = pipeline.run(null, source, "regression/OrcLike", ParserOptions.defaults());
+        CompilationResult result = pipeline.run(null, source, "regression/OrcLike", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
             throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
@@ -263,7 +273,7 @@ public final class PipelineRegressionTests {
     private static void fieldInitializersExecute() throws Exception {
         String source = "string short_desc = \"a rusty sword\";\nshort() { return short_desc; }\n";
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
-        CompilationResult result = pipeline.run(null, source, "regression/Sword", ParserOptions.defaults());
+        CompilationResult result = pipeline.run(null, source, "regression/Sword", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
             throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
@@ -296,7 +306,7 @@ public final class PipelineRegressionTests {
                 + "int ifOnString() { string s = \"\"; if (s) return 1; return 0; }\n";
 
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
-        CompilationResult result = pipeline.run(null, source, "regression/Truthiness", ParserOptions.defaults());
+        CompilationResult result = pipeline.run(null, source, "regression/Truthiness", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
             throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
@@ -329,6 +339,32 @@ public final class PipelineRegressionTests {
         assertEquals(1, ((Number) clazz.getMethod("ifOnString").invoke(instance)).intValue(), "strings participate in truthiness within conditionals");
     }
 
+    private static void consoleConfigLoadsSystemIncludes() {
+        try {
+            Path base = Files.createTempDirectory("lpc2j-config");
+            Path incA = Files.createDirectories(base.resolve("incA"));
+            Path incB = Files.createDirectories(base.resolve("nested/incB"));
+            Path absInc = Files.createTempDirectory("lpc2j-abs-inc");
+
+            Path cfg = base.resolve("sample.cfg");
+            Files.writeString(cfg,
+                    "mudlib directory : .\n"
+                            + "system include directories : incA:nested/incB:"
+                            + absInc.toString());
+
+            ConsoleConfig config = ConsoleConfig.load(cfg);
+            List<Path> dirs = config.includeDirs();
+
+            assertEquals(3, dirs.size(), "should preserve configured include count");
+            assertEquals(base.normalize(), config.basePath(), "base path should resolve relative to config");
+            assertEquals(incA.normalize(), dirs.get(0), "first include should preserve order");
+            assertEquals(incB.normalize(), dirs.get(1), "second include should preserve order");
+            assertEquals(absInc.normalize(), dirs.get(2), "absolute include should be used as-is");
+        } catch (Exception e) {
+            throw new AssertionError("Console config should load system include directories", e);
+        }
+    }
+
     private static void consoleRejectsMissingBasePath() {
         String missingPath = Path.of(System.getProperty("java.io.tmpdir"), "lpc2j-missing-base-" + System.nanoTime())
                 .toAbsolutePath()
@@ -336,13 +372,18 @@ public final class PipelineRegressionTests {
         boolean threw = false;
 
         try {
-            new VirtualFileServer(missingPath);
+            Path cfgDir = Files.createTempDirectory("lpc2j-missing-base-cfg");
+            Path cfg = cfgDir.resolve("cfg");
+            Files.writeString(cfg, "mudlib directory : " + missingPath);
+            ConsoleConfig.load(cfg);
         } catch (IllegalArgumentException e) {
             threw = true;
-            assertTrue(e.getMessage().contains("Base path"), "error should mention base path");
+            assertTrue(e.getMessage().contains("Mudlib directory"), "error should mention mudlib directory");
+        } catch (Exception e) {
+            throw new AssertionError("Unexpected error setting up console config", e);
         }
 
-        assertTrue(threw, "virtual file server should reject nonexistent base path");
+        assertTrue(threw, "console config should reject nonexistent base path");
     }
 
     private static Token<?> find(TokenList tokens, TokenType type, String lexeme, int start) {

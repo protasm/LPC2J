@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 public class LPCConsole {
@@ -55,14 +56,14 @@ public class LPCConsole {
     commands.put(new CmdQuit(), List.of("q", "quit"));
   }
 
-  public LPCConsole(String basePathStr) {
-    this(basePathStr, ParserOptions.defaults());
+  public LPCConsole(ConsoleConfig config) {
+    this(config, ParserOptions.defaults());
   }
 
-  public LPCConsole(String basePathStr, ParserOptions parserOptions) {
-    this.vfs = new VirtualFileServer(basePathStr);
+  public LPCConsole(ConsoleConfig config, ParserOptions parserOptions) {
+    this.config = Objects.requireNonNull(config, "config");
+    this.vfs = new VirtualFileServer(config.basePath().toString());
     this.parserOptions = (parserOptions == null) ? ParserOptions.defaults() : parserOptions;
-    this.config = ConsoleConfig.load(vfs.basePath());
     IncludeResolver includeResolver =
         new SearchPathIncludeResolver(vfs.basePath(), config.includeDirs());
     this.runtimeContext = new RuntimeContext(includeResolver);
@@ -269,28 +270,19 @@ public class LPCConsole {
   }
 
   public static void main(String[] args) {
-    String basePathArg = null;
-
-    for (String arg : args) {
-      if (basePathArg == null) basePathArg = arg;
-      else {
-        System.out.println("Error: unexpected argument '" + arg + "'.");
-        printUsage();
-
-        System.exit(-1);
-      }
-    }
-
-    if (basePathArg == null) {
-      System.out.println("Error: missing base path.");
+    if (args.length != 1) {
+      System.out.println("Error: missing configuration path.");
       printUsage();
 
       System.exit(-1);
     }
 
+    String configPathArg = args[0];
+
     ParserOptions parserOptions = ParserOptions.defaults();
     try {
-      LPCConsole console = new LPCConsole(basePathArg, parserOptions);
+      ConsoleConfig config = ConsoleConfig.load(Path.of(configPathArg));
+      LPCConsole console = new LPCConsole(config, parserOptions);
 
       System.out.println("LPC2J Console\nType 'help' for help.");
       console.repl();
@@ -301,7 +293,7 @@ public class LPCConsole {
   }
 
   private static void printUsage() {
-    System.out.println("Usage: LPCConsole <base path>");
+    System.out.println("Usage: LPCConsole <config path>");
   }
 
   private FSSourceFile prepareSourceFile(String vPathStr) {
@@ -325,8 +317,10 @@ public class LPCConsole {
 
   private CompilationResult runPipeline(FSSourceFile sf) {
     Path sourcePath = vfs.basePath().resolve(sf.vPath()).normalize();
+    String displayPath = Path.of("/").resolve(sf.vPath()).normalize().toString();
 
-    CompilationResult result = pipeline.run(sourcePath, sf.source(), sf.slashName(), parserOptions);
+    CompilationResult result =
+        pipeline.run(sourcePath, sf.source(), sf.slashName(), displayPath, parserOptions);
 
     if (result.getTokens() != null) {
       sf.setTokens(result.getTokens());

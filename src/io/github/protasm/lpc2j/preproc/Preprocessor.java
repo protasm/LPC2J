@@ -52,6 +52,8 @@ public final class Preprocessor {
 
   private record TokenizedLine(List<PPToken> tokens, SourceSpan newlineSpan) {}
 
+  private record FileContext(Path resolvedPath, String displayPath) {}
+
   private static final IncludeResolver REJECTING_INCLUDES =
       (includingFile, includePath, system) -> {
         throw new IOException("Includes are not supported without a resolver");
@@ -95,13 +97,17 @@ public final class Preprocessor {
             if (dir != null) {
               Path candidate = dir.resolve(includePath);
 
-              if (Files.exists(candidate)) return Files.readString(candidate);
+              if (Files.exists(candidate))
+                return new IncludeResolution(
+                    Files.readString(candidate), candidate.normalize(), candidate.toString());
             }
           }
 
           Path base = Path.of(system ? sysInclPath : quoteInclPath);
 
-          return Files.readString(base.resolve(includePath));
+          Path resolved = base.resolve(includePath);
+          return new IncludeResolution(
+              Files.readString(resolved), resolved.normalize(), resolved.toString());
         };
 
     Preprocessor pp = new Preprocessor(resolver);
@@ -126,16 +132,24 @@ public final class Preprocessor {
   }
 
   public PreprocessedSource preprocessWithMapping(Path sourcePath, String source) {
+    return preprocessWithMapping(sourcePath, source, null);
+  }
+
+  public PreprocessedSource preprocessWithMapping(
+      Path sourcePath, String source, String displayPath) {
     if (source == null)
       throw new PreprocessException("Source text cannot be null.", "<unknown>", -1);
 
     PreprocessedSourceBuilder out = new PreprocessedSourceBuilder();
-    String file = (sourcePath == null) ? "<input>" : sourcePath.toString();
+    String file =
+        ((displayPath == null) || displayPath.isBlank())
+            ? ((sourcePath == null) ? "<input>" : sourcePath.toString())
+            : displayPath;
     LineMap map = new LineMap(file, splice(source));
     CharCursor cur = new CharCursor(map);
 
     try {
-      expandUnit(cur, out, new HashSet<>());
+      expandUnit(cur, new FileContext(sourcePath, file), out, new HashSet<>());
     } catch (PreprocessException e) {
       throw e;
     } catch (RuntimeException e) {
@@ -150,7 +164,8 @@ public final class Preprocessor {
 
   /* ========================= core expansion ========================== */
 
-  private void expandUnit(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
+  private void expandUnit(
+      CharCursor cc, FileContext fileContext, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     while (!cc.end()) {
       // buffer leading horizontal ws (not newline)
       StringBuilder bolWs = new StringBuilder();
@@ -166,7 +181,7 @@ public final class Preprocessor {
 
       if (!cc.end() && (cc.peek() == '#')) {
         // directive: ignore buffered ws per preproc rules
-        handleDirective(cc, out, includeGuard);
+        handleDirective(cc, fileContext, out, includeGuard);
 
         continue;
       }
@@ -182,7 +197,8 @@ public final class Preprocessor {
     }
   }
 
-  private void handleDirective(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
+  private void handleDirective(
+      CharCursor cc, FileContext fileContext, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     int directiveLine = cc.line();
 
     cc.advance(); // consume '#'
@@ -194,7 +210,7 @@ public final class Preprocessor {
     if (name == null) throw error("expected directive name after '#'", cc, directiveLine);
 
     switch (name) {
-      case "include" -> doInclude(cc, out, includeGuard);
+      case "include" -> doInclude(cc, fileContext, out, includeGuard);
       case "define" -> doDefine(cc);
       case "undef" -> doUndef(cc, out);
       case "ifdef" -> doIfdef(cc, out, true);
@@ -210,7 +226,8 @@ public final class Preprocessor {
     }
   }
 
-  private void doInclude(CharCursor cc, PreprocessedSourceBuilder out, Set<String> includeGuard) {
+  private void doInclude(
+      CharCursor cc, FileContext fileContext, PreprocessedSourceBuilder out, Set<String> includeGuard) {
     skipWhitespaceExceptNewline(cc);
 
     char q = cc.peek();
@@ -234,17 +251,33 @@ public final class Preprocessor {
 
       String fileText;
 
+      IncludeResolution resolution;
       try {
-        fileText = resolver.resolve(Path.of(cc.fileName()), path.toString(), system);
+        resolution = resolver.resolve(fileContext.resolvedPath(), path.toString(), system);
+        fileText = resolution.source();
       } catch (IOException e) {
         throw error("cannot include '" + path + "': " + e.getMessage(), cc, cc.line());
       }
 
       // Preprocess included text recursively
-      String includedFile = path.toString();
-      CharCursor child = new CharCursor(new LineMap(includedFile, splice(fileText)));
+      Path includedResolvedPath = resolution.resolvedPath();
+      String includedDisplayPath =
+          (resolution.displayPath() != null)
+              ? resolution.displayPath()
+              : ((includedResolvedPath != null)
+                  ? includedResolvedPath.toString()
+                  : path.toString());
+      if ((includedDisplayPath == null) || includedDisplayPath.isBlank()) {
+        includedDisplayPath = path.toString();
+      }
 
-      expandUnit(child, out, includeGuard);
+      CharCursor child = new CharCursor(new LineMap(includedDisplayPath, splice(fileText)));
+
+      expandUnit(
+          child,
+          new FileContext(includedResolvedPath, includedDisplayPath),
+          out,
+          includeGuard);
     } else throw error("expected \"path\" or <path> after #include", cc, cc.line());
   }
 

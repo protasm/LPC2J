@@ -49,7 +49,8 @@ public class CmdPreprocess extends Command {
 
             IncludeResolver resolver = console.includeResolver();
             Preprocessor pp = new Preprocessor(resolver);
-            PreprocessedSource processed = pp.preprocessWithMapping(sourcePath, source);
+            String displayPath = Path.of("/").resolve(vPath).normalize().toString();
+            PreprocessedSource processed = pp.preprocessWithMapping(sourcePath, source, displayPath);
 
             System.out.print(withLineNumbers(processed));
         } catch (InvalidPathException e) {

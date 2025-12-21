@@ -19,6 +19,14 @@ public class PreprocessException extends RuntimeException {
     this.line = line;
   }
 
+  public String getFileName() {
+    return fileName;
+  }
+
+  public int getLine() {
+    return line;
+  }
+
   @Override
   public String getMessage() {
     return String.format("%s (at %s:%d)", super.getMessage(), fileName, line);

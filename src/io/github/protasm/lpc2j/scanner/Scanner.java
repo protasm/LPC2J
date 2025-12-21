@@ -40,6 +40,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
 
 import java.nio.file.Path;
 import java.util.Map;
+import io.github.protasm.lpc2j.preproc.PreprocessException;
 import io.github.protasm.lpc2j.preproc.PreprocessedSource;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
 import io.github.protasm.lpc2j.token.Token;
@@ -75,11 +76,15 @@ public class Scanner {
     }
 
     public TokenList scan(Path sourcePath, String source) {
+        return scan(sourcePath, source, null);
+    }
+
+    public TokenList scan(Path sourcePath, String source, String displayPath) {
         if (source == null)
             throw new ScanException("Source text cannot be null.", -1);
 
         try {
-            PreprocessedSource processed = preprocessor.preprocessWithMapping(sourcePath, source);
+            PreprocessedSource processed = preprocessor.preprocessWithMapping(sourcePath, source, displayPath);
 
             ss = new ScannableSource(processed);
 
@@ -94,6 +99,8 @@ public class Scanner {
             } while ((token == null) || (token.type() != T_EOF));
 
             return tokens;
+        } catch (PreprocessException e) {
+            throw new ScanException("Failed to scan source: " + e.getMessage(), e.getLine(), e);
         } catch (ScanException e) {
             throw e;
         } catch (RuntimeException e) {

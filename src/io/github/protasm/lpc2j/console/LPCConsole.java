@@ -193,7 +193,7 @@ public class LPCConsole {
     CompilationResult result = runPipeline(sf);
 
     if (!result.succeeded()) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
       return null;
     }
 
@@ -207,7 +207,7 @@ public class LPCConsole {
     CompilationResult result = runPipeline(sf);
 
     if (sf.astObject() == null) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
       return null;
     }
 
@@ -221,12 +221,12 @@ public class LPCConsole {
     CompilationResult result = runPipeline(sf);
 
     if (sf.tokens() == null) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
       return null;
     }
 
     if (!result.getProblems().isEmpty()) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
     }
 
     return sf;
@@ -239,12 +239,12 @@ public class LPCConsole {
     CompilationResult result = runPipeline(sf);
 
     if (sf.semanticModel() == null) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
       return null;
     }
 
     if (!result.getProblems().isEmpty()) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
     }
 
     return sf;
@@ -257,12 +257,12 @@ public class LPCConsole {
     CompilationResult result = runPipeline(sf);
 
     if (sf.typedIr() == null) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
       return null;
     }
 
     if (!result.getProblems().isEmpty()) {
-      printProblems(result.getProblems());
+      printProblems(sf, result.getProblems());
     }
 
     return sf;
@@ -351,9 +351,23 @@ public class LPCConsole {
     return result;
   }
 
-  private void printProblems(List<CompilationProblem> problems) {
+  private void printProblems(FSSourceFile sf, List<CompilationProblem> problems) {
+    Path sourcePath = (sf != null) ? vfs.basePath().resolve(sf.vPath()).normalize() : null;
+
     for (CompilationProblem problem : problems) {
-      System.out.println(problem.getStage() + ": " + problem.getMessage());
+      StringBuilder prefix = new StringBuilder();
+      if (sourcePath != null) {
+        prefix.append(sourcePath);
+        if (problem.getLine() != null && problem.getLine() > 0) {
+          prefix.append(":").append(problem.getLine());
+        }
+        prefix.append(": ");
+      } else if (problem.getLine() != null && problem.getLine() > 0) {
+        prefix.append("line ").append(problem.getLine()).append(": ");
+      }
+
+      String prefixStr = prefix.toString();
+      System.out.println(prefixStr + problem.getStage() + ": " + problem.getMessage());
       if (problem.getThrowable() != null) {
         System.out.println(problem.getThrowable());
       }

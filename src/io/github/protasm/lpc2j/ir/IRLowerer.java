@@ -148,7 +148,9 @@ public final class IRLowerer {
         if (statement == null) {
             problems.add(
                     new CompilationProblem(
-                            CompilationStage.LOWER, "Encountered null statement while lowering method body."));
+                            CompilationStage.LOWER,
+                            "Encountered null statement while lowering method body.",
+                            (Integer) null));
             return current;
         }
 
@@ -182,7 +184,9 @@ public final class IRLowerer {
 
         problems.add(
                 new CompilationProblem(
-                        CompilationStage.LOWER, "Unsupported statement kind: " + statement.getClass().getSimpleName()));
+                        CompilationStage.LOWER,
+                        "Unsupported statement kind: " + statement.getClass().getSimpleName(),
+                        statement.line()));
         return current;
     }
 
@@ -298,7 +302,8 @@ public final class IRLowerer {
         problems.add(
                 new CompilationProblem(
                         CompilationStage.LOWER,
-                        "Unsupported expression kind: " + expression.getClass().getSimpleName()));
+                        "Unsupported expression kind: " + expression.getClass().getSimpleName(),
+                        expression.line()));
         return new IRConstant(expression.line(), null, RuntimeTypes.MIXED);
     }
 
@@ -400,7 +405,11 @@ public final class IRLowerer {
 
         public IRLocal requireLocal(ASTLocal astLocal, List<CompilationProblem> problems) {
             if (astLocal == null || astLocal.symbol() == null) {
-                problems.add(new CompilationProblem(CompilationStage.LOWER, "Encountered null local reference during lowering."));
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.LOWER,
+                                "Encountered null local reference during lowering.",
+                                (astLocal != null) ? astLocal.line() : null));
                 return new IRLocal(0, "<invalid>", RuntimeTypes.MIXED, -1, false);
             }
 
@@ -415,7 +424,8 @@ public final class IRLowerer {
             problems.add(
                     new CompilationProblem(
                             CompilationStage.LOWER,
-                            "Synthesizing missing local '" + astLocal.symbol().name() + "' during lowering."));
+                            "Synthesizing missing local '" + astLocal.symbol().name() + "' during lowering.",
+                            astLocal.line()));
             return synthesized;
         }
 
@@ -426,7 +436,9 @@ public final class IRLowerer {
 
             problems.add(
                     new CompilationProblem(
-                            CompilationStage.LOWER, "No local found at slot " + slot + " for dynamic invocation."));
+                            CompilationStage.LOWER,
+                            "No local found at slot " + slot + " for dynamic invocation.",
+                            (Integer) null));
             return new IRLocal(0, "<invalid>", RuntimeTypes.MIXED, slot, false);
         }
 
@@ -441,7 +453,8 @@ public final class IRLowerer {
             problems.add(
                     new CompilationProblem(
                             CompilationStage.LOWER,
-                            "Synthesizing missing field '" + astField.symbol().name() + "' during lowering."));
+                            "Synthesizing missing field '" + astField.symbol().name() + "' during lowering.",
+                            astField.line()));
             return synthesized;
         }
 

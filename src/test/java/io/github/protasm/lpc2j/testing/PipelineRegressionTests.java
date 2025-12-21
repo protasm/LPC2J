@@ -28,6 +28,7 @@ import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public final class PipelineRegressionTests {
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
+                new TestCase("dynamic invoke results coerce to integers", PipelineRegressionTests::dynamicInvokeResultsCoerceToIntegers),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
@@ -218,6 +220,46 @@ public final class PipelineRegressionTests {
         assertEquals(5, ((Number) value).intValue(), "generated class should add arguments");
     }
 
+    private static void dynamicInvokeResultsCoerceToIntegers() throws Exception {
+        String source = ""
+                + "int strength;\n"
+                + "int compare_strength(object other) {\n"
+                + "  if (!other) return 0;\n"
+                + "  return strength - other->query_strength();\n"
+                + "}\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/OrcLike", ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.OrcLike";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+
+        Field strengthField = clazz.getDeclaredField("strength");
+        strengthField.setAccessible(true);
+        strengthField.setInt(instance, 10);
+
+        Object rival = new StrengthProbe(7);
+
+        Method compare = clazz.getMethod("compare_strength", Object.class);
+        int difference = ((Number) compare.invoke(instance, rival)).intValue();
+        int nullCase = ((Number) compare.invoke(instance, new Object[] {null})).intValue();
+
+        assertEquals(3, difference, "dynamic invocation results should be coerced to integers");
+        assertEquals(0, nullCase, "compare_strength should handle null objects");
+    }
+
     private static void fieldInitializersExecute() throws Exception {
         String source = "string short_desc = \"a rusty sword\";\nshort() { return short_desc; }\n";
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
@@ -321,6 +363,19 @@ public final class PipelineRegressionTests {
     private static void assertTrue(boolean condition, String message) {
         if (!condition)
             throw new AssertionError(message);
+    }
+
+    public static final class StrengthProbe {
+        private final int strength;
+
+        StrengthProbe(int strength) {
+            this.strength = strength;
+        }
+
+        @SuppressWarnings("unused")
+        public int query_strength() {
+            return strength;
+        }
     }
 
     @FunctionalInterface

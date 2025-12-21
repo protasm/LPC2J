@@ -316,8 +316,8 @@ public final class Compiler {
             return;
         }
 
-        emitExpression(mv, internalName, method, binary.left());
-        emitExpression(mv, internalName, method, binary.right());
+        emitIntOperand(mv, internalName, method, binary.left());
+        emitIntOperand(mv, internalName, method, binary.right());
 
         switch (op) {
         case BOP_ADD -> mv.visitInsn(IADD);
@@ -366,6 +366,11 @@ public final class Compiler {
         mv.visitLabel(trueLabel);
         mv.visitInsn(ICONST_1);
         mv.visitLabel(endLabel);
+    }
+
+    private void emitIntOperand(MethodVisitor mv, String internalName, IRMethod method, IRExpression operand) {
+        emitExpression(mv, internalName, method, operand);
+        coerceValue(mv, operand.type(), RuntimeTypes.INT);
     }
 
     private void emitEfunCall(MethodVisitor mv, String internalName, IRMethod method, IREfunCall efunCall) {

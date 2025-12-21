@@ -30,6 +30,14 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
       }
     }
 
+    if (this.baseIncludePath != null) {
+      Path includeDir = this.baseIncludePath.resolve("include").normalize();
+
+      if (dedup.add(includeDir)) {
+        roots.add(includeDir);
+      }
+    }
+
     // Always search the base include path last to preserve the previous fallback behavior.
     if ((this.baseIncludePath != null) && dedup.add(this.baseIncludePath)) {
       roots.add(this.baseIncludePath);
@@ -39,29 +47,30 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
   }
 
   @Override
-  public String resolve(Path includingFile, String includePath, boolean system) throws IOException {
+  public IncludeResolution resolve(Path includingFile, String includePath, boolean system)
+      throws IOException {
     if (includePath == null) throw new IOException("include path cannot be null");
 
     if (!system && (includingFile != null)) {
-      Path parent = includingFile.getParent();
+      Path parent = resolveAgainstBase(includingFile.getParent());
 
       if (parent != null) {
-        String maybe = tryRead(parent, includePath);
+        Path maybe = tryRead(parent, includePath);
 
-        if (maybe != null) return maybe;
+        if (maybe != null) return buildResolution(maybe);
       }
     }
 
     if (system) {
       for (Path root : systemIncludeRoots) {
-        String maybe = tryRead(root, includePath);
+        Path maybe = tryRead(root, includePath);
 
-        if (maybe != null) return maybe;
+        if (maybe != null) return buildResolution(maybe);
       }
     } else if (baseIncludePath != null) {
-      String maybe = tryRead(baseIncludePath, includePath);
+      Path maybe = tryRead(baseIncludePath, includePath);
 
-      if (maybe != null) return maybe;
+      if (maybe != null) return buildResolution(maybe);
     }
 
     throw new IOException("cannot include '" + includePath + "'");
@@ -79,13 +88,56 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
     return normalized.normalize();
   }
 
-  private String tryRead(Path root, String includePath) throws IOException {
-    Path candidate = root.resolve(includePath).normalize();
+  private Path tryRead(Path root, String includePath) throws IOException {
+    if (root == null) return null;
 
-    if (!candidate.startsWith(root.normalize())) return null;
+    Path anchoredRoot = resolveAgainstBase(root);
+    Path candidate = anchoredRoot.resolve(includePath).normalize();
 
-    if (Files.isRegularFile(candidate)) return Files.readString(candidate);
+    if (!candidate.startsWith(anchoredRoot.normalize())) return null;
+
+    if (Files.isRegularFile(candidate)) return candidate;
 
     return null;
+  }
+
+  private Path resolveAgainstBase(Path path) {
+    if (path == null) return null;
+    Path normalized = path.normalize();
+
+    if (baseIncludePath == null) return normalized;
+
+    if (normalized.startsWith(baseIncludePath)) return normalized;
+
+    if (normalized.isAbsolute() && Files.exists(normalized)) return normalized;
+
+    String relative =
+        (normalized.getRoot() == null)
+            ? normalized.toString()
+            : normalized.toString().substring(normalized.getRoot().toString().length());
+
+    normalized = baseIncludePath.resolve(relative);
+
+    return normalized.normalize();
+  }
+
+  private IncludeResolution buildResolution(Path candidate) throws IOException {
+    return new IncludeResolution(Files.readString(candidate), candidate, displayPath(candidate));
+  }
+
+  private String displayPath(Path candidate) {
+    if ((candidate == null) || (baseIncludePath == null)) return (candidate != null) ? candidate.toString() : null;
+
+    Path normalizedCandidate = candidate.normalize();
+
+    if (normalizedCandidate.startsWith(baseIncludePath)) {
+      Path rel = baseIncludePath.relativize(normalizedCandidate);
+
+      if (rel.getNameCount() == 0) return "/";
+
+      return "/" + rel.toString().replace('\\', '/');
+    }
+
+    return normalizedCandidate.toString();
   }
 }

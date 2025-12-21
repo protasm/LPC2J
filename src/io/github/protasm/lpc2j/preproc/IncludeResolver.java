@@ -13,5 +13,5 @@ public interface IncludeResolver {
    * @return the loaded source text
    * @throws IOException if not found or unreadable
    */
-  String resolve(Path includingFile, String includePath, boolean system) throws IOException;
+  IncludeResolution resolve(Path includingFile, String includePath, boolean system) throws IOException;
 }

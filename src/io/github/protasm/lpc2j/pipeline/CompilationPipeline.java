@@ -39,20 +39,22 @@ public final class CompilationPipeline {
     }
 
     public CompilationResult run(String source, ParserOptions parserOptions) {
-        return run(null, source, null, parserOptions);
+        return run(null, source, null, null, parserOptions);
     }
 
     public CompilationResult run(Path sourcePath, String source, ParserOptions parserOptions) {
-        return run(sourcePath, source, null, parserOptions);
+        return run(sourcePath, source, null, null, parserOptions);
     }
 
     public CompilationResult run(
-            Path sourcePath, String source, String sourceName, ParserOptions parserOptions) {
+            Path sourcePath, String source, String sourceName, String displayPath, ParserOptions parserOptions) {
         ParserOptions options = Objects.requireNonNull(parserOptions, "parserOptions");
         String parseName =
                 (sourceName != null)
                         ? sourceName
-                        : (sourcePath != null ? sourcePath.toString() : "<input>");
+                        : (displayPath != null)
+                            ? displayPath
+                            : (sourcePath != null ? sourcePath.toString() : "<input>");
         List<CompilationProblem> problems = new ArrayList<>();
         TokenList tokens = null;
         ASTObject astObject = null;
@@ -62,7 +64,7 @@ public final class CompilationPipeline {
 
         Scanner scanner = new Scanner(runtimeContext.newPreprocessor());
         try {
-            tokens = scanner.scan(sourcePath, source);
+            tokens = scanner.scan(sourcePath, source, displayPath);
         } catch (ScanException e) {
             problems.add(
                     new CompilationProblem(

@@ -275,6 +275,9 @@ public final class SemanticTypeChecker {
         if (actual == null)
             return false;
 
+        if (actual == LPCType.LPCMIXED)
+            return true;
+
         if ((expected == LPCType.LPCINT && actual == LPCType.LPCSTATUS)
                 || (expected == LPCType.LPCSTATUS && actual == LPCType.LPCINT))
             return true;

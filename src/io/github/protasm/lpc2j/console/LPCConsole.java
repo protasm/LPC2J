@@ -352,12 +352,12 @@ public class LPCConsole {
   }
 
   private void printProblems(FSSourceFile sf, List<CompilationProblem> problems) {
-    Path sourcePath = (sf != null) ? vfs.basePath().resolve(sf.vPath()).normalize() : null;
+    Path displayPath = (sf != null) ? Path.of("/").resolve(sf.vPath()).normalize() : null;
 
     for (CompilationProblem problem : problems) {
       StringBuilder prefix = new StringBuilder();
-      if (sourcePath != null) {
-        prefix.append(sourcePath);
+      if (displayPath != null) {
+        prefix.append(displayPath);
         if (problem.getLine() != null && problem.getLine() > 0) {
           prefix.append(":").append(problem.getLine());
         }

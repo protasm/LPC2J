@@ -23,4 +23,4 @@
 
 ## Required actions
 - Read AGENTS.md before editing any files.
-- Update AGENTS.md with every PR drafted.
+- Consider updating AGENTS.md with every PR drafted.

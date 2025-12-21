@@ -43,7 +43,7 @@ public final class Compiler {
         String parentName =
                 (object.parentInternalName() != null) ? object.parentInternalName() : defaultParentInternalName;
 
-        cw.visit(V23, ACC_SUPER | ACC_PUBLIC, internalName, null, parentName, null);
+        cw.visit(V21, ACC_SUPER | ACC_PUBLIC, internalName, null, parentName, null);
 
         emitFields(cw, object);
         emitDefaultConstructor(cw, parentName);

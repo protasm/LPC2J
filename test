@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+
+rm -rf out
+javac -cp "src:libs/*" -d out $(find src -name "*.java")
+java -ea -cp "out:libs/*" io.github.protasm.lpc2j.testing.PipelineRegressionTests

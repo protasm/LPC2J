@@ -104,7 +104,7 @@ public final class TypeInferenceVisitor implements ASTVisitor {
     public void visitStmtReturn(ASTStmtReturn stmt) {
         if (stmt.returnValue() != null) {
             withExpectation(expectedType, () -> stmt.returnValue().accept(this));
-            updateSymbolType(currentMethodSymbol, stmt.returnValue().lpcType());
+            updateMethodType(stmt.returnValue().lpcType());
         }
     }
 
@@ -131,22 +131,18 @@ public final class TypeInferenceVisitor implements ASTVisitor {
 
     @Override
     public void visitExprLiteralFalse(ASTExprLiteralFalse expr) {
-        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
     @Override
     public void visitExprLiteralInteger(ASTExprLiteralInteger expr) {
-        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
     @Override
     public void visitExprLiteralString(ASTExprLiteralString expr) {
-        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
     @Override
     public void visitExprLiteralTrue(ASTExprLiteralTrue expr) {
-        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
     @Override
@@ -156,7 +152,6 @@ public final class TypeInferenceVisitor implements ASTVisitor {
 
     @Override
     public void visitExprNull(ASTExprNull expr) {
-        updateSymbolType(currentMethodSymbol, expr.lpcType());
     }
 
     @Override
@@ -209,7 +204,29 @@ public final class TypeInferenceVisitor implements ASTVisitor {
     private void updateSymbolType(Symbol symbol, LPCType candidate) {
         if (symbol == null || candidate == null)
             return;
+
+        LPCType existing = symbol.lpcType();
+
+        if (candidate == LPCType.LPCSTATUS
+                && existing != null
+                && existing != LPCType.LPCMIXED
+                && existing != LPCType.LPCNULL
+                && existing != LPCType.LPCSTATUS)
+            return;
+
         symbol.setLpcType(candidate);
+    }
+
+    private void updateMethodType(LPCType candidate) {
+        if (currentMethodSymbol == null || candidate == null)
+            return;
+
+        LPCType declared = currentMethodSymbol.declaredType();
+
+        if (declared != null && declared != LPCType.LPCMIXED && declared != LPCType.LPCNULL)
+            return;
+
+        updateSymbolType(currentMethodSymbol, candidate);
     }
 
     private void withExpectation(LPCType lpcType, Runnable runnable) {

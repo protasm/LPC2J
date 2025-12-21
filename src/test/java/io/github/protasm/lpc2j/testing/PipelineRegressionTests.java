@@ -14,7 +14,10 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
 import io.github.protasm.lpc2j.preproc.IncludeResolution;
@@ -51,6 +54,7 @@ public final class PipelineRegressionTests {
                 new TestCase("scanner spans honor preprocessor mapping", PipelineRegressionTests::scannerSpansReflectMappedFiles),
                 new TestCase("semantic analysis surfaces type mismatches", PipelineRegressionTests::semanticAnalysisReportsReturnMismatch),
                 new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
+                new TestCase("parser concatenates adjacent string literals", PipelineRegressionTests::parserConcatenatesAdjacentStringLiterals),
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
@@ -159,6 +163,24 @@ public final class PipelineRegressionTests {
         assertEquals(2, astObject.methods().size(), "both methods should be parsed");
         assertTrue(astObject.methods().get("foo") != null, "untyped method should exist");
         assertTrue(astObject.methods().get("typed") != null, "typed method should exist");
+    }
+
+    private static void parserConcatenatesAdjacentStringLiterals() {
+        String source = ""
+                + "#define LONG_DESC \"First line.\\n\" \\\n"
+                + "\"Second line.\\n\"\n"
+                + "string description = LONG_DESC;\n";
+
+        TokenList tokens = new Scanner().scan(Path.of("/obj/room.c"), source, "/obj/room.c");
+        Parser parser = new Parser();
+        ASTObject astObject = parser.parse("RoomSample", tokens);
+
+        ASTField field = astObject.fields().get("description");
+        assertTrue(field != null, "field should be present after parsing");
+
+        ASTExpression initializer = field.initializer();
+        assertTrue(initializer instanceof ASTExprLiteralString, "initializer should be a string literal");
+        assertEquals("First line.\\nSecond line.\\n", ((ASTExprLiteralString) initializer).value(), "string literals should concatenate");
     }
 
     private static void semanticDefaultsUntypedFunctionsToMixed() {

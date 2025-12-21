@@ -37,10 +37,11 @@ public class LPCConsole {
   private static Map<Command, List<String>> commands = new LinkedHashMap<>();
 
   static {
-    commands.put(new CmdHelp(), List.of("?", "help"));
+    commands.put(new CmdHelp(), List.of("h", "help"));
     commands.put(new CmdScan(), List.of("s", "scan"));
     commands.put(new CmdParse(), List.of("p", "parse"));
     commands.put(new CmdCompile(), List.of("c", "compile"));
+    commands.put(new CmdAnalyze(), List.of("a", "analyze"));
     commands.put(new CmdLoad(), List.of("l", "load"));
     commands.put(new CmdListObjects(), List.of("o", "objects"));
     commands.put(new CmdInspect(), List.of("i", "inspect"));
@@ -230,6 +231,24 @@ public class LPCConsole {
     return sf;
   }
 
+  public FSSourceFile analyze(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (sf.semanticModel() == null) {
+      printProblems(result.getProblems());
+      return null;
+    }
+
+    if (!result.getProblems().isEmpty()) {
+      printProblems(result.getProblems());
+    }
+
+    return sf;
+  }
+
   public static void main(String[] args) {
     String basePathArg = null;
 
@@ -253,6 +272,7 @@ public class LPCConsole {
     ParserOptions parserOptions = ParserOptions.defaults();
     LPCConsole console = new LPCConsole(basePathArg, parserOptions);
 
+    System.out.println("LPC2J Console\nType 'help' for help.");
     console.repl();
   }
 
@@ -290,6 +310,10 @@ public class LPCConsole {
 
     if (result.getAstObject() != null) {
       sf.setASTObject(result.getAstObject());
+    }
+
+    if (result.getSemanticModel() != null) {
+      sf.setSemanticModel(result.getSemanticModel());
     }
 
     if (result.getBytecode() != null) {

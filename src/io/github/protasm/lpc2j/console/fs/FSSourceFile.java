@@ -1,6 +1,7 @@
 package io.github.protasm.lpc2j.console.fs;
 
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.token.TokenList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -10,6 +11,7 @@ public class FSSourceFile {
   private String source;
   private TokenList tokens;
   private ASTObject astObject;
+  private SemanticModel semanticModel;
   private byte[] bytes;
   private Object lpcObject;
 
@@ -84,6 +86,14 @@ public class FSSourceFile {
 
   public void setLPCObject(Object lpcObject) {
     this.lpcObject = lpcObject;
+  }
+
+  public SemanticModel semanticModel() {
+    return semanticModel;
+  }
+
+  public void setSemanticModel(SemanticModel semanticModel) {
+    this.semanticModel = semanticModel;
   }
 
   public String slashName() {

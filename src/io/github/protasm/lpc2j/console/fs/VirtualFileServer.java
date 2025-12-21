@@ -14,6 +14,8 @@ public class VirtualFileServer {
 
     if (!basePath.isAbsolute())
       throw new IllegalArgumentException("Base path not absolute: " + basePathStr);
+    if (!Files.isDirectory(basePath))
+      throw new IllegalArgumentException("Base path does not exist or is not a directory: " + basePathStr);
 
     this.basePath = basePath;
   }

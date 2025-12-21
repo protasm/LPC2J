@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.testing;
 
+import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.ir.IRBlock;
 import io.github.protasm.lpc2j.ir.IRBinaryOperation;
 import io.github.protasm.lpc2j.ir.IRLowerer;
@@ -48,7 +49,8 @@ public final class PipelineRegressionTests {
                 new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
-                new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass));
+                new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
+                new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
         List<String> failures = new ArrayList<>();
 
@@ -212,6 +214,22 @@ public final class PipelineRegressionTests {
         Object value = add.invoke(instance, 2, 3);
 
         assertEquals(5, ((Number) value).intValue(), "generated class should add arguments");
+    }
+
+    private static void consoleRejectsMissingBasePath() {
+        String missingPath = Path.of(System.getProperty("java.io.tmpdir"), "lpc2j-missing-base-" + System.nanoTime())
+                .toAbsolutePath()
+                .toString();
+        boolean threw = false;
+
+        try {
+            new VirtualFileServer(missingPath);
+        } catch (IllegalArgumentException e) {
+            threw = true;
+            assertTrue(e.getMessage().contains("Base path"), "error should mention base path");
+        }
+
+        assertTrue(threw, "virtual file server should reject nonexistent base path");
     }
 
     private static Token<?> find(TokenList tokens, TokenType type, String lexeme, int start) {

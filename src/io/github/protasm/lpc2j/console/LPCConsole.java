@@ -270,10 +270,15 @@ public class LPCConsole {
     }
 
     ParserOptions parserOptions = ParserOptions.defaults();
-    LPCConsole console = new LPCConsole(basePathArg, parserOptions);
+    try {
+      LPCConsole console = new LPCConsole(basePathArg, parserOptions);
 
-    System.out.println("LPC2J Console\nType 'help' for help.");
-    console.repl();
+      System.out.println("LPC2J Console\nType 'help' for help.");
+      console.repl();
+    } catch (IllegalArgumentException e) {
+      System.out.println("Error: " + e.getMessage());
+      System.exit(-1);
+    }
   }
 
   private static void printUsage() {

@@ -15,10 +15,12 @@ import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_FALSE;
 import static io.github.protasm.lpc2j.token.TokenType.T_FLOAT_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_GREATER;
+import static io.github.protasm.lpc2j.token.TokenType.T_GREATER_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_LESS;
+import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_SLASH;
@@ -76,7 +78,9 @@ public class PrattParser {
         tokenTypeToRule.put(T_DBL_AMP, new ParseRule(null, new InfixBinaryOp(), PREC_AND));
 
         tokenTypeToRule.put(T_GREATER, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
+        tokenTypeToRule.put(T_GREATER_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
         tokenTypeToRule.put(T_LESS, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
+        tokenTypeToRule.put(T_LESS_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_COMPARISON));
 
         tokenTypeToRule.put(T_BANG_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_EQUALITY));
         tokenTypeToRule.put(T_EQUAL_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_EQUALITY));

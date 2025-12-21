@@ -7,7 +7,7 @@ public class CmdHelp extends Command {
     public boolean execute(LPCConsole console, String... args) {
         System.out.println("===========================================");
         System.out.println("[pp] preprocess -> [s] scan -> [p] parse ->");
-        System.out.println("[a] analyze -> [c] compile -> [l] load");
+        System.out.println("[a] analyze -> [ir] ir -> [c] compile -> [l] load");
         System.out.println("===========================================\n");
 
         LPCConsole.commands().forEach((cmd, aliases) -> {

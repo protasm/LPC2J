@@ -42,6 +42,7 @@ public class LPCConsole {
     commands.put(new CmdScan(), List.of("s", "scan"));
     commands.put(new CmdParse(), List.of("p", "parse"));
     commands.put(new CmdAnalyze(), List.of("a", "analyze"));
+    commands.put(new CmdIR(), List.of("ir"));
     commands.put(new CmdCompile(), List.of("c", "compile"));
     commands.put(new CmdLoad(), List.of("l", "load"));
     commands.put(new CmdListObjects(), List.of("o", "objects"));
@@ -249,6 +250,24 @@ public class LPCConsole {
     return sf;
   }
 
+  public FSSourceFile ir(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (sf.typedIr() == null) {
+      printProblems(result.getProblems());
+      return null;
+    }
+
+    if (!result.getProblems().isEmpty()) {
+      printProblems(result.getProblems());
+    }
+
+    return sf;
+  }
+
   public static void main(String[] args) {
     String basePathArg = null;
 
@@ -319,6 +338,10 @@ public class LPCConsole {
 
     if (result.getSemanticModel() != null) {
       sf.setSemanticModel(result.getSemanticModel());
+    }
+
+    if (result.getTypedIr() != null) {
+      sf.setTypedIr(result.getTypedIr());
     }
 
     if (result.getBytecode() != null) {

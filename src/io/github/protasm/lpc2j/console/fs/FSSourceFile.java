@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.console.fs;
 
+import io.github.protasm.lpc2j.ir.TypedIR;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.token.TokenList;
@@ -12,6 +13,7 @@ public class FSSourceFile {
   private TokenList tokens;
   private ASTObject astObject;
   private SemanticModel semanticModel;
+  private TypedIR typedIr;
   private byte[] bytes;
   private Object lpcObject;
 
@@ -94,6 +96,14 @@ public class FSSourceFile {
 
   public void setSemanticModel(SemanticModel semanticModel) {
     this.semanticModel = semanticModel;
+  }
+
+  public TypedIR typedIr() {
+    return typedIr;
+  }
+
+  public void setTypedIr(TypedIR typedIr) {
+    this.typedIr = typedIr;
   }
 
   public String slashName() {

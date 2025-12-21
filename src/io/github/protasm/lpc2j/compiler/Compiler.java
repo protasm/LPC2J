@@ -46,7 +46,7 @@ public final class Compiler {
         cw.visit(V21, ACC_SUPER | ACC_PUBLIC, internalName, null, parentName, null);
 
         emitFields(cw, object);
-        emitDefaultConstructor(cw, parentName);
+        emitDefaultConstructor(cw, internalName, parentName, object.fields());
 
         for (IRMethod method : object.methods())
             emitMethod(cw, internalName, method);
@@ -59,11 +59,21 @@ public final class Compiler {
             cw.visitField(ACC_PRIVATE, field.name(), descriptor(field.type()), null, null).visitEnd();
     }
 
-    private void emitDefaultConstructor(ClassWriter cw, String parentName) {
+    private void emitDefaultConstructor(ClassWriter cw, String internalName, String parentName, List<IRField> fields) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitMethodInsn(INVOKESPECIAL, parentName, "<init>", "()V", false);
+
+        for (IRField field : fields) {
+            if (field.initializer() == null)
+                continue;
+
+            mv.visitVarInsn(ALOAD, 0);
+            emitExpression(mv, internalName, null, field.initializer());
+            mv.visitFieldInsn(PUTFIELD, internalName, field.name(), descriptor(field.type()));
+        }
+
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();

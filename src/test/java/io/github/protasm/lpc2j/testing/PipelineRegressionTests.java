@@ -50,6 +50,7 @@ public final class PipelineRegressionTests {
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
+                new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
         List<String> failures = new ArrayList<>();
@@ -214,6 +215,31 @@ public final class PipelineRegressionTests {
         Object value = add.invoke(instance, 2, 3);
 
         assertEquals(5, ((Number) value).intValue(), "generated class should add arguments");
+    }
+
+    private static void fieldInitializersExecute() throws Exception {
+        String source = "string short_desc = \"a rusty sword\";\nshort() { return short_desc; }\n";
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/Sword", ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.Sword";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        Method shortMethod = clazz.getMethod("short");
+        Object value = shortMethod.invoke(instance);
+
+        assertEquals("a rusty sword", value, "field initializer should populate short_desc");
     }
 
     private static void consoleRejectsMissingBasePath() {

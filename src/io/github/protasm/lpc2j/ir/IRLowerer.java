@@ -59,7 +59,7 @@ public final class IRLowerer {
                 (astObject.parentName() != null) ? astObject.parentName() : defaultParentInternalName;
 
         Map<Symbol, IRField> fieldsBySymbol = new HashMap<>();
-        List<IRField> fields = lowerFields(astObject.fields(), fieldsBySymbol);
+        List<IRField> fields = lowerFields(astObject.fields(), fieldsBySymbol, problems);
         List<IRMethod> methods = lowerMethods(astObject, fieldsBySymbol, problems);
 
         TypedIR typedIr = new TypedIR(new IRObject(astObject.line(), astObject.name(), parentInternalName, fields, methods));
@@ -67,17 +67,29 @@ public final class IRLowerer {
         return new IRLoweringResult(typedIr, problems);
     }
 
-    private List<IRField> lowerFields(Iterable<ASTField> astFields, Map<Symbol, IRField> fieldsBySymbol) {
+    private List<IRField> lowerFields(
+            Iterable<ASTField> astFields, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
         List<IRField> fields = new ArrayList<>();
 
         for (ASTField field : astFields) {
             RuntimeType fieldType = runtimeType(field.symbol().lpcType());
-            IRField irField = new IRField(field.line(), field.symbol().name(), fieldType);
+            IRExpression initializer = lowerFieldInitializer(field.initializer(), fieldType, fieldsBySymbol, problems);
+            IRField irField = new IRField(field.line(), field.symbol().name(), fieldType, initializer);
             fields.add(irField);
             fieldsBySymbol.put(field.symbol(), irField);
         }
 
         return fields;
+    }
+
+    private IRExpression lowerFieldInitializer(
+            ASTExpression initializer, RuntimeType fieldType, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
+        if (initializer == null)
+            return null;
+
+        MethodContext context = new MethodContext(fieldType, fieldsBySymbol);
+        IRExpression lowered = lowerExpression(initializer, context, problems);
+        return coerceIfNeeded(lowered, fieldType);
     }
 
     private List<IRMethod> lowerMethods(
@@ -448,7 +460,7 @@ public final class IRLowerer {
                 return field;
 
             RuntimeType type = RuntimeTypes.fromLpcType(astField.symbol().lpcType());
-            IRField synthesized = new IRField(astField.line(), astField.symbol().name(), type);
+            IRField synthesized = new IRField(astField.line(), astField.symbol().name(), type, null);
             fieldsBySymbol.put(astField.symbol(), synthesized);
             problems.add(
                     new CompilationProblem(

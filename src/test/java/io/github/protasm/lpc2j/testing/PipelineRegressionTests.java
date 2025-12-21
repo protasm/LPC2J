@@ -51,6 +51,7 @@ public final class PipelineRegressionTests {
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
+                new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
         List<String> failures = new ArrayList<>();
@@ -240,6 +241,50 @@ public final class PipelineRegressionTests {
         Object value = shortMethod.invoke(instance);
 
         assertEquals("a rusty sword", value, "field initializer should populate short_desc");
+    }
+
+    private static void truthinessAndLogicalNegationFollowLpcRules() throws Exception {
+        String source = ""
+                + "int notIntZero() { return !0; }\n"
+                + "int notIntNonZero() { return !42; }\n"
+                + "int notStringEmpty() { string s = \"\"; return !s; }\n"
+                + "int notStringNonEmpty() { return !\"abc\"; }\n"
+                + "int notObject(object o) { return !o; }\n"
+                + "int notMixed(mixed x) { return !x; }\n"
+                + "int ifOnString() { string s = \"\"; if (s) return 1; return 0; }\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/Truthiness", ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.Truthiness";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+
+        assertEquals(1, ((Number) clazz.getMethod("notIntZero").invoke(instance)).intValue(), "!0 should be truthy");
+        assertEquals(0, ((Number) clazz.getMethod("notIntNonZero").invoke(instance)).intValue(), "!non-zero should be false");
+        assertEquals(0, ((Number) clazz.getMethod("notStringEmpty").invoke(instance)).intValue(), "empty string is truthy");
+        assertEquals(0, ((Number) clazz.getMethod("notStringNonEmpty").invoke(instance)).intValue(), "non-empty string is truthy");
+
+        Object nullObject = null;
+        Object someObject = new Object();
+        assertEquals(1, ((Number) clazz.getMethod("notObject", Object.class).invoke(instance, nullObject)).intValue(), "null object is falsey");
+        assertEquals(0, ((Number) clazz.getMethod("notObject", Object.class).invoke(instance, someObject)).intValue(), "non-null object is truthy");
+
+        assertEquals(1, ((Number) clazz.getMethod("notMixed", Object.class).invoke(instance, 0)).intValue(), "mixed zero is falsey");
+        assertEquals(0, ((Number) clazz.getMethod("notMixed", Object.class).invoke(instance, "value")).intValue(), "mixed non-zero/non-null is truthy");
+
+        assertEquals(1, ((Number) clazz.getMethod("ifOnString").invoke(instance)).intValue(), "strings participate in truthiness within conditionals");
     }
 
     private static void consoleRejectsMissingBasePath() {

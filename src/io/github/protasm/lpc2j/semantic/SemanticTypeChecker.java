@@ -79,8 +79,8 @@ public final class SemanticTypeChecker {
         }
 
         if (statement instanceof ASTStmtIfThenElse stmtIf) {
-            LPCType conditionType = inferExpressionType(stmtIf.condition(), context);
-            ensureAssignable(LPCType.LPCSTATUS, conditionType, stmtIf.line(), "Condition must be boolean-compatible");
+            // All expressions participate in truthiness; conditions are not restricted to booleans.
+            inferExpressionType(stmtIf.condition(), context);
             checkStatement(stmtIf.thenBranch(), context);
             if (stmtIf.elseBranch() != null)
                 checkStatement(stmtIf.elseBranch(), context);
@@ -162,12 +162,11 @@ public final class SemanticTypeChecker {
     }
 
     private LPCType inferUnaryType(ASTExprOpUnary expr, MethodContext context) {
+        // Logical negation is allowed on any type; rely on runtime truthiness.
         LPCType operandType = inferExpressionType(expr.right(), context);
 
-        if (expr.operator() == UnaryOpType.UOP_NOT) {
-            ensureAssignable(LPCType.LPCSTATUS, operandType, expr.line(), "Logical negation expects boolean-compatible operand");
+        if (expr.operator() == UnaryOpType.UOP_NOT)
             return LPCType.LPCSTATUS;
-        }
 
         ensureAssignable(LPCType.LPCINT, operandType, expr.line(), "Unary operator expects numeric operand");
         return operandType != null ? operandType : LPCType.LPCINT;
@@ -191,8 +190,6 @@ public final class SemanticTypeChecker {
             return LPCType.LPCINT;
         }
         case BOP_AND, BOP_OR -> {
-            ensureAssignable(LPCType.LPCSTATUS, leftType, expr.line(), "Logical operators expect boolean-compatible operands");
-            ensureAssignable(LPCType.LPCSTATUS, rightType, expr.line(), "Logical operators expect boolean-compatible operands");
             return LPCType.LPCSTATUS;
         }
         case BOP_GT, BOP_GE, BOP_LT, BOP_LE -> {

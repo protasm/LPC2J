@@ -16,8 +16,10 @@ public class CmdCall extends Command {
         String[] strArgs = Arrays.copyOfRange(args, 2, args.length);
         Object[] objArgs = inferArgTypes(console, strArgs);
 
-        Object result = console.call(args[0], args[1], objArgs);
-        System.out.println(String.valueOf(result));
+        LPCConsole.CallResult result = console.call(args[0], args[1], objArgs);
+        if (result.succeeded()) {
+            System.out.println(String.valueOf(result.value()));
+        }
 
         return true;
     }

@@ -8,13 +8,13 @@ functions returned primitive literals. The compiler generated JVM methods with
 integers. The mismatch produced `java.lang.VerifyError: Bad return type`
 failures when loading the generated classes.
 
-This change teaches the type inference pass to record the return type of each
-function based on the expressions it actually returns. The inferred type feeds
-the method symbol used during bytecode generation, ensuring that the JVM method
+This change teaches the semantic type checker to record the return type of each
+function based on the expressions it actually returns. The inferred type feeds the
+method symbol used during bytecode generation, ensuring that the JVM method
 signature and the emitted return opcode agree.
 
 ## What changed
-- `TypeInferenceVisitor` now tracks the method currently being visited and
+- The semantic type checker now tracks the method currently being visited and
   updates that method's symbol type whenever it encounters an explicit `return`
   statement.
 - Method return descriptors produced during bytecode generation now reflect the

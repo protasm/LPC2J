@@ -76,7 +76,7 @@ The type keywords map to JVM types as follows:
 - `float` → tokenized but not compiled in expressions (reserved)
 - `mapping` → tokenized only (no code generation yet)
 
-Type inference propagates declared types across assignments, returns, and parameter use to validate expressions and keep symbol metadata consistent. 【F:src/io/github/protasm/lpc2j/parser/type/LPCType.java†L8-L34】【F:src/io/github/protasm/lpc2j/parser/ast/visitor/TypeInferenceVisitor.java†L17-L118】
+Semantic checking propagates declared types across assignments, returns, and parameter use to validate expressions and keep symbol metadata consistent. 【F:src/io/github/protasm/lpc2j/parser/type/LPCType.java†L8-L34】【F:src/io/github/protasm/lpc2j/semantic/SemanticTypeChecker.java†L1-L241】
 
 ### 3.2 Truthiness and boolean contexts
 
@@ -102,7 +102,7 @@ Each source file defines exactly one LPC object. An optional leading `inherit "p
 
 The statement forms currently accepted are:
 
-- **Block**: `{ ... }` with optional trailing implicit `return;` insertion for `void` methods only (see §8.2).
+- **Block**: `{ ... }` with an implicit trailing `return` synthesized when the method body does not end in one (see §8.2).
 - **Local declaration** inside a block.
 - **If/else**: `if (expr) stmt [else stmt]`.
 - **Return**: `return;` or `return expr;`.

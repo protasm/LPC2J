@@ -72,7 +72,9 @@ public final class SemanticAnalyzer {
         for (ASTMethod method : astObject.methods()) {
             resolveSymbolType(method.symbol(), method.line(), problems);
             objectScope.declare(method.symbol());
+        }
 
+        for (ASTMethod method : astObject.methods()) {
             SemanticScope methodScope = new SemanticScope(objectScope);
 
             if (method.parameters() != null) {
@@ -88,15 +90,17 @@ public final class SemanticAnalyzer {
             }
 
             ensureImplicitReturn(method);
-
-            if ((method.body() != null) && (method.symbol().lpcType() != null))
-                validateReturns(method.body(), method.symbol().lpcType(), problems);
         }
 
         // Run the legacy type inference pass after declared types have been resolved so that it
         // can propagate contextual information without depending on scanner classification.
         new TypeInferenceVisitor().visitWithExpectedType(astObject, LPCType.LPCNULL);
         new EfunValidationVisitor(problems).visitObject(astObject);
+
+        for (ASTMethod method : astObject.methods()) {
+            if ((method.body() != null) && (method.symbol().lpcType() != null))
+                validateReturns(method.body(), method.symbol().lpcType(), problems);
+        }
 
         return new SemanticAnalysisResult(new SemanticModel(astObject, objectScope), problems);
     }
@@ -116,7 +120,7 @@ public final class SemanticAnalyzer {
                         new CompilationProblem(
                                 CompilationStage.ANALYZE,
                                 "Unknown type '" + symbol.declaredTypeName() + "' for symbol '" + symbol.name() + "'",
-                                null));
+                                line));
             }
 
             symbol.resolveDeclaredType(LPCType.LPCMIXED);
@@ -135,7 +139,7 @@ public final class SemanticAnalyzer {
                     new CompilationProblem(
                             CompilationStage.ANALYZE,
                             "Duplicate " + kind + " '" + symbol.name() + "' in scope",
-                            null));
+                            (Throwable) null));
             return;
         }
 
@@ -187,7 +191,7 @@ public final class SemanticAnalyzer {
                         new CompilationProblem(
                                 CompilationStage.ANALYZE,
                                 "Non-void methods must return a value of type " + expected + ".",
-                                null));
+                                stmtReturn.line()));
             }
             return;
         }
@@ -202,7 +206,7 @@ public final class SemanticAnalyzer {
                 new CompilationProblem(
                         CompilationStage.ANALYZE,
                         "Return type mismatch: expected " + expected + " but found " + returnValue.lpcType() + ".",
-                        null));
+                        stmtReturn.line()));
     }
 
     private boolean isReturnTypeCompatible(LPCType expected, LPCType actual) {
@@ -285,7 +289,7 @@ public final class SemanticAnalyzer {
                         new CompilationProblem(
                                 CompilationStage.ANALYZE,
                                 "Missing efun signature for call on line " + expr.line(),
-                                null));
+                                expr.line()));
                 return;
             }
 
@@ -351,7 +355,7 @@ public final class SemanticAnalyzer {
                         new CompilationProblem(
                                 CompilationStage.ANALYZE,
                                 "Efun '" + signature.name() + "' expects " + arity + " argument(s).",
-                                null));
+                                expr.line()));
                 return;
             }
 
@@ -365,7 +369,7 @@ public final class SemanticAnalyzer {
                                     CompilationStage.ANALYZE,
                                     "Argument " + (i + 1) + " of efun '" + signature.name() + "' expects "
                                             + expected + " but found " + actual + ".",
-                                    null));
+                                    expr.line()));
                 }
             }
         }

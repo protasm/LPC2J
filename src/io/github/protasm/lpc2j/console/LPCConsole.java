@@ -182,7 +182,7 @@ public class LPCConsole {
     return withRuntimeContext(() -> doLoad(vPathStr));
   }
 
-  public Object call(String className, String methodName, Object[] callArgs) {
+  public CallResult call(String className, String methodName, Object[] callArgs) {
     return withRuntimeContext(() -> doCall(className, methodName, callArgs));
   }
 
@@ -409,35 +409,114 @@ public class LPCConsole {
     }
   }
 
-  private Object doCall(String className, String methodName, Object[] callArgs) {
+  private CallResult doCall(String className, String methodName, Object[] callArgs) {
+    if (callArgs == null) {
+      callArgs = new Object[0];
+    }
+
     Object obj = runtimeContext.getObject(className);
 
     if (obj == null) {
       System.out.println("Error: Object '" + className + "' not loaded.");
 
-      return null;
+      return CallResult.error();
+    }
+
+    Method target = findMethod(obj.getClass(), methodName, callArgs);
+    if (target == null) {
+      System.out.println(
+          "Error: Object '" + className + "' has no method '" + methodName + "' matching args "
+              + callArgs.length
+              + ".");
+      return CallResult.error();
     }
 
     try {
-      Method[] methods = obj.getClass().getMethods();
-
-      for (Method method : methods) {
-        if (method
-            .getName()
-            .equals(methodName)) { // && matchParameters(method.getParameterTypes(), argTypes))
-          return method.invoke(obj, callArgs);
-        }
-      }
+      return CallResult.success(target.invoke(obj, callArgs));
     } catch (InvocationTargetException e) {
-      System.out.println(e.toString());
-      e.getCause().printStackTrace();
+      Throwable cause = e.getCause();
+      if (cause instanceof NoSuchMethodException) {
+        System.out.println(
+            "Error: '" + className + "." + methodName + "' failed: " + cause.getMessage());
+      } else if (cause != null) {
+        System.out.println(
+            "Error: '" + className + "." + methodName + "' threw "
+                + cause.getClass().getSimpleName()
+                + ": "
+                + cause.getMessage());
+        cause.printStackTrace();
+      } else {
+        System.out.println("Error: '" + className + "." + methodName + "' failed: " + e);
+      }
     } catch (IllegalAccessException e) {
       System.out.println(e.toString());
     } catch (IllegalArgumentException e) {
       System.out.println(e.toString());
     }
 
-    return null;
+    return CallResult.error();
+  }
+
+  private Method findMethod(Class<?> clazz, String methodName, Object[] callArgs) {
+    Method fallback = null;
+    for (Method method : clazz.getMethods()) {
+      if (!method.getName().equals(methodName)) {
+        continue;
+      }
+
+      if (method.getParameterCount() == callArgs.length
+          && parametersMatch(method.getParameterTypes(), callArgs)) {
+        return method;
+      }
+
+      if (fallback == null) {
+        fallback = method;
+      }
+    }
+
+    return fallback;
+  }
+
+  private boolean parametersMatch(Class<?>[] parameterTypes, Object[] callArgs) {
+    if (parameterTypes.length != callArgs.length) {
+      return false;
+    }
+
+    for (int i = 0; i < parameterTypes.length; i++) {
+      Class<?> expectedType = parameterTypes[i];
+      Object arg = callArgs[i];
+
+      if (arg == null) {
+        if (expectedType.isPrimitive()) {
+          return false;
+        }
+        continue;
+      }
+
+      Class<?> wrappedExpected = toWrapper(expectedType);
+      if (!wrappedExpected.isAssignableFrom(arg.getClass())) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private Class<?> toWrapper(Class<?> clazz) {
+    if (!clazz.isPrimitive()) {
+      return clazz;
+    }
+
+    if (clazz == boolean.class) return Boolean.class;
+    if (clazz == byte.class) return Byte.class;
+    if (clazz == short.class) return Short.class;
+    if (clazz == int.class) return Integer.class;
+    if (clazz == long.class) return Long.class;
+    if (clazz == char.class) return Character.class;
+    if (clazz == float.class) return Float.class;
+    if (clazz == double.class) return Double.class;
+
+    return clazz;
   }
 
   private <T> T withRuntimeContext(Supplier<T> supplier) {
@@ -447,6 +526,32 @@ public class LPCConsole {
       return supplier.get();
     } finally {
       RuntimeContextHolder.setCurrent(previous);
+    }
+  }
+
+  public static final class CallResult {
+    private final boolean success;
+    private final Object value;
+
+    private CallResult(boolean success, Object value) {
+      this.success = success;
+      this.value = value;
+    }
+
+    public static CallResult success(Object value) {
+      return new CallResult(true, value);
+    }
+
+    public static CallResult error() {
+      return new CallResult(false, null);
+    }
+
+    public boolean succeeded() {
+      return success;
+    }
+
+    public Object value() {
+      return value;
     }
   }
 }

@@ -14,6 +14,7 @@ public class CmdDirList extends Command {
     public boolean execute(LPCConsole console, String... args) {
         VirtualFileServer vfs = console.vfs();
         File[] files;
+        String targetArg = (args.length == 0) ? console.pwd() : args[0];
 
         try {
             if (args.length == 0) {
@@ -24,7 +25,7 @@ public class CmdDirList extends Command {
             }
 
             if (files == null) {
-                System.out.println("Invalid path: " + args[0]);
+                System.out.println("Invalid path: " + targetArg);
 
                 return true;
             }
@@ -35,7 +36,7 @@ public class CmdDirList extends Command {
                 printFiles(files);
             }
         } catch (InvalidPathException e) {
-            System.out.println("Invalid path: " + args[0]);
+            System.out.println("Invalid path: " + targetArg);
         }
 
         return true;

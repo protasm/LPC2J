@@ -19,6 +19,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
+import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
 import io.github.protasm.lpc2j.preproc.IncludeResolution;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
@@ -63,6 +64,7 @@ public final class PipelineRegressionTests {
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
+                new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
@@ -235,7 +237,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/Add", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -265,7 +267,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/FlagHolder", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -299,7 +301,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/OrcLike", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -333,7 +335,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/Sword", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -366,7 +368,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/Truthiness", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -408,7 +410,7 @@ public final class PipelineRegressionTests {
         CompilationResult result = pipeline.run(null, source, "regression/ArraySample", null, ParserOptions.defaults());
 
         if (!result.succeeded()) {
-            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
         }
 
         byte[] bytecode = result.getBytecode();
@@ -435,6 +437,52 @@ public final class PipelineRegressionTests {
         assertEquals("apple", combined.get(0), "first element should be preserved");
         assertEquals("banana", combined.get(1), "second element should be preserved");
         assertEquals("cherry", combined.get(2), "third element should be preserved");
+    }
+
+    private static void mappingsBehave() throws Exception {
+        String source = ""
+                + "mapping metals = ([ ]);\n"
+                + "void create() { metals = ([ \"gold\" : 10, \"silver\" : 20 ]); metals += ([ \"copper\" : 30 ]); }\n"
+                + "int silver() { return metals[\"silver\"]; }\n"
+                + "mixed nested_array() { return ([ \"coins\" : ({ 1, 2, 3 }) ])[\"coins\"][1]; }\n"
+                + "mapping combine(mapping other) { return metals + other; }\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result =
+                pipeline.run(null, source, "regression/MappingSample", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.MappingSample";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        clazz.getMethod("create").invoke(instance);
+
+        Object silver = clazz.getMethod("silver").invoke(instance);
+        assertEquals(20, silver, "mapping index should retrieve stored value");
+
+        Object nested = clazz.getMethod("nested_array").invoke(instance);
+        assertEquals(2, nested, "mapping values should support nested arrays");
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<Object, Object> combined = (java.util.Map<Object, Object>)
+                clazz.getMethod("combine", java.util.Map.class)
+                        .invoke(instance, java.util.Map.of("silver", 25, "iron", 40));
+
+        assertEquals(4, combined.size(), "merged mapping should contain original and new keys");
+        assertEquals(25, combined.get("silver"), "new mapping should override duplicate keys with right-hand side");
+        assertEquals(10, combined.get("gold"), "original entries should be preserved when not overridden");
+        assertEquals(30, combined.get("copper"), "existing entries should persist after merging");
+        assertEquals(40, combined.get("iron"), "right-hand entries should be added");
     }
 
     private static void consoleConfigLoadsSystemIncludes() {
@@ -502,6 +550,20 @@ public final class PipelineRegressionTests {
     private static void assertTrue(boolean condition, String message) {
         if (!condition)
             throw new AssertionError(message);
+    }
+
+    private static String describeProblems(List<CompilationProblem> problems) {
+        StringBuilder sb = new StringBuilder();
+        for (CompilationProblem problem : problems) {
+            if (sb.length() > 0)
+                sb.append("; ");
+            sb.append(problem.getStage())
+                    .append(": ")
+                    .append(problem.getMessage());
+            if (problem.getLine() != null)
+                sb.append(" @").append(problem.getLine());
+        }
+        return sb.toString();
     }
 
     public static final class StrengthProbe {

@@ -232,6 +232,26 @@ public final class Compiler {
             return;
         }
 
+        if (expression instanceof IRMappingLiteral mappingLiteral) {
+            emitMappingLiteral(mv, internalName, method, mappingLiteral);
+            return;
+        }
+
+        if (expression instanceof IRMappingMerge mappingMerge) {
+            emitMappingMerge(mv, internalName, method, mappingMerge);
+            return;
+        }
+
+        if (expression instanceof IRMappingGet mappingGet) {
+            emitMappingGet(mv, internalName, method, mappingGet);
+            return;
+        }
+
+        if (expression instanceof IRMappingSet mappingSet) {
+            emitMappingSet(mv, internalName, method, mappingSet);
+            return;
+        }
+
         if (expression instanceof IREfunCall efunCall) {
             emitEfunCall(mv, internalName, method, efunCall);
             return;
@@ -602,6 +622,59 @@ public final class Compiler {
         emitExpression(mv, internalName, method, arraySet.value());
         boxIfNeeded(mv, arraySet.value().type());
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "set", "(ILjava/lang/Object;)Ljava/lang/Object;", true);
+    }
+
+    private void emitMappingLiteral(MethodVisitor mv, String internalName, IRMethod method, IRMappingLiteral literal) {
+        mv.visitTypeInsn(NEW, "java/util/HashMap");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
+
+        for (IRMappingEntry entry : literal.entries()) {
+            mv.visitInsn(DUP);
+            emitExpression(mv, internalName, method, entry.key());
+            coerceValue(mv, entry.key().type(), RuntimeTypes.STRING);
+            emitExpression(mv, internalName, method, entry.value());
+            boxIfNeeded(mv, entry.value().type());
+            mv.visitMethodInsn(
+                    INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
+            mv.visitInsn(POP);
+        }
+    }
+
+    private void emitMappingMerge(MethodVisitor mv, String internalName, IRMethod method, IRMappingMerge merge) {
+        mv.visitTypeInsn(NEW, "java/util/HashMap");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
+
+        mv.visitInsn(DUP);
+        emitExpression(mv, internalName, method, merge.left());
+        mv.visitTypeInsn(CHECKCAST, "java/util/Map");
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "putAll", "(Ljava/util/Map;)V", true);
+
+        mv.visitInsn(DUP);
+        emitExpression(mv, internalName, method, merge.right());
+        mv.visitTypeInsn(CHECKCAST, "java/util/Map");
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Map", "putAll", "(Ljava/util/Map;)V", true);
+    }
+
+    private void emitMappingGet(MethodVisitor mv, String internalName, IRMethod method, IRMappingGet mappingGet) {
+        emitExpression(mv, internalName, method, mappingGet.mapping());
+        mv.visitTypeInsn(CHECKCAST, "java/util/Map");
+        emitExpression(mv, internalName, method, mappingGet.key());
+        coerceValue(mv, mappingGet.key().type(), RuntimeTypes.STRING);
+        mv.visitMethodInsn(
+                INVOKEINTERFACE, "java/util/Map", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", true);
+    }
+
+    private void emitMappingSet(MethodVisitor mv, String internalName, IRMethod method, IRMappingSet mappingSet) {
+        emitExpression(mv, internalName, method, mappingSet.mapping());
+        mv.visitTypeInsn(CHECKCAST, "java/util/Map");
+        emitExpression(mv, internalName, method, mappingSet.key());
+        coerceValue(mv, mappingSet.key().type(), RuntimeTypes.STRING);
+        emitExpression(mv, internalName, method, mappingSet.value());
+        boxIfNeeded(mv, mappingSet.value().type());
+        mv.visitMethodInsn(
+                INVOKEINTERFACE, "java/util/Map", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", true);
     }
 
     private void coerceValue(MethodVisitor mv, RuntimeType source, RuntimeType target) {

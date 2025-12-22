@@ -26,6 +26,8 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralTrue;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingEntry;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
@@ -37,6 +39,7 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.parser.type.UnaryOpType;
 import io.github.protasm.lpc2j.runtime.RuntimeType;
 import io.github.protasm.lpc2j.runtime.RuntimeTypes;
+import io.github.protasm.lpc2j.runtime.RuntimeValueKind;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -251,6 +254,16 @@ public final class IRLowerer {
                     arrayLiteral.line(), elements, RuntimeTypes.arrayOf(RuntimeTypes.MIXED));
         }
 
+        if (expression instanceof ASTExprMappingLiteral mappingLiteral) {
+            List<IRMappingEntry> entries = new ArrayList<>();
+            for (ASTExprMappingEntry entry : mappingLiteral.entries()) {
+                IRExpression key = coerceIfNeeded(lowerExpression(entry.key(), context, problems), RuntimeTypes.STRING);
+                IRExpression value = lowerExpression(entry.value(), context, problems);
+                entries.add(new IRMappingEntry(key, value));
+            }
+            return new IRMappingLiteral(mappingLiteral.line(), entries, RuntimeTypes.MAPPING);
+        }
+
         if (expression instanceof ASTExprLiteralTrue literal)
             return new IRConstant(literal.line(), Boolean.TRUE, RuntimeTypes.STATUS);
 
@@ -283,6 +296,13 @@ public final class IRLowerer {
 
         if (expression instanceof ASTExprArrayAccess arrayAccess) {
             IRExpression target = lowerExpression(arrayAccess.target(), context, problems);
+            RuntimeType targetType = runtimeType(arrayAccess.target().lpcType());
+            if (targetType != null && targetType.kind() == RuntimeValueKind.MAPPING) {
+                IRExpression key =
+                        coerceIfNeeded(lowerExpression(arrayAccess.index(), context, problems), RuntimeTypes.STRING);
+                return new IRMappingGet(arrayAccess.line(), target, key, RuntimeTypes.MIXED);
+            }
+
             IRExpression index = coerceIfNeeded(
                     lowerExpression(arrayAccess.index(), context, problems), RuntimeTypes.INT);
             return new IRArrayGet(arrayAccess.line(), target, index, RuntimeTypes.MIXED);
@@ -290,6 +310,15 @@ public final class IRLowerer {
 
         if (expression instanceof ASTExprArrayStore arrayStore) {
             IRExpression target = lowerExpression(arrayStore.target(), context, problems);
+            RuntimeType targetType = runtimeType(arrayStore.target().lpcType());
+            if (targetType != null && targetType.kind() == RuntimeValueKind.MAPPING) {
+                IRExpression key =
+                        coerceIfNeeded(lowerExpression(arrayStore.index(), context, problems), RuntimeTypes.STRING);
+                IRExpression value = lowerExpression(arrayStore.value(), context, problems);
+                return new IRMappingSet(
+                        arrayStore.line(), target, key, coerceIfNeeded(value, RuntimeTypes.MIXED), value.type());
+            }
+
             IRExpression index = coerceIfNeeded(
                     lowerExpression(arrayStore.index(), context, problems), RuntimeTypes.INT);
             IRExpression value = lowerExpression(arrayStore.value(), context, problems);
@@ -311,6 +340,12 @@ public final class IRLowerer {
                 IRExpression left = lowerExpression(binary.left(), context, problems);
                 IRExpression right = lowerExpression(binary.right(), context, problems);
                 return new IRArrayConcat(binary.line(), left, right, RuntimeTypes.arrayOf(RuntimeTypes.MIXED));
+            }
+            if (binary.operator() == io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD
+                    && binary.lpcType() == LPCType.LPCMAPPING) {
+                IRExpression left = lowerExpression(binary.left(), context, problems);
+                IRExpression right = lowerExpression(binary.right(), context, problems);
+                return new IRMappingMerge(binary.line(), left, right, RuntimeTypes.MAPPING);
             }
             RuntimeType type = runtimeType(binary.lpcType());
             IRExpression left = lowerExpression(binary.left(), context, problems);

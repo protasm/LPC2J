@@ -17,6 +17,10 @@ public sealed interface IRExpression extends IRNode
                 IRInstanceCall,
                 IRLocalLoad,
                 IRLocalStore,
+                IRMappingGet,
+                IRMappingLiteral,
+                IRMappingMerge,
+                IRMappingSet,
                 IRUnaryOperation {
     RuntimeType type();
 }

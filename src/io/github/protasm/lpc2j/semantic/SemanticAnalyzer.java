@@ -111,7 +111,7 @@ public final class SemanticAnalyzer {
 
     private void declareUnique(
             Symbol symbol, SemanticScope scope, List<CompilationProblem> problems, String kind) {
-        Symbol existing = scope.resolve(symbol.name());
+        Symbol existing = scope.resolveLocally(symbol.name());
 
         if (existing != null && existing != symbol) {
             problems.add(

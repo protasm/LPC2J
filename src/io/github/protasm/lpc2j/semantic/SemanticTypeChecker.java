@@ -16,6 +16,9 @@ import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -114,12 +117,20 @@ public final class SemanticTypeChecker {
             return LPCType.LPCSTATUS;
         if (expression instanceof ASTExprNull)
             return LPCType.LPCNULL;
+        if (expression instanceof ASTExprArrayLiteral)
+            return LPCType.LPCARRAY;
 
         if (expression instanceof ASTExprLocalAccess access)
             return valueType(access.local().symbol());
 
         if (expression instanceof ASTExprFieldAccess access)
             return valueType(access.field().symbol());
+
+        if (expression instanceof ASTExprArrayAccess arrayAccess) {
+            inferExpressionType(arrayAccess.target(), context);
+            inferExpressionType(arrayAccess.index(), context);
+            return LPCType.LPCMIXED;
+        }
 
         if (expression instanceof ASTExprFieldStore store) {
             LPCType valueType = inferExpressionType(store.value(), context);
@@ -133,6 +144,13 @@ public final class SemanticTypeChecker {
             LPCType localType = valueType(store.local().symbol());
             ensureAssignable(localType, valueType, store.line(), "Local assignment type mismatch");
             return localType != null ? localType : valueType;
+        }
+
+        if (expression instanceof ASTExprArrayStore store) {
+            inferExpressionType(store.target(), context);
+            LPCType valueType = inferExpressionType(store.value(), context);
+            ensureAssignable(LPCType.LPCARRAY, inferExpressionType(store.target(), context), store.line(), "Array assignment expects array target");
+            return valueType;
         }
 
         if (expression instanceof ASTExprOpUnary unary)
@@ -179,6 +197,16 @@ public final class SemanticTypeChecker {
 
         switch (op) {
         case BOP_ADD -> {
+            if (leftType == LPCType.LPCARRAY || rightType == LPCType.LPCARRAY) {
+                if (leftType != LPCType.LPCARRAY || rightType != LPCType.LPCARRAY) {
+                    problems.add(
+                            new CompilationProblem(
+                                    CompilationStage.ANALYZE,
+                                    "Array concatenation requires two arrays",
+                                    expr.line()));
+                }
+                return LPCType.LPCARRAY;
+            }
             if (leftType == LPCType.LPCSTRING || rightType == LPCType.LPCSTRING)
                 return LPCType.LPCSTRING;
 
@@ -280,7 +308,8 @@ public final class SemanticTypeChecker {
             return true;
 
         if (actual == LPCType.LPCNULL)
-            return expected == LPCType.LPCOBJECT || expected == LPCType.LPCSTRING || expected == LPCType.LPCMIXED;
+            return expected == LPCType.LPCOBJECT || expected == LPCType.LPCSTRING || expected == LPCType.LPCMIXED
+                    || expected == LPCType.LPCARRAY;
 
         return expected == actual;
     }

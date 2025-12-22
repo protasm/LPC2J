@@ -32,9 +32,13 @@ public final class ASTExprOpBinary extends ASTExpression {
     @Override
     public LPCType lpcType() {
         return switch (operator) {
-        case BOP_ADD -> (left.lpcType() == LPCType.LPCSTRING || right.lpcType() == LPCType.LPCSTRING)
-                ? LPCType.LPCSTRING
-                : LPCType.LPCINT;
+        case BOP_ADD -> {
+            if (left.lpcType() == LPCType.LPCARRAY || right.lpcType() == LPCType.LPCARRAY)
+                yield LPCType.LPCARRAY;
+            if (left.lpcType() == LPCType.LPCSTRING || right.lpcType() == LPCType.LPCSTRING)
+                yield LPCType.LPCSTRING;
+            yield LPCType.LPCINT;
+        }
         case BOP_SUB, BOP_MULT, BOP_DIV -> LPCType.LPCINT;
         case BOP_GT, BOP_GE, BOP_LT, BOP_LE, BOP_EQ, BOP_NE, BOP_OR, BOP_AND -> LPCType.LPCSTATUS;
         };

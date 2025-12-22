@@ -331,6 +331,7 @@ final class SemanticModelPrinter {
         case LPCOBJECT -> "object";
         case LPCSTATUS -> "status";
         case LPCSTRING -> "string";
+        case LPCARRAY -> "array";
         case LPCVOID -> "void";
         };
     }

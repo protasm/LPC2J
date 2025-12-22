@@ -20,6 +20,13 @@ public final class TypeResolver {
         if (typeName == null)
             return null;
 
-        return TYPE_KEYWORDS.get(typeName.toLowerCase());
+        String normalized = typeName.replaceAll("\\s+", "").toLowerCase();
+        if (normalized.endsWith("*")) {
+            String base = normalized.substring(0, normalized.length() - 1);
+            if (TYPE_KEYWORDS.containsKey(base))
+                return LPCType.LPCARRAY;
+        }
+
+        return TYPE_KEYWORDS.get(normalized);
     }
 }

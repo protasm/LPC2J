@@ -212,6 +212,26 @@ public final class Compiler {
             return;
         }
 
+        if (expression instanceof IRArrayLiteral arrayLiteral) {
+            emitArrayLiteral(mv, internalName, method, arrayLiteral);
+            return;
+        }
+
+        if (expression instanceof IRArrayConcat arrayConcat) {
+            emitArrayConcat(mv, internalName, method, arrayConcat);
+            return;
+        }
+
+        if (expression instanceof IRArrayGet arrayGet) {
+            emitArrayGet(mv, internalName, method, arrayGet);
+            return;
+        }
+
+        if (expression instanceof IRArraySet arraySet) {
+            emitArraySet(mv, internalName, method, arraySet);
+            return;
+        }
+
         if (expression instanceof IREfunCall efunCall) {
             emitEfunCall(mv, internalName, method, efunCall);
             return;
@@ -534,6 +554,54 @@ public final class Compiler {
             return;
 
         coerceValue(mv, source, target);
+    }
+
+    private void emitArrayLiteral(MethodVisitor mv, String internalName, IRMethod method, IRArrayLiteral literal) {
+        mv.visitTypeInsn(NEW, "java/util/ArrayList");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/util/ArrayList", "<init>", "()V", false);
+
+        for (IRExpression element : literal.elements()) {
+            mv.visitInsn(DUP);
+            emitExpression(mv, internalName, method, element);
+            boxIfNeeded(mv, element.type());
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "add", "(Ljava/lang/Object;)Z", false);
+            mv.visitInsn(POP);
+        }
+    }
+
+    private void emitArrayConcat(MethodVisitor mv, String internalName, IRMethod method, IRArrayConcat concat) {
+        mv.visitTypeInsn(NEW, "java/util/ArrayList");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/util/ArrayList", "<init>", "()V", false);
+
+        mv.visitInsn(DUP);
+        emitExpression(mv, internalName, method, concat.left());
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "addAll", "(Ljava/util/Collection;)Z", false);
+        mv.visitInsn(POP);
+
+        mv.visitInsn(DUP);
+        emitExpression(mv, internalName, method, concat.right());
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/ArrayList", "addAll", "(Ljava/util/Collection;)Z", false);
+        mv.visitInsn(POP);
+    }
+
+    private void emitArrayGet(MethodVisitor mv, String internalName, IRMethod method, IRArrayGet arrayGet) {
+        emitExpression(mv, internalName, method, arrayGet.array());
+        mv.visitTypeInsn(CHECKCAST, "java/util/List");
+        emitExpression(mv, internalName, method, arrayGet.index());
+        coerceValue(mv, arrayGet.index().type(), RuntimeTypes.INT);
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "get", "(I)Ljava/lang/Object;", true);
+    }
+
+    private void emitArraySet(MethodVisitor mv, String internalName, IRMethod method, IRArraySet arraySet) {
+        emitExpression(mv, internalName, method, arraySet.array());
+        mv.visitTypeInsn(CHECKCAST, "java/util/List");
+        emitExpression(mv, internalName, method, arraySet.index());
+        coerceValue(mv, arraySet.index().type(), RuntimeTypes.INT);
+        emitExpression(mv, internalName, method, arraySet.value());
+        boxIfNeeded(mv, arraySet.value().type());
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/List", "set", "(ILjava/lang/Object;)Ljava/lang/Object;", true);
     }
 
     private void coerceValue(MethodVisitor mv, RuntimeType source, RuntimeType target) {

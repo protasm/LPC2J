@@ -18,6 +18,8 @@ import static io.github.protasm.lpc2j.token.TokenType.T_GREATER;
 import static io.github.protasm.lpc2j.token.TokenType.T_GREATER_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_LESS;
 import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
@@ -32,9 +34,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.parselet.InfixBinaryOp;
+import io.github.protasm.lpc2j.parser.parselet.InfixIndex;
 import io.github.protasm.lpc2j.parser.parselet.PrefixIdentifier;
 import io.github.protasm.lpc2j.parser.parselet.PrefixLParen;
 import io.github.protasm.lpc2j.parser.parselet.PrefixLiteral;
+import io.github.protasm.lpc2j.parser.parselet.PrefixArrayLiteral;
 import io.github.protasm.lpc2j.parser.parselet.PrefixNumber;
 import io.github.protasm.lpc2j.parser.parselet.PrefixString;
 import io.github.protasm.lpc2j.parser.parselet.PrefixUnaryOp;
@@ -66,6 +70,8 @@ public class PrattParser {
         tokenTypeToRule = new HashMap<>();
 
         tokenTypeToRule.put(T_LEFT_PAREN, new ParseRule(new PrefixLParen(), null, PREC_NONE));
+        tokenTypeToRule.put(T_LEFT_BRACE, new ParseRule(new PrefixArrayLiteral(), null, PREC_NONE));
+        tokenTypeToRule.put(T_LEFT_BRACKET, new ParseRule(null, new InfixIndex(), Precedence.PREC_CALL));
 
         tokenTypeToRule.put(T_BANG, new ParseRule(new PrefixUnaryOp(), null, PREC_NONE));
 

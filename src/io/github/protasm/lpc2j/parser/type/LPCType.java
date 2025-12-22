@@ -9,8 +9,16 @@ import static io.github.protasm.lpc2j.parser.type.JType.JSTRING;
 import static io.github.protasm.lpc2j.parser.type.JType.JVOID;
 
 public enum LPCType {
-    LPCINT(JINT), LPCFLOAT(JFLOAT), LPCMAPPING(null), LPCMIXED(JOBJECT), LPCNULL(JNULL), LPCOBJECT(JOBJECT),
-    LPCSTATUS(JBOOLEAN), LPCSTRING(JSTRING), LPCVOID(JVOID);
+    LPCINT(JINT),
+    LPCFLOAT(JFLOAT),
+    LPCMAPPING(null),
+    LPCMIXED(JOBJECT),
+    LPCNULL(JNULL),
+    LPCOBJECT(JOBJECT),
+    LPCSTATUS(JBOOLEAN),
+    LPCSTRING(JSTRING),
+    LPCARRAY(JOBJECT),
+    LPCVOID(JVOID);
 
     private final JType jType;
 

@@ -35,8 +35,11 @@ public record RuntimeType(
      * to {@code java/lang/Object}. Array descriptors are derived from the element type.</p>
      */
     public String descriptor() {
-        if (isArray())
+        if (isArray()) {
+            if (objectInternalName != null)
+                return "L" + objectInternalName + ";";
             return "[" + elementType.descriptor();
+        }
 
         if (jvmType != null && jvmType != JType.JOBJECT && jvmType != JType.JNULL)
             return jvmType.descriptor();

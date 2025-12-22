@@ -14,6 +14,9 @@ import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
@@ -240,6 +243,14 @@ public final class IRLowerer {
         if (expression instanceof ASTExprLiteralString literal)
             return new IRConstant(literal.line(), literal.value(), RuntimeTypes.STRING);
 
+        if (expression instanceof ASTExprArrayLiteral arrayLiteral) {
+            List<IRExpression> elements = new ArrayList<>();
+            for (ASTExpression element : arrayLiteral.elements())
+                elements.add(lowerExpression(element, context, problems));
+            return new IRArrayLiteral(
+                    arrayLiteral.line(), elements, RuntimeTypes.arrayOf(RuntimeTypes.MIXED));
+        }
+
         if (expression instanceof ASTExprLiteralTrue literal)
             return new IRConstant(literal.line(), Boolean.TRUE, RuntimeTypes.STATUS);
 
@@ -270,6 +281,22 @@ public final class IRLowerer {
             return new IRFieldStore(fieldStore.line(), field, value);
         }
 
+        if (expression instanceof ASTExprArrayAccess arrayAccess) {
+            IRExpression target = lowerExpression(arrayAccess.target(), context, problems);
+            IRExpression index = coerceIfNeeded(
+                    lowerExpression(arrayAccess.index(), context, problems), RuntimeTypes.INT);
+            return new IRArrayGet(arrayAccess.line(), target, index, RuntimeTypes.MIXED);
+        }
+
+        if (expression instanceof ASTExprArrayStore arrayStore) {
+            IRExpression target = lowerExpression(arrayStore.target(), context, problems);
+            IRExpression index = coerceIfNeeded(
+                    lowerExpression(arrayStore.index(), context, problems), RuntimeTypes.INT);
+            IRExpression value = lowerExpression(arrayStore.value(), context, problems);
+            return new IRArraySet(
+                    arrayStore.line(), target, index, coerceIfNeeded(value, RuntimeTypes.MIXED), value.type());
+        }
+
         if (expression instanceof ASTExprOpUnary unary) {
             RuntimeType type = (unary.operator() == UnaryOpType.UOP_NOT)
                     ? RuntimeTypes.STATUS
@@ -279,6 +306,12 @@ public final class IRLowerer {
         }
 
         if (expression instanceof ASTExprOpBinary binary) {
+            if (binary.operator() == io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD
+                    && binary.lpcType() == LPCType.LPCARRAY) {
+                IRExpression left = lowerExpression(binary.left(), context, problems);
+                IRExpression right = lowerExpression(binary.right(), context, problems);
+                return new IRArrayConcat(binary.line(), left, right, RuntimeTypes.arrayOf(RuntimeTypes.MIXED));
+            }
             RuntimeType type = runtimeType(binary.lpcType());
             IRExpression left = lowerExpression(binary.left(), context, problems);
             IRExpression right = lowerExpression(binary.right(), context, problems);

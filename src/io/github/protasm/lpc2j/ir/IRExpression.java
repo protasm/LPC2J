@@ -3,7 +3,11 @@ package io.github.protasm.lpc2j.ir;
 import io.github.protasm.lpc2j.runtime.RuntimeType;
 
 public sealed interface IRExpression extends IRNode
-        permits IRBinaryOperation,
+        permits IRArrayConcat,
+                IRArrayGet,
+                IRArrayLiteral,
+                IRArraySet,
+                IRBinaryOperation,
                 IRCoerce,
                 IRConstant,
                 IRDynamicInvoke,

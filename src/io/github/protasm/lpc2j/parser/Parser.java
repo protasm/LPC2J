@@ -161,10 +161,12 @@ public class Parser {
             throw new ParseException("Expect property type or name.", tokens.current());
 
         Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect property type or name.");
+        boolean isArrayType = tokens.match(TokenType.T_STAR);
 
         if (tokens.check(T_IDENTIFIER)) {
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
-            return new Symbol(firstToken.lexeme(), nameToken.lexeme());
+            String declaredTypeName = firstToken.lexeme() + (isArrayType ? "*" : "");
+            return new Symbol(declaredTypeName, nameToken.lexeme());
         }
 
         return new Symbol((String) null, firstToken.lexeme());
@@ -286,9 +288,11 @@ public class Parser {
             Token<String> nameToken = null;
             String declaredType = null;
 
+            boolean isArrayType = tokens.match(TokenType.T_STAR);
+
             if (tokens.check(T_IDENTIFIER)) {
                 nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
-                declaredType = firstToken.lexeme();
+                declaredType = firstToken.lexeme() + (isArrayType ? "*" : "");
             } else {
                 nameToken = firstToken;
             }
@@ -351,8 +355,10 @@ public class Parser {
 
     private void locals(Token<String> typeToken, List<ASTStatement> statements) {
         do {
+            boolean isArrayType = tokens.match(TokenType.T_STAR);
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
-            Symbol symbol = new Symbol(typeToken.lexeme(), nameToken.lexeme());
+            String declaredType = typeToken.lexeme() + (isArrayType ? "*" : "");
+            Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
 
             if (locals.hasCollision(symbol.name()))
                 throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.", nameToken);
@@ -518,6 +524,14 @@ public class Parser {
 
         Token<?> next = tokens.peek(1);
 
-        return next.type() == T_IDENTIFIER;
+        if (next.type() == T_IDENTIFIER)
+            return true;
+
+        if (next.type() == TokenType.T_STAR) {
+            Token<?> after = tokens.peek(2);
+            return after.type() == T_IDENTIFIER;
+        }
+
+        return false;
     }
 }

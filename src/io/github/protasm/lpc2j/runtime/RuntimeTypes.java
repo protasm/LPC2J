@@ -40,7 +40,8 @@ public final class RuntimeTypes {
 
     public static RuntimeType arrayOf(RuntimeType elementType) {
         Objects.requireNonNull(elementType, "elementType");
-        return new RuntimeType(RuntimeValueKind.ARRAY, JType.JOBJECT, null, RuntimeTruthiness.REFERENCE_NULL_FALSE, elementType);
+        return new RuntimeType(
+                RuntimeValueKind.ARRAY, JType.JOBJECT, "java/util/List", RuntimeTruthiness.REFERENCE_NULL_FALSE, elementType);
     }
 
     public static RuntimeType efunHandle() {
@@ -60,6 +61,7 @@ public final class RuntimeTypes {
         case LPCOBJECT -> OBJECT;
         case LPCSTATUS -> STATUS;
         case LPCSTRING -> STRING;
+        case LPCARRAY -> arrayOf(MIXED);
         case LPCVOID -> VOID;
         };
     }

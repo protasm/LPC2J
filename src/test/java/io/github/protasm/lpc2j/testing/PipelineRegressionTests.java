@@ -61,6 +61,7 @@ public final class PipelineRegressionTests {
                 new TestCase("dynamic invoke results coerce to integers", PipelineRegressionTests::dynamicInvokeResultsCoerceToIntegers),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
+                new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
 
@@ -359,6 +360,47 @@ public final class PipelineRegressionTests {
         assertEquals(0, ((Number) clazz.getMethod("notMixed", Object.class).invoke(instance, "value")).intValue(), "mixed non-zero/non-null is truthy");
 
         assertEquals(1, ((Number) clazz.getMethod("ifOnString").invoke(instance)).intValue(), "strings participate in truthiness within conditionals");
+    }
+
+    private static void arraysBehave() throws Exception {
+        String source = ""
+                + "string *fruits;\n"
+                + "void create() { fruits = ({ \"apple\", \"banana\", \"cherry\" }); }\n"
+                + "string second() { return fruits[1]; }\n"
+                + "string update_and_get() { fruits[2] = \"orange\"; return fruits[2]; }\n"
+                + "string *combined() { return ({ \"apple\" }) + ({ \"banana\", \"cherry\" }); }\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/ArraySample", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.ArraySample";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        clazz.getMethod("create").invoke(instance);
+
+        Object second = clazz.getMethod("second").invoke(instance);
+        assertEquals("banana", second, "array indexing should read elements");
+
+        Object updated = clazz.getMethod("update_and_get").invoke(instance);
+        assertEquals("orange", updated, "array assignment should write elements");
+
+        @SuppressWarnings("unchecked")
+        java.util.List<Object> combined = (java.util.List<Object>) clazz.getMethod("combined").invoke(instance);
+        assertEquals(3, combined.size(), "array concatenation should merge elements");
+        assertEquals("apple", combined.get(0), "first element should be preserved");
+        assertEquals("banana", combined.get(1), "second element should be preserved");
+        assertEquals("cherry", combined.get(2), "third element should be preserved");
     }
 
     private static void consoleConfigLoadsSystemIncludes() {

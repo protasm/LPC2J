@@ -118,30 +118,53 @@ public class Parser {
     }
 
     private void declarations() {
-        skipInherit();
+        boolean seenProperty = false;
 
-        while (!tokens.isAtEnd())
+        while (!tokens.isAtEnd()) {
+            if (tokens.match(T_INHERIT)) {
+                Token<String> parentToken = consumeInheritPath();
+
+                // Single-inheritance only: bail out on any additional inherit.
+                if (currObj.parentName() != null)
+                    throw new ParseException("Only one inherit statement is allowed per object.", parentToken);
+
+                // Inherit must be declared before any fields or functions.
+                if (seenProperty)
+                    throw new ParseException("inherit statements must appear before any variable or function declarations.", parentToken);
+
+                // Record the inherited path early for downstream stages.
+                currObj.setParentName(parentToken.lexeme());
+                continue;
+            }
+
+            seenProperty = true;
             property(false);
+        }
     }
 
     private void definitions() {
         tokens.reset();
 
-        currObj.setParentName(inherit());
+        while (!tokens.isAtEnd()) {
+            if (tokens.match(T_INHERIT)) {
+                Token<String> parentToken = consumeInheritPath();
 
-        while (!tokens.isAtEnd())
+                if (currObj.parentName() == null)
+                    currObj.setParentName(parentToken.lexeme());
+
+                continue;
+            }
+
             property(true);
+        }
     }
 
-    private String inherit() {
-        if (!tokens.match(T_INHERIT))
-            return null;
-
+    private Token<String> consumeInheritPath() {
         Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expect string after 'inherit'.");
 
         tokens.consume(T_SEMICOLON, "Expect ';' after inherited object path.");
 
-        return parentToken.lexeme();
+        return parentToken;
     }
 
     private void property(boolean define) {
@@ -252,13 +275,6 @@ public class Parser {
 
                 currentMethod = null;
         }
-
-    private void skipInherit() {
-        if (!tokens.match(T_INHERIT))
-            return;
-
-        tokens.advanceThrough(T_SEMICOLON);
-    }
 
     private void skipMethodBody() {
         int count = 0;

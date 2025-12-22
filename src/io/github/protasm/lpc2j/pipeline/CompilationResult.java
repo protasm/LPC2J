@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 
 public final class CompilationResult {
+    private final CompilationUnit compilationUnit;
     private final TokenList tokens;
     private final ASTObject astObject;
     private final SemanticModel semanticModel;
@@ -17,12 +18,14 @@ public final class CompilationResult {
     private final List<CompilationProblem> problems;
 
     public CompilationResult(
+            CompilationUnit compilationUnit,
             TokenList tokens,
             ASTObject astObject,
             SemanticModel semanticModel,
             TypedIR typedIr,
             byte[] bytecode,
             List<CompilationProblem> problems) {
+        this.compilationUnit = compilationUnit;
         this.tokens = tokens;
         this.astObject = astObject;
         this.semanticModel = semanticModel;
@@ -39,6 +42,10 @@ public final class CompilationResult {
 
     public TokenList getTokens() {
         return tokens;
+    }
+
+    public CompilationUnit getCompilationUnit() {
+        return compilationUnit;
     }
 
     public ASTObject getAstObject() {

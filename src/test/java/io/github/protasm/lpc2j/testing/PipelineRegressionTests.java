@@ -58,6 +58,7 @@ public final class PipelineRegressionTests {
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
+                new TestCase("instance calls honor declared parameter types", PipelineRegressionTests::instanceCallsHonorDeclaredParameterTypes),
                 new TestCase("dynamic invoke results coerce to integers", PipelineRegressionTests::dynamicInvokeResultsCoerceToIntegers),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
@@ -251,6 +252,39 @@ public final class PipelineRegressionTests {
         Object value = add.invoke(instance, 2, 3);
 
         assertEquals(5, ((Number) value).intValue(), "generated class should add arguments");
+    }
+
+    private static void instanceCallsHonorDeclaredParameterTypes() throws Exception {
+        String source = ""
+                + "status stored;\n"
+                + "void set_flag(status flag) { stored = flag; }\n"
+                + "status query_flag() { return stored; }\n"
+                + "void create() { set_flag(1); }\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/FlagHolder", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.FlagHolder";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        Method create = clazz.getMethod("create");
+        Method queryFlag = clazz.getMethod("query_flag");
+
+        create.invoke(instance);
+        Object flag = queryFlag.invoke(instance);
+
+        assertEquals(Boolean.TRUE, flag, "status arguments should coerce int literals to booleans when invoking methods");
     }
 
     private static void dynamicInvokeResultsCoerceToIntegers() throws Exception {

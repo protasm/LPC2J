@@ -424,7 +424,7 @@ public final class Compiler {
         for (IRExpression arg : call.arguments())
             emitExpression(mv, internalName, method, arg);
 
-        String descriptor = buildCallDescriptor(call.arguments(), call.type());
+        String descriptor = buildCallDescriptor(call);
         mv.visitMethodInsn(INVOKEVIRTUAL, call.ownerInternalName(), call.methodName(), descriptor, false);
     }
 
@@ -697,7 +697,23 @@ public final class Compiler {
         return sb.toString();
     }
 
-    private String buildCallDescriptor(List<IRExpression> args, RuntimeType returnType) {
+    private String buildCallDescriptor(IRInstanceCall call) {
+        if (call.parameterTypes() != null && !call.parameterTypes().isEmpty())
+            return buildCallDescriptor(call.parameterTypes(), call.type());
+
+        return buildCallDescriptorFromArgs(call.arguments(), call.type());
+    }
+
+    private String buildCallDescriptor(List<RuntimeType> parameterTypes, RuntimeType returnType) {
+        StringBuilder sb = new StringBuilder("(");
+        for (RuntimeType parameterType : parameterTypes)
+            sb.append(descriptor(parameterType));
+        sb.append(")");
+        sb.append(descriptor(returnType));
+        return sb.toString();
+    }
+
+    private String buildCallDescriptorFromArgs(List<IRExpression> args, RuntimeType returnType) {
         StringBuilder sb = new StringBuilder("(");
         for (IRExpression arg : args)
             sb.append(descriptor(arg.type()));

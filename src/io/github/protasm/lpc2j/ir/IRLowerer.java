@@ -329,11 +329,13 @@ public final class IRLowerer {
             RuntimeType returnType = runtimeType(callMethod.lpcType());
             String ownerInternalName =
                     (callMethod.method().ownerName() != null) ? callMethod.method().ownerName() : defaultParentInternalName;
+            List<RuntimeType> parameterTypes = parameterTypes(callMethod.method());
             return new IRInstanceCall(
                     callMethod.line(),
                     ownerInternalName,
                     callMethod.method().symbol().name(),
                     args,
+                    parameterTypes,
                     returnType);
         }
 
@@ -363,6 +365,18 @@ public final class IRLowerer {
             lowered.add(lowerExpression(argument.expression(), context, problems));
 
         return lowered;
+    }
+
+    private List<RuntimeType> parameterTypes(ASTMethod method) {
+        List<RuntimeType> types = new ArrayList<>();
+
+        if (method.parameters() == null)
+            return types;
+
+        for (ASTParameter parameter : method.parameters())
+            types.add(runtimeType(parameter.symbol().lpcType()));
+
+        return types;
     }
 
     private IRExpression coerceIfNeeded(IRExpression value, RuntimeType targetType) {

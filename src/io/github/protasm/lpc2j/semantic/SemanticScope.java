@@ -41,6 +41,10 @@ public final class SemanticScope {
         return null;
     }
 
+    public Symbol resolveLocally(String name) {
+        return symbols.get(name);
+    }
+
     public Map<String, Symbol> symbols() {
         return Collections.unmodifiableMap(symbols);
     }

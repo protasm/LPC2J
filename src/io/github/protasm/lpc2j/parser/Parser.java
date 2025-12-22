@@ -19,7 +19,9 @@ import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
@@ -53,6 +55,8 @@ public class Parser {
         private ASTMethod currentMethod;
         private final ParserOptions options;
         private final RuntimeContext runtimeContext;
+        private final Map<String, Integer> fieldDefinitionIndex = new HashMap<>();
+        private final Map<String, Integer> methodDefinitionIndex = new HashMap<>();
 
         public Parser() {
                 this(new RuntimeContext(Preprocessor.rejectingResolver()), ParserOptions.defaults());
@@ -144,6 +148,8 @@ public class Parser {
 
     private void definitions() {
         tokens.reset();
+        fieldDefinitionIndex.clear();
+        methodDefinitionIndex.clear();
 
         while (!tokens.isAtEnd()) {
             if (tokens.match(T_INHERIT)) {
@@ -212,13 +218,18 @@ public class Parser {
         }
 
         for (FieldDeclarator declarator : declarators) {
-            ASTField field = currObj.fields().get(declarator.symbol().name());
+            int definitionIndex = nextFieldDefinitionIndex(declarator.symbol().name());
+            ASTField field = currObj.fields().get(declarator.symbol().name(), definitionIndex);
 
             if (field == null)
                 throw new ParseException("Unrecognized field '" + declarator.symbol().name() + "'.", tokens.current());
 
             field.setInitializer(declarator.initializer());
         }
+    }
+
+    private int nextFieldDefinitionIndex(String name) {
+        return fieldDefinitionIndex.merge(name, 1, Integer::sum) - 1;
     }
 
     private List<FieldDeclarator> fieldDeclarators(Symbol symbol, boolean define) {
@@ -262,7 +273,11 @@ public class Parser {
             return;
         }
 
-                ASTMethod method = currObj.methods().get(symbol.name());
+                int definitionIndex = nextMethodDefinitionIndex(symbol.name());
+                ASTMethod method = currObj.methods().get(symbol.name(), definitionIndex);
+
+                if (method == null)
+                        throw new ParseException("Unrecognized method '" + symbol.name() + "'.", tokens.current());
 
                 locals = new Locals();
                 currentMethod = method;
@@ -275,6 +290,10 @@ public class Parser {
 
                 currentMethod = null;
         }
+
+    private int nextMethodDefinitionIndex(String name) {
+        return methodDefinitionIndex.merge(name, 1, Integer::sum) - 1;
+    }
 
     private void skipMethodBody() {
         int count = 0;

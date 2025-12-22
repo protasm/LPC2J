@@ -67,7 +67,7 @@ final class SemanticModelPrinter {
                         : "Object " + object.name();
         PrettyNode objectNode = new PrettyNode(label);
 
-        List<ASTField> fields = new ArrayList<>(object.fields().nodes().values());
+        List<ASTField> fields = new ArrayList<>(object.fields().all());
         fields.sort(Comparator.comparing(f -> f.symbol().name()));
         PrettyNode fieldsNode = new PrettyNode("Fields");
         if (fields.isEmpty()) {
@@ -81,7 +81,7 @@ final class SemanticModelPrinter {
         }
         objectNode.add(fieldsNode);
 
-        List<ASTMethod> methods = new ArrayList<>(object.methods().nodes().values());
+        List<ASTMethod> methods = new ArrayList<>(object.methods().all());
         methods.sort(Comparator.comparing(m -> m.symbol().name()));
         PrettyNode methodsNode = new PrettyNode("Methods");
         if (methods.isEmpty()) {

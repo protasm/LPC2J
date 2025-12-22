@@ -8,6 +8,7 @@ public final class ASTMethod extends ASTNode {
     private ASTParameters parameters;
     private ASTStmtBlock body;
     private final java.util.List<ASTLocal> locals;
+    private ASTMethod overriddenMethod;
 
     public ASTMethod(int line, String ownerName, Symbol symbol) {
         super(line);
@@ -50,6 +51,18 @@ public final class ASTMethod extends ASTNode {
 
     public void addLocal(ASTLocal local) {
         locals.add(local);
+    }
+
+    /**
+     * Records the inherited method this declaration overrides, when applicable. The reference is
+     * preserved for downstream phases that need to trace back to the defining compilation unit.
+     */
+    public void setOverriddenMethod(ASTMethod overriddenMethod) {
+        this.overriddenMethod = overriddenMethod;
+    }
+
+    public ASTMethod overriddenMethod() {
+        return overriddenMethod;
     }
 
     public String descriptor() {

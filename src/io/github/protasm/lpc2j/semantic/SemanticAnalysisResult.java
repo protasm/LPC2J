@@ -24,6 +24,10 @@ public final class SemanticAnalysisResult {
     }
 
     public boolean succeeded() {
-        return problems.isEmpty();
+        return problems.stream().noneMatch(problem -> !isWarning(problem));
+    }
+
+    private boolean isWarning(CompilationProblem problem) {
+        return problem.getMessage() != null && problem.getMessage().startsWith("Warning:");
     }
 }

@@ -35,6 +35,8 @@ public final class ASTExprOpBinary extends ASTExpression {
         case BOP_ADD -> {
             if (left.lpcType() == LPCType.LPCARRAY || right.lpcType() == LPCType.LPCARRAY)
                 yield LPCType.LPCARRAY;
+            if (left.lpcType() == LPCType.LPCMAPPING || right.lpcType() == LPCType.LPCMAPPING)
+                yield LPCType.LPCMAPPING;
             if (left.lpcType() == LPCType.LPCSTRING || right.lpcType() == LPCType.LPCSTRING)
                 yield LPCType.LPCSTRING;
             yield LPCType.LPCINT;

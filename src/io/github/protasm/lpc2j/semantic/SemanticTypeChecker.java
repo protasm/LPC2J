@@ -31,6 +31,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -119,6 +120,8 @@ public final class SemanticTypeChecker {
             return LPCType.LPCNULL;
         if (expression instanceof ASTExprArrayLiteral)
             return LPCType.LPCARRAY;
+        if (expression instanceof ASTExprMappingLiteral)
+            return LPCType.LPCMAPPING;
 
         if (expression instanceof ASTExprLocalAccess access)
             return valueType(access.local().symbol());
@@ -126,11 +129,8 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprFieldAccess access)
             return valueType(access.field().symbol());
 
-        if (expression instanceof ASTExprArrayAccess arrayAccess) {
-            inferExpressionType(arrayAccess.target(), context);
-            inferExpressionType(arrayAccess.index(), context);
-            return LPCType.LPCMIXED;
-        }
+        if (expression instanceof ASTExprArrayAccess arrayAccess)
+            return inferIndexAccessType(arrayAccess, context);
 
         if (expression instanceof ASTExprFieldStore store) {
             LPCType valueType = inferExpressionType(store.value(), context);
@@ -146,12 +146,8 @@ public final class SemanticTypeChecker {
             return localType != null ? localType : valueType;
         }
 
-        if (expression instanceof ASTExprArrayStore store) {
-            inferExpressionType(store.target(), context);
-            LPCType valueType = inferExpressionType(store.value(), context);
-            ensureAssignable(LPCType.LPCARRAY, inferExpressionType(store.target(), context), store.line(), "Array assignment expects array target");
-            return valueType;
-        }
+        if (expression instanceof ASTExprArrayStore store)
+            return inferIndexStoreType(store, context);
 
         if (expression instanceof ASTExprOpUnary unary)
             return inferUnaryType(unary, context);
@@ -209,6 +205,16 @@ public final class SemanticTypeChecker {
             }
             if (leftType == LPCType.LPCSTRING || rightType == LPCType.LPCSTRING)
                 return LPCType.LPCSTRING;
+            if (leftType == LPCType.LPCMAPPING || rightType == LPCType.LPCMAPPING) {
+                if (leftType != LPCType.LPCMAPPING || rightType != LPCType.LPCMAPPING) {
+                    problems.add(
+                            new CompilationProblem(
+                                    CompilationStage.ANALYZE,
+                                    "Mapping concatenation requires two mappings",
+                                    expr.line()));
+                }
+                return LPCType.LPCMAPPING;
+            }
 
             ensureNumericOperands(leftType, rightType, expr.line(), "Addition expects numeric operands");
             return LPCType.LPCINT;
@@ -282,6 +288,53 @@ public final class SemanticTypeChecker {
         ensureAssignable(LPCType.LPCINT, right, line, message);
     }
 
+    private LPCType inferIndexAccessType(ASTExprArrayAccess access, MethodContext context) {
+        LPCType targetType = inferExpressionType(access.target(), context);
+        LPCType indexType = inferExpressionType(access.index(), context);
+
+        if (targetType == LPCType.LPCARRAY) {
+            ensureAssignable(LPCType.LPCINT, indexType, access.line(), "Array index expects integer");
+            return LPCType.LPCMIXED;
+        }
+
+        if (targetType == LPCType.LPCMAPPING) {
+            ensureAssignable(LPCType.LPCSTRING, indexType, access.line(), "Mapping key expects string");
+            return LPCType.LPCMIXED;
+        }
+
+        if (targetType == LPCType.LPCMIXED || targetType == null)
+            return LPCType.LPCMIXED;
+
+        problems.add(
+                new CompilationProblem(
+                        CompilationStage.ANALYZE, "Indexing expects array or mapping target", access.line()));
+        return LPCType.LPCMIXED;
+    }
+
+    private LPCType inferIndexStoreType(ASTExprArrayStore store, MethodContext context) {
+        LPCType targetType = inferExpressionType(store.target(), context);
+        LPCType valueType = inferExpressionType(store.value(), context);
+        LPCType indexType = inferExpressionType(store.index(), context);
+
+        if (targetType == LPCType.LPCARRAY) {
+            ensureAssignable(LPCType.LPCINT, indexType, store.line(), "Array index expects integer");
+            return valueType;
+        }
+
+        if (targetType == LPCType.LPCMAPPING) {
+            ensureAssignable(LPCType.LPCSTRING, indexType, store.line(), "Mapping key expects string");
+            return valueType;
+        }
+
+        if (targetType == LPCType.LPCMIXED || targetType == null)
+            return valueType;
+
+        problems.add(
+                new CompilationProblem(
+                        CompilationStage.ANALYZE, "Assignment expects array or mapping target", store.line()));
+        return valueType;
+    }
+
     private void ensureAssignable(LPCType expected, LPCType actual, int line, String message) {
         if (expected == null || isTypeAssignable(expected, actual))
             return;
@@ -309,7 +362,7 @@ public final class SemanticTypeChecker {
 
         if (actual == LPCType.LPCNULL)
             return expected == LPCType.LPCOBJECT || expected == LPCType.LPCSTRING || expected == LPCType.LPCMIXED
-                    || expected == LPCType.LPCARRAY;
+                    || expected == LPCType.LPCARRAY || expected == LPCType.LPCMAPPING;
 
         return expected == actual;
     }

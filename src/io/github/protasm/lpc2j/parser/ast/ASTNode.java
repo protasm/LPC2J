@@ -6,6 +6,7 @@ public abstract sealed class ASTNode
         permits ASTArgument,
                 ASTExpression,
                 ASTField,
+                ASTInherit,
                 ASTListNode,
                 ASTLocal,
                 ASTMapNode,

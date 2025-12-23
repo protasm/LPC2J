@@ -4,6 +4,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTFields;
+import io.github.protasm.lpc2j.parser.ast.ASTInherit;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTMethods;
@@ -47,6 +48,7 @@ public interface ASTVisitor {
         case ASTArguments arguments -> visitArguments(arguments);
         case ASTField field -> visitField(field);
         case ASTFields fields -> visitFields(fields);
+        case ASTInherit inherit -> visitInherit(inherit);
         case ASTLocal local -> visitLocal(local);
         case ASTMethod method -> visitMethod(method);
         case ASTMethods methods -> visitMethods(methods);
@@ -88,6 +90,8 @@ public interface ASTVisitor {
     default void visitFields(ASTFields fields) {
         fields.forEach(this::visit);
     }
+
+    default void visitInherit(ASTInherit inherit) {}
 
     default void visitLocal(ASTLocal local) {}
 

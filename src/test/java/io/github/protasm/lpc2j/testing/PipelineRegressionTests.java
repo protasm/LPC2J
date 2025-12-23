@@ -54,6 +54,7 @@ public final class PipelineRegressionTests {
                 new TestCase("preprocessor tracks include/macro mapping", PipelineRegressionTests::preprocessorMappingIsPreserved),
                 new TestCase("scanner spans honor preprocessor mapping", PipelineRegressionTests::scannerSpansReflectMappedFiles),
                 new TestCase("semantic analysis surfaces type mismatches", PipelineRegressionTests::semanticAnalysisReportsReturnMismatch),
+                new TestCase("semantic defers inherit validation to analysis", PipelineRegressionTests::semanticFlagsInvalidInheritancePlacement),
                 new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
                 new TestCase("parser concatenates adjacent string literals", PipelineRegressionTests::parserConcatenatesAdjacentStringLiterals),
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
@@ -155,6 +156,33 @@ public final class PipelineRegressionTests {
         assertTrue(
                 analysis.problems().stream().anyMatch(p -> p.getMessage().contains("Return type mismatch")),
                 "return type mismatch should be reported");
+    }
+
+    private static void semanticFlagsInvalidInheritancePlacement() {
+        String source = ""
+                + "inherit \"/std/base1\";\n"
+                + "int value;\n"
+                + "inherit \"/std/base2\";\n";
+        TokenList tokens = new Scanner().scan(source);
+        Parser parser = new Parser();
+        ASTObject astObject = parser.parse("InheritanceSample", tokens);
+
+        assertEquals(2, astObject.inherits().size(), "parser should record all inherit directives");
+        int firstPropertyLine = astObject.fields().iterator().next().line();
+        List<Integer> inheritLines = astObject.inherits().stream().map(inherit -> inherit.line()).toList();
+
+        SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
+        String problemSummary = describeProblems(analysis.problems());
+
+        assertTrue(!analysis.succeeded(), "semantic analysis should fail for invalid inheritance layout");
+        assertTrue(
+                analysis.problems().stream().anyMatch(p -> p.getMessage().contains("Only one inherit")),
+                "semantic analysis should reject multiple inherit statements (" + problemSummary + ")");
+        assertTrue(
+                analysis.problems().stream()
+                        .anyMatch(p -> p.getMessage().contains("inherit statements must appear before any variable or function declarations.")),
+                "semantic analysis should enforce inherit ordering (" + problemSummary + ", inheritLines=" + inheritLines
+                        + ", firstPropertyLine=" + firstPropertyLine + ")");
     }
 
     private static void parserAcceptsTypedAndUntypedFunctions() {

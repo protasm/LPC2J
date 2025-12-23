@@ -4,6 +4,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTFields;
+import io.github.protasm.lpc2j.parser.ast.ASTInherit;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTMethods;
@@ -233,6 +234,12 @@ public final class PrintVisitor implements ASTVisitor {
             doOutput(String.format("%s(%s)", object.className(), object.name()));
 
         indentLvl++;
+        if (!object.inherits().isEmpty()) {
+            doOutput("[INHERITS]");
+            indentLvl++;
+            object.inherits().forEach(inherit -> inherit.accept(this));
+            indentLvl--;
+        }
         object.fields().accept(this);
         object.methods().accept(this);
         indentLvl--;
@@ -253,6 +260,11 @@ public final class PrintVisitor implements ASTVisitor {
                 param.accept(this);
 
         System.out.println();
+    }
+
+    @Override
+    public void visitInherit(ASTInherit inherit) {
+        doOutput(String.format("%s(\"%s\")", inherit.className(), inherit.path()));
     }
 
     @Override

@@ -5,6 +5,7 @@ import io.github.protasm.lpc2j.pipeline.CompilationStage;
 import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTInherit;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMapNode;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
@@ -69,6 +70,7 @@ public final class SemanticAnalyzer {
                 : null;
         SemanticScope objectScope = new SemanticScope(parentScope);
 
+        validateInheritance(astObject, problems);
         resolveObjectSignatures(astObject, problems);
         validateDuplicates(astObject.fields(), "field", problems);
         validateDuplicates(astObject.methods(), "method", problems);
@@ -189,6 +191,49 @@ public final class SemanticAnalyzer {
 
         return new ASTExprLiteralInteger(
                 method.body().line(), new Token<>(TokenType.T_INT_LITERAL, "0", 0, null));
+    }
+
+    private void validateInheritance(ASTObject astObject, List<CompilationProblem> problems) {
+        List<ASTInherit> inherits = astObject.inherits();
+        if (inherits.isEmpty())
+            return;
+
+        if (inherits.size() > 1) {
+            for (int i = 1; i < inherits.size(); i++) {
+                ASTInherit inherit = inherits.get(i);
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Only one inherit statement is allowed per object.",
+                                inherit.line()));
+            }
+        }
+
+        int firstPropertyLine = firstPropertyLine(astObject);
+        if (firstPropertyLine == Integer.MAX_VALUE)
+            return;
+
+        for (ASTInherit inherit : inherits) {
+            if (inherit.line() > firstPropertyLine) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "inherit statements must appear before any variable or function declarations.",
+                                inherit.line()));
+            }
+        }
+    }
+
+    private int firstPropertyLine(ASTObject astObject) {
+        int firstLine = Integer.MAX_VALUE;
+
+        for (ASTField field : astObject.fields())
+            firstLine = Math.min(firstLine, field.line());
+
+        for (ASTMethod method : astObject.methods())
+            firstLine = Math.min(firstLine, method.line());
+
+        return firstLine;
     }
 
     private void resolveObjectSignatures(ASTObject astObject, List<CompilationProblem> problems) {

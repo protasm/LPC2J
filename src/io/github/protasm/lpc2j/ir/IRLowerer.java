@@ -123,6 +123,8 @@ public final class IRLowerer {
             tail.terminate(new IRReturn(method.line(), defaultReturnExpression(method.line(), context.returnType)));
 
         List<IRBlock> blocks = context.buildBlocks(new IRReturn(method.line(), defaultReturnExpression(method.line(), context.returnType)));
+        boolean overridesParent = method.overrides() != null;
+        String overriddenOwnerInternalName = (method.overrides() != null) ? method.overrides().ownerName() : null;
 
         return new IRMethod(
                 method.line(),
@@ -131,7 +133,9 @@ public final class IRLowerer {
                 context.parameters,
                 context.locals,
                 blocks,
-                entryBlock.label());
+                entryBlock.label(),
+                overridesParent,
+                overriddenOwnerInternalName);
     }
 
     private void lowerParameters(ASTMethod method, MethodContext context) {
@@ -378,8 +382,9 @@ public final class IRLowerer {
         if (expression instanceof ASTExprCallMethod callMethod) {
             List<IRExpression> args = lowerArguments(callMethod.arguments(), context, problems);
             RuntimeType returnType = runtimeType(callMethod.lpcType());
-            String ownerInternalName =
-                    (callMethod.method().ownerName() != null) ? callMethod.method().ownerName() : defaultParentInternalName;
+            String ownerInternalName = callMethod.method().ownerName();
+            if (ownerInternalName == null && !callMethod.isParentDispatch())
+                ownerInternalName = defaultParentInternalName;
             List<RuntimeType> parameterTypes = parameterTypes(callMethod.method());
             return new IRInstanceCall(
                     callMethod.line(),

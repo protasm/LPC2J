@@ -37,6 +37,7 @@ import io.github.protasm.lpc2j.sourcepos.SourcePos;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -75,6 +76,9 @@ public final class PipelineRegressionTests {
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
                 new TestCase("instance calls honor declared parameter types", PipelineRegressionTests::instanceCallsHonorDeclaredParameterTypes),
                 new TestCase("dynamic invoke results coerce to integers", PipelineRegressionTests::dynamicInvokeResultsCoerceToIntegers),
+                new TestCase(
+                        "inheritance lowers to Java extends and super dispatch",
+                        PipelineRegressionTests::inheritanceLowersToJavaSuperCalls),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
@@ -479,6 +483,59 @@ public final class PipelineRegressionTests {
 
         assertEquals(3, difference, "dynamic invocation results should be coerced to integers");
         assertEquals(0, nullCase, "compare_strength should handle null objects");
+    }
+
+    private static void inheritanceLowersToJavaSuperCalls() throws Exception {
+        String parentSource = "int shout() { return 1; }\n";
+        IncludeResolver resolver = (includingFile, includePath, system) ->
+                new IncludeResolution(parentSource, Path.of("parent.c"), "regression/Parent");
+
+        RuntimeContext runtimeContext = new RuntimeContext(resolver);
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
+
+        CompilationResult parentResult =
+                pipeline.run(null, parentSource, "regression/Parent", null, ParserOptions.defaults());
+        if (!parentResult.succeeded())
+            throw new AssertionError("parent compilation should succeed: " + describeProblems(parentResult.getProblems()));
+
+        String childSource = ""
+                + "inherit \"/parent\";\n"
+                + "int shout() { return 2; }\n"
+                + "int call_parent() { return ::shout(); }\n"
+                + "int call_self() { return shout(); }\n";
+
+        CompilationResult childResult =
+                pipeline.run(null, childSource, "regression/Child", null, ParserOptions.defaults());
+
+        if (!childResult.succeeded()) {
+            throw new AssertionError("child compilation should succeed: " + describeProblems(childResult.getProblems()));
+        }
+
+        byte[] parentBytecode = parentResult.getBytecode();
+        byte[] childBytecode = childResult.getBytecode();
+
+        class ByteArrayLoader extends ClassLoader {
+            Class<?> defineBytes(String binaryName, byte[] bytecode) {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }
+
+        ByteArrayLoader loader = new ByteArrayLoader();
+        Class<?> parentClass = loader.defineBytes("regression.Parent", parentBytecode);
+        Class<?> childClass = loader.defineBytes("regression.Child", childBytecode);
+
+        assertEquals(
+                parentClass, childClass.getSuperclass(), "child class should extend the resolved parent class");
+
+        Object child = childClass.getDeclaredConstructor().newInstance();
+        assertEquals(
+                1,
+                ((Number) childClass.getMethod("call_parent").invoke(child)).intValue(),
+                "parent dispatch should target the parent implementation");
+        assertEquals(
+                2,
+                ((Number) childClass.getMethod("call_self").invoke(child)).intValue(),
+                "virtual dispatch should target the override");
     }
 
     private static void fieldInitializersExecute() throws Exception {

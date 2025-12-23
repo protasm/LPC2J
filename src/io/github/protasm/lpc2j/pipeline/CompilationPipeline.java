@@ -98,6 +98,9 @@ public final class CompilationPipeline {
             if (!problems.isEmpty()) {
                 return new CompilationResult(unit, tokens, astObject, semanticModel, typedIr, bytecode, problems);
             }
+
+            if (astObject != null && parentUnit != null && parentUnit.astObject() != null)
+                astObject.setParentName(parentUnit.astObject().name());
         }
 
         SemanticAnalyzer analyzer = new SemanticAnalyzer(runtimeContext);

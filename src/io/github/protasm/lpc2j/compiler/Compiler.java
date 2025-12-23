@@ -43,6 +43,8 @@ public final class Compiler {
         String parentName =
                 (object.parentInternalName() != null) ? object.parentInternalName() : defaultParentInternalName;
 
+        // Map LPC inheritance onto Java's single-inheritance model by wiring the resolved parent
+        // class into the generated superclass slot.
         cw.visit(V21, ACC_SUPER | ACC_PUBLIC, internalName, null, parentName, null);
 
         emitFields(cw, object);
@@ -80,6 +82,9 @@ public final class Compiler {
     }
 
     private void emitMethod(ClassWriter cw, String internalName, IRMethod method) {
+        if (method.overridesParent() && method.overriddenOwnerInternalName() == null)
+            throw new CompileException("Override for '" + method.name() + "' is missing parent metadata.");
+
         String descriptor = methodDescriptor(method);
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, method.name(), descriptor, null, null);
         mv.visitCode();
@@ -440,11 +445,26 @@ public final class Compiler {
     }
 
     private void emitInstanceCall(MethodVisitor mv, String internalName, IRMethod method, IRInstanceCall call) {
+        String descriptor = buildCallDescriptor(call);
+
+        if (call.parentDispatch()) {
+            if (call.ownerInternalName() == null)
+                throw new CompileException("Unresolved parent dispatch for '" + call.methodName() + "'.");
+
+            // Explicit LPC parent calls lower to direct super calls so dispatch stays anchored on
+            // the inherited implementation rather than re-entering overrides on this class.
+            mv.visitVarInsn(ALOAD, 0);
+            for (IRExpression arg : call.arguments())
+                emitExpression(mv, internalName, method, arg);
+
+            mv.visitMethodInsn(INVOKESPECIAL, call.ownerInternalName(), call.methodName(), descriptor, false);
+            return;
+        }
+
         mv.visitVarInsn(ALOAD, 0);
         for (IRExpression arg : call.arguments())
             emitExpression(mv, internalName, method, arg);
 
-        String descriptor = buildCallDescriptor(call);
         mv.visitMethodInsn(INVOKEVIRTUAL, call.ownerInternalName(), call.methodName(), descriptor, false);
     }
 

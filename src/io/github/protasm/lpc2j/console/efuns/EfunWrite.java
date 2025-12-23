@@ -22,6 +22,10 @@ public final class EfunWrite implements Efun {
 
     @Override
     public Object call(RuntimeContext context, Object[] args) {
+        if (args.length < 1) return null;
+
+        System.out.println(args[0]);
+
         return null;
     }
 }

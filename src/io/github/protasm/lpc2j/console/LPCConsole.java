@@ -6,6 +6,7 @@ import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.console.ConsoleConfig;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
+import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
 import io.github.protasm.lpc2j.pipeline.CompilationStage;
@@ -32,6 +33,7 @@ public class LPCConsole {
   private Path vPath;
   private final ParserOptions parserOptions;
   private final ConsoleConfig config;
+  private final ConsoleClassLoader classLoader;
 
   private final ConsoleLineReader lineReader;
 
@@ -69,6 +71,7 @@ public class LPCConsole {
     this.runtimeContext = new RuntimeContext(includeResolver);
     this.pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
     this.vPath = Path.of("/");
+    this.classLoader = new ConsoleClassLoader(getClass().getClassLoader());
 
     lineReader = new ConsoleLineReader(System.in, System.out);
 
@@ -192,17 +195,14 @@ public class LPCConsole {
   }
 
   public FSSourceFile compile(String vPathStr) {
-    FSSourceFile sf = prepareSourceFile(vPathStr);
-    if (sf == null) return null;
+    CompilationRun run = compileWithResult(vPathStr);
+    if (run == null) return null;
 
-    CompilationResult result = runPipeline(sf);
-
-    if (!result.succeeded()) {
-      printProblems(sf, result.getProblems());
+    if (!run.result().succeeded()) {
       return null;
     }
 
-    return sf;
+    return run.sourceFile();
   }
 
   public FSSourceFile parse(String vPathStr) {
@@ -373,29 +373,44 @@ public class LPCConsole {
   }
 
   private FSSourceFile doLoad(String vPathStr) {
-    FSSourceFile sf = compile(vPathStr);
+    List<CompilationRun> runs = compileWithDependencies(vPathStr);
 
-    if (sf == null) {
+    if ((runs == null) || runs.isEmpty()) {
       return null;
     }
 
-    // Define the class dynamically from the bytecode
-    Class<?> clazz =
-        new ClassLoader() {
-          public Class<?> defineClass(byte[] bytecode) {
-            return defineClass(null, bytecode, 0, bytecode.length);
-          }
-        }.defineClass(sf.bytes());
+    CompilationRun target = runs.get(runs.size() - 1);
+    if (!target.result().succeeded()) {
+      return null;
+    }
 
-    // Instantiate the class using reflection
+    Class<?> targetClass = null;
+
+    for (CompilationRun run : runs) {
+      FSSourceFile sf = run.sourceFile();
+      try {
+        Class<?> defined = classLoader.define(sf.dotName(), sf.bytes());
+        if (run == target) {
+          targetClass = defined;
+        }
+      } catch (LinkageError e) {
+        System.out.println("Error loading class '" + sf.dotName() + "': " + e.getMessage());
+        return null;
+      }
+    }
+
+    if (targetClass == null) {
+      System.out.println("Error: could not load class for '" + target.sourceFile().dotName() + "'.");
+      return null;
+    }
+
     try {
-      // Assume a no-arg constructor
-      Constructor<?> constructor = clazz.getConstructor();
+      Constructor<?> constructor = targetClass.getConstructor();
       Object instance = constructor.newInstance();
 
-      sf.setLPCObject(instance);
+      target.sourceFile().setLPCObject(instance);
 
-      return sf;
+      return target.sourceFile();
     } catch (NoSuchMethodException
         | InvocationTargetException
         | IllegalAccessException
@@ -550,6 +565,130 @@ public class LPCConsole {
 
     public Object value() {
       return value;
+    }
+  }
+
+  private CompilationRun compileWithResult(String vPathStr) {
+    FSSourceFile sf = prepareSourceFile(vPathStr);
+    if (sf == null) return null;
+
+    CompilationResult result = runPipeline(sf);
+
+    if (!result.succeeded()) {
+      printProblems(sf, result.getProblems());
+    }
+
+    return new CompilationRun(sf, result);
+  }
+
+  private List<CompilationRun> compileWithDependencies(String vPathStr) {
+    Map<String, CompilationRun> compiled = new LinkedHashMap<>();
+
+    if (!compileRecursive(vPathStr, compiled)) {
+      return null;
+    }
+
+    return List.copyOf(compiled.values());
+  }
+
+  private boolean compileRecursive(String vPathStr, Map<String, CompilationRun> compiled) {
+    String normalized = normalizeVPath(vPathStr);
+
+    if (compiled.containsKey(normalized)) {
+      return true;
+    }
+
+    CompilationRun run = compileWithResult(vPathStr);
+
+    if ((run == null) || !run.result().succeeded()) {
+      return false;
+    }
+
+    CompilationUnit parentUnit = run.result().getCompilationUnit().parentUnit();
+    if (parentUnit != null) {
+      String parentVPath = vPathFor(parentUnit);
+
+      if (parentVPath == null) {
+        System.out.println(
+            "Error: cannot resolve inherited object '" + parentUnit.parseName() + "' within the mudlib root.");
+        return false;
+      }
+
+      if (!compileRecursive(parentVPath, compiled)) {
+        return false;
+      }
+    }
+
+    compiled.put(normalized, run);
+
+    return true;
+  }
+
+  private String normalizeVPath(String vPathStr) {
+    return Path.of(vPathStr).normalize().toString();
+  }
+
+  private String vPathFor(CompilationUnit unit) {
+    Path parentSource = unit.sourcePath();
+    if (parentSource == null) {
+      return null;
+    }
+
+    Path normalized = parentSource.normalize();
+    Path base = vfs.basePath().normalize();
+
+    if (!normalized.startsWith(base)) {
+      return null;
+    }
+
+    return base.relativize(normalized).toString();
+  }
+
+  private static final class CompilationRun {
+    private final FSSourceFile sourceFile;
+    private final CompilationResult result;
+
+    CompilationRun(FSSourceFile sourceFile, CompilationResult result) {
+      this.sourceFile = sourceFile;
+      this.result = result;
+    }
+
+    public FSSourceFile sourceFile() {
+      return sourceFile;
+    }
+
+    public CompilationResult result() {
+      return result;
+    }
+  }
+
+  private static final class ConsoleClassLoader extends ClassLoader {
+    private final Map<String, Class<?>> definedClasses = new LinkedHashMap<>();
+
+    ConsoleClassLoader(ClassLoader parent) {
+      super(parent);
+    }
+
+    Class<?> define(String binaryName, byte[] bytecode) {
+      Class<?> existing = definedClasses.get(binaryName);
+      if (existing != null) {
+        return existing;
+      }
+
+      Class<?> defined = defineClass(binaryName, bytecode, 0, bytecode.length);
+      definedClasses.put(binaryName, defined);
+
+      return defined;
+    }
+
+    @Override
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+      Class<?> defined = definedClasses.get(name);
+      if (defined != null) {
+        return defined;
+      }
+
+      throw new ClassNotFoundException(name);
     }
   }
 }

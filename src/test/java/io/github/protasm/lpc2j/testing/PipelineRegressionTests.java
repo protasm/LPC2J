@@ -38,13 +38,16 @@ import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Lightweight regression harness that exercises the phase-separated compiler pipeline.
@@ -79,6 +82,9 @@ public final class PipelineRegressionTests {
                 new TestCase(
                         "inheritance lowers to Java extends and super dispatch",
                         PipelineRegressionTests::inheritanceLowersToJavaSuperCalls),
+                new TestCase(
+                        "inheritance samples exercise pipeline end-to-end",
+                        PipelineRegressionTests::inheritanceSamplesExercisePipeline),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
@@ -538,6 +544,116 @@ public final class PipelineRegressionTests {
                 "virtual dispatch should target the override");
     }
 
+    private static void inheritanceSamplesExercisePipeline() throws Exception {
+        Path sampleDir = Path.of("lpc2j/sample/inheritance");
+        IncludeResolver resolver = (includingFile, includePath, system) -> {
+            String normalizedInclude = includePath;
+            if ((normalizedInclude != null) && normalizedInclude.startsWith("\"") && normalizedInclude.endsWith("\""))
+                normalizedInclude = normalizedInclude.substring(1, normalizedInclude.length() - 1);
+            Path candidate = sampleDir.resolve(includePath).normalize();
+            if (!Files.exists(candidate))
+                candidate = sampleDir.resolve(normalizedInclude).normalize();
+            if (!Files.exists(candidate))
+                throw new IOException("cannot include '" + includePath + "' from " + sampleDir);
+            String source = Files.readString(candidate);
+            return new IncludeResolution(source, candidate, sampleDisplayName(sampleDir, candidate));
+        };
+
+        RuntimeContext runtimeContext = new RuntimeContext(resolver);
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
+        ByteArrayLoader loader = new ByteArrayLoader();
+
+        Path standalonePath = sampleDir.resolve("standalone_basic.c");
+        String standaloneDisplay = sampleDisplayName(sampleDir, standalonePath);
+        CompilationResult standaloneResult =
+                pipeline.run(standalonePath, Files.readString(standalonePath), standaloneDisplay, standaloneDisplay, ParserOptions.defaults());
+        assertTrue(standaloneResult.succeeded(), "standalone sample should compile cleanly (" + describeProblems(standaloneResult.getProblems()) + ")");
+        Class<?> standaloneClass = loader.define(binaryName(standaloneDisplay), standaloneResult.getBytecode());
+        Object standaloneInstance = standaloneClass.getDeclaredConstructor().newInstance();
+        assertEquals("standalone", standaloneClass.getMethod("describe").invoke(standaloneInstance), "standalone method dispatch should work");
+        int incremented = ((Number) standaloneClass.getMethod("increment", int.class).invoke(standaloneInstance, 3)).intValue();
+        assertEquals(5, incremented, "standalone field mutation should persist");
+        int squared = ((Number) standaloneClass.getMethod("squared_counter").invoke(standaloneInstance)).intValue();
+        assertEquals(25, squared, "standalone methods should observe updated fields");
+
+        Path parentPath = sampleDir.resolve("inherit_parent.c");
+        String parentDisplay = sampleDisplayName(sampleDir, parentPath);
+        CompilationResult parentResult =
+                pipeline.run(parentPath, Files.readString(parentPath), parentDisplay, parentDisplay, ParserOptions.defaults());
+        assertTrue(parentResult.succeeded(), "parent sample should compile cleanly (" + describeProblems(parentResult.getProblems()) + ")");
+        Class<?> parentClass = loader.define(binaryName(parentDisplay), parentResult.getBytecode());
+        Object parentInstance = parentClass.getDeclaredConstructor().newInstance();
+        assertEquals(101, ((Number) parentClass.getMethod("shout").invoke(parentInstance)).intValue(), "parent method should use its own field");
+        assertEquals(25, ((Number) parentClass.getMethod("parent_sum").invoke(parentInstance)).intValue(), "parent initializer should run before methods");
+        assertEquals(-1, ((Number) parentClass.getMethod("manual_marker").invoke(parentInstance)).intValue(), "driver should not invoke user hooks");
+
+        Path childPath = sampleDir.resolve("inherit_child.c");
+        String childDisplay = sampleDisplayName(sampleDir, childPath);
+        CompilationResult childResult =
+                pipeline.run(childPath, Files.readString(childPath), childDisplay, childDisplay, ParserOptions.defaults());
+        assertTrue(childResult.succeeded(), "child sample should compile cleanly (" + describeProblems(childResult.getProblems()) + ")");
+        Class<?> childClass = loader.define(binaryName(childDisplay), childResult.getBytecode());
+        assertEquals(parentClass, childClass.getSuperclass(), "child should extend resolved parent class");
+        Object childInstance = childClass.getDeclaredConstructor().newInstance();
+
+        assertEquals(
+                205, ((Number) childClass.getMethod("call_self_shout").invoke(childInstance)).intValue(), "virtual dispatch should target override");
+        assertEquals(
+                101, ((Number) childClass.getMethod("call_parent_shout").invoke(childInstance)).intValue(), "explicit parent dispatch should bypass override");
+        assertEquals(6, ((Number) childClass.getMethod("combined_shadow").invoke(childInstance)).intValue(), "shadowed fields should not collide across classes");
+        assertEquals(36, ((Number) childClass.getMethod("totals").invoke(childInstance)).intValue(), "inherited fields should be accessible in child code");
+
+        // Driver-managed initialization should run exactly once per instance and chain parent then child.
+        int shadowed = readIntField(childClass, childInstance, "shadowed_field");
+        int parentField = readIntField(parentClass, childInstance, "parent_field");
+        int childOnly = readIntField(childClass, childInstance, "child_only");
+        int childInitOrder = readIntField(childClass, childInstance, "child_init_order");
+        assertEquals(5, shadowed, "child shadowed_field should retain child value");
+        assertEquals(10, parentField, "parent_field should be initialized in parent class");
+        assertEquals(6, childOnly, "child-only field should initialize from child shadowed_field");
+        assertEquals(20, childInitOrder, "child initialization should see parent-initialized values");
+        Method childInit = childClass.getDeclaredMethod("$lpc$init");
+        childInit.setAccessible(true);
+        childInit.invoke(childInstance); // second invocation should be a no-op due to guard
+        assertEquals(10, readIntField(parentClass, childInstance, "parent_field"), "init guard should prevent double initialization");
+        assertEquals(6, readIntField(childClass, childInstance, "child_only"), "init guard should avoid rerunning child initializers");
+
+        // Field layout: parent fields remain on parent, child fields stay on child, names stay unique.
+        ensureDeclaredFieldsUnique(childClass);
+        assertTrue(!hasDeclaredField(childClass, "parent_field"), "parent_field should not be declared on the child class");
+        assertTrue(hasDeclaredField(parentClass, "parent_field"), "parent_field should be declared on the parent class");
+        assertTrue(hasDeclaredField(parentClass, "shadowed_field"), "shadowed_field should exist on parent class");
+        assertTrue(hasDeclaredField(childClass, "shadowed_field"), "shadowed_field should exist on child class");
+
+        // Parent dispatch should mutate parent storage only.
+        int bumped = ((Number) childClass.getMethod("parent_field_via_method", int.class).invoke(childInstance, 3)).intValue();
+        assertEquals(13, bumped, "parent bump should update parent field");
+        assertEquals(13, readIntField(parentClass, childInstance, "parent_field"), "parent_field should reflect bump");
+        assertEquals(5, readIntField(childClass, childInstance, "shadowed_field"), "child shadowed_field should remain unchanged");
+
+        // No user-defined methods should be auto-invoked by driver-managed lifecycle.
+        assertEquals(0, ((Number) childClass.getMethod("manual_check").invoke(childInstance)).intValue(), "driver should not call user-defined setup");
+        childClass.getMethod("run_manual_setup").invoke(childInstance);
+        assertEquals(16, ((Number) childClass.getMethod("manual_check").invoke(childInstance)).intValue(), "manual setup should run only when explicitly invoked");
+
+        Path simplePath = sampleDir.resolve("no_inherit_simple.c");
+        String simpleDisplay = sampleDisplayName(sampleDir, simplePath);
+        CompilationResult simpleResult =
+                pipeline.run(simplePath, Files.readString(simplePath), simpleDisplay, simpleDisplay, ParserOptions.defaults());
+        assertTrue(simpleResult.succeeded(), "non-inheritance sample should compile cleanly (" + describeProblems(simpleResult.getProblems()) + ")");
+        Class<?> simpleClass = loader.define(binaryName(simpleDisplay), simpleResult.getBytecode());
+        assertEquals(42, ((Number) simpleClass.getMethod("get_value").invoke(simpleClass.getDeclaredConstructor().newInstance())).intValue(), "simple object should initialize and dispatch");
+
+        Path invalidPath = sampleDir.resolve("invalid_duplicate_field.c");
+        String invalidDisplay = sampleDisplayName(sampleDir, invalidPath);
+        CompilationResult invalidResult =
+                pipeline.run(invalidPath, Files.readString(invalidPath), invalidDisplay, invalidDisplay, ParserOptions.defaults());
+        assertTrue(!invalidResult.succeeded(), "invalid sample should fail compilation");
+        assertTrue(
+                invalidResult.getProblems().stream().anyMatch(p -> p.getMessage().contains("Duplicate field")),
+                "duplicate field should surface as a semantic error");
+    }
+
     private static void fieldInitializersExecute() throws Exception {
         String source = "string short_desc = \"a rusty sword\";\nshort() { return short_desc; }\n";
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
@@ -739,6 +855,51 @@ public final class PipelineRegressionTests {
         }
 
         assertTrue(threw, "console config should reject nonexistent base path");
+    }
+
+    private static String sampleDisplayName(Path root, Path file) {
+        Path rel = root.relativize(file);
+        String stem = stripExtension(rel.getFileName().toString());
+        Path display = (rel.getParent() == null) ? Path.of(stem) : rel.getParent().resolve(stem);
+        return "samples/" + display.toString().replace('\\', '/');
+    }
+
+    private static String stripExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return (dot == -1) ? name : name.substring(0, dot);
+    }
+
+    private static String binaryName(String displayName) {
+        return displayName.replace('/', '.');
+    }
+
+    private static int readIntField(Class<?> owner, Object target, String fieldName) throws Exception {
+        Field f = owner.getDeclaredField(fieldName);
+        f.setAccessible(true);
+        return f.getInt(target);
+    }
+
+    private static boolean hasDeclaredField(Class<?> owner, String fieldName) {
+        try {
+            owner.getDeclaredField(fieldName);
+            return true;
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
+    }
+
+    private static void ensureDeclaredFieldsUnique(Class<?> owner) {
+        Set<String> names = new HashSet<>();
+        for (Field field : owner.getDeclaredFields()) {
+            if (!names.add(field.getName()))
+                throw new AssertionError("Duplicate Java field name emitted: " + field.getName());
+        }
+    }
+
+    private static final class ByteArrayLoader extends ClassLoader {
+        Class<?> define(String binaryName, byte[] bytecode) {
+            return defineClass(binaryName, bytecode, 0, bytecode.length);
+        }
     }
 
     private static Token<?> find(TokenList tokens, TokenType type, String lexeme, int start) {

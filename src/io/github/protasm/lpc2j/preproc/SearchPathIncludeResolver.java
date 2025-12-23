@@ -51,11 +51,15 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
       throws IOException {
     if (includePath == null) throw new IOException("include path cannot be null");
 
+    String normalizedIncludePath = normalizeIncludePath(includePath);
+    if (normalizedIncludePath.isEmpty())
+      throw new IOException("include path cannot be empty");
+
     if (!system && (includingFile != null)) {
       Path parent = resolveAgainstBase(includingFile.getParent());
 
       if (parent != null) {
-        Path maybe = tryRead(parent, includePath);
+        Path maybe = tryRead(parent, normalizedIncludePath);
 
         if (maybe != null) return buildResolution(maybe);
       }
@@ -63,12 +67,12 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
 
     if (system) {
       for (Path root : systemIncludeRoots) {
-        Path maybe = tryRead(root, includePath);
+        Path maybe = tryRead(root, normalizedIncludePath);
 
         if (maybe != null) return buildResolution(maybe);
       }
     } else if (baseIncludePath != null) {
-      Path maybe = tryRead(baseIncludePath, includePath);
+      Path maybe = tryRead(baseIncludePath, normalizedIncludePath);
 
       if (maybe != null) return buildResolution(maybe);
     }
@@ -119,6 +123,18 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
     normalized = baseIncludePath.resolve(relative);
 
     return normalized.normalize();
+  }
+
+  private String normalizeIncludePath(String includePath) {
+    String trimmed = includePath.trim();
+
+    if ((trimmed.length() >= 2)
+        && ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+            || (trimmed.startsWith("<") && trimmed.endsWith(">")))) {
+      return trimmed.substring(1, trimmed.length() - 1);
+    }
+
+    return trimmed;
   }
 
   private IncludeResolution buildResolution(Path candidate) throws IOException {

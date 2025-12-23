@@ -39,6 +39,7 @@ import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.console.ConsoleLineReader;
+import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -552,26 +553,16 @@ public final class PipelineRegressionTests {
     }
 
     private static void inheritanceSamplesExercisePipeline() throws Exception {
-        Path sampleDir = Path.of("lpc2j/sample/inheritance");
-        IncludeResolver resolver = (includingFile, includePath, system) -> {
-            String normalizedInclude = includePath;
-            if ((normalizedInclude != null) && normalizedInclude.startsWith("\"") && normalizedInclude.endsWith("\""))
-                normalizedInclude = normalizedInclude.substring(1, normalizedInclude.length() - 1);
-            Path candidate = sampleDir.resolve(includePath).normalize();
-            if (!Files.exists(candidate))
-                candidate = sampleDir.resolve(normalizedInclude).normalize();
-            if (!Files.exists(candidate))
-                throw new IOException("cannot include '" + includePath + "' from " + sampleDir);
-            String source = Files.readString(candidate);
-            return new IncludeResolution(source, candidate, sampleDisplayName(sampleDir, candidate));
-        };
+        Path sampleRoot = Path.of("lpc2j/sample");
+        Path sampleDir = sampleRoot.resolve("inheritance");
+        IncludeResolver resolver = new SearchPathIncludeResolver(sampleRoot, List.of());
 
         RuntimeContext runtimeContext = new RuntimeContext(resolver);
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
         ByteArrayLoader loader = new ByteArrayLoader();
 
         Path standalonePath = sampleDir.resolve("standalone_basic.c");
-        String standaloneDisplay = sampleDisplayName(sampleDir, standalonePath);
+        String standaloneDisplay = sampleDisplayName(sampleRoot, standalonePath);
         CompilationResult standaloneResult =
                 pipeline.run(standalonePath, Files.readString(standalonePath), standaloneDisplay, standaloneDisplay, ParserOptions.defaults());
         assertTrue(standaloneResult.succeeded(), "standalone sample should compile cleanly (" + describeProblems(standaloneResult.getProblems()) + ")");
@@ -584,7 +575,7 @@ public final class PipelineRegressionTests {
         assertEquals(25, squared, "standalone methods should observe updated fields");
 
         Path parentPath = sampleDir.resolve("inherit_parent.c");
-        String parentDisplay = sampleDisplayName(sampleDir, parentPath);
+        String parentDisplay = sampleDisplayName(sampleRoot, parentPath);
         CompilationResult parentResult =
                 pipeline.run(parentPath, Files.readString(parentPath), parentDisplay, parentDisplay, ParserOptions.defaults());
         assertTrue(parentResult.succeeded(), "parent sample should compile cleanly (" + describeProblems(parentResult.getProblems()) + ")");
@@ -595,7 +586,7 @@ public final class PipelineRegressionTests {
         assertEquals(-1, ((Number) parentClass.getMethod("manual_marker").invoke(parentInstance)).intValue(), "driver should not invoke user hooks");
 
         Path childPath = sampleDir.resolve("inherit_child.c");
-        String childDisplay = sampleDisplayName(sampleDir, childPath);
+        String childDisplay = sampleDisplayName(sampleRoot, childPath);
         CompilationResult childResult =
                 pipeline.run(childPath, Files.readString(childPath), childDisplay, childDisplay, ParserOptions.defaults());
         assertTrue(childResult.succeeded(), "child sample should compile cleanly (" + describeProblems(childResult.getProblems()) + ")");
@@ -644,7 +635,7 @@ public final class PipelineRegressionTests {
         assertEquals(16, ((Number) childClass.getMethod("manual_check").invoke(childInstance)).intValue(), "manual setup should run only when explicitly invoked");
 
         Path simplePath = sampleDir.resolve("no_inherit_simple.c");
-        String simpleDisplay = sampleDisplayName(sampleDir, simplePath);
+        String simpleDisplay = sampleDisplayName(sampleRoot, simplePath);
         CompilationResult simpleResult =
                 pipeline.run(simplePath, Files.readString(simplePath), simpleDisplay, simpleDisplay, ParserOptions.defaults());
         assertTrue(simpleResult.succeeded(), "non-inheritance sample should compile cleanly (" + describeProblems(simpleResult.getProblems()) + ")");
@@ -652,7 +643,7 @@ public final class PipelineRegressionTests {
         assertEquals(42, ((Number) simpleClass.getMethod("get_value").invoke(simpleClass.getDeclaredConstructor().newInstance())).intValue(), "simple object should initialize and dispatch");
 
         Path invalidPath = sampleDir.resolve("invalid_duplicate_field.c");
-        String invalidDisplay = sampleDisplayName(sampleDir, invalidPath);
+        String invalidDisplay = sampleDisplayName(sampleRoot, invalidPath);
         CompilationResult invalidResult =
                 pipeline.run(invalidPath, Files.readString(invalidPath), invalidDisplay, invalidDisplay, ParserOptions.defaults());
         assertTrue(!invalidResult.succeeded(), "invalid sample should fail compilation");

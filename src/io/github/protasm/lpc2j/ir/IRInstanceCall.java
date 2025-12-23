@@ -13,7 +13,8 @@ public record IRInstanceCall(
         List<RuntimeType> parameterTypes,
         RuntimeType type) implements IRExpression {
     public IRInstanceCall {
-        Objects.requireNonNull(ownerInternalName, "ownerInternalName");
+        if (!parentDispatch)
+            Objects.requireNonNull(ownerInternalName, "ownerInternalName");
         Objects.requireNonNull(methodName, "methodName");
         Objects.requireNonNull(parameterTypes, "parameterTypes");
         arguments = List.copyOf(arguments);

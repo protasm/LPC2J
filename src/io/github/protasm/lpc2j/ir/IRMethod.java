@@ -12,7 +12,9 @@ public record IRMethod(
         List<IRParameter> parameters,
         List<IRLocal> locals,
         List<IRBlock> blocks,
-        String entryBlockLabel) {
+        String entryBlockLabel,
+        boolean overridesParent,
+        String overriddenOwnerInternalName) {
     public IRMethod {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(returnType, "returnType");

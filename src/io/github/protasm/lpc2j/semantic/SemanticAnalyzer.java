@@ -3,6 +3,8 @@ package io.github.protasm.lpc2j.semantic;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationStage;
 import io.github.protasm.lpc2j.pipeline.CompilationUnit;
+import io.github.protasm.lpc2j.parser.ast.ASTArgument;
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTInherit;
@@ -13,14 +15,31 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.semantic.SemanticScope.ScopedSymbol;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenType;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -112,16 +131,9 @@ public final class SemanticAnalyzer {
         for (ASTMethod method : astObject.methods()) {
             SemanticScope methodScope = new SemanticScope(objectScope);
 
-            if (method.parameters() != null) {
-                for (ASTParameter parameter : method.parameters()) {
-                    declareUnique(parameter.symbol(), methodScope, problems, "parameter");
-                }
-            }
-
-            for (ASTLocal local : method.locals()) {
-                declareUnique(local.symbol(), methodScope, problems, "local");
-            }
-
+            declareParameters(methodScope, method, problems);
+            assignLocalSlots(method, problems);
+            validateLocalInitializers(method, problems);
             ensureImplicitReturn(method);
         }
 
@@ -175,6 +187,19 @@ public final class SemanticAnalyzer {
         scope.declare(symbol);
     }
 
+    private void declareParameters(
+            SemanticScope methodScope, ASTMethod method, List<CompilationProblem> problems) {
+        if (method.parameters() == null)
+            return;
+
+        for (ASTParameter parameter : method.parameters())
+            declareUnique(parameter.symbol(), methodScope, problems, "parameter");
+    }
+
+    private int parameterCount(ASTMethod method) {
+        return (method.parameters() != null) ? method.parameters().size() : 0;
+    }
+
     private void ensureImplicitReturn(ASTMethod method) {
         if (method.body() == null)
             return;
@@ -192,6 +217,108 @@ public final class SemanticAnalyzer {
 
         return new ASTExprLiteralInteger(
                 method.body().line(), new Token<>(TokenType.T_INT_LITERAL, "0", 0, null));
+    }
+
+    private void assignLocalSlots(ASTMethod method, List<CompilationProblem> problems) {
+        LocalSlotAllocator allocator = new LocalSlotAllocator(parameterCount(method));
+
+        for (ASTLocal local : method.locals())
+            allocator.place(local, problems);
+    }
+
+    private void validateLocalInitializers(ASTMethod method, List<CompilationProblem> problems) {
+        if (method.body() == null)
+            return;
+
+        validateInitializers(method.body(), problems);
+    }
+
+    private void validateInitializers(ASTStatement statement, List<CompilationProblem> problems) {
+        if (statement == null)
+            return;
+
+        if (statement instanceof ASTStmtBlock block) {
+            for (ASTStatement nested : block)
+                validateInitializers(nested, problems);
+            return;
+        }
+
+        if (statement instanceof ASTStmtIfThenElse stmtIf) {
+            validateInitializers(stmtIf.thenBranch(), problems);
+            if (stmtIf.elseBranch() != null)
+                validateInitializers(stmtIf.elseBranch(), problems);
+            return;
+        }
+
+        if (statement instanceof ASTStmtExpression stmtExpression)
+            inspectInitializerExpression(stmtExpression.expression(), problems);
+    }
+
+    private void inspectInitializerExpression(ASTExpression expression, List<CompilationProblem> problems) {
+        if (expression instanceof ASTExprLocalStore store && store.isDeclarationInitializer()) {
+            if (referencesLocal(store.value(), store.local())) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Cannot reference local '" + store.local().symbol().name()
+                                        + "' in its own initializer.",
+                                store.line()));
+            }
+        }
+    }
+
+    private boolean referencesLocal(ASTExpression expression, ASTLocal local) {
+        if (expression == null || local == null)
+            return false;
+
+        if (expression instanceof ASTExprLocalAccess access)
+            return access.local() == local;
+
+        if (expression instanceof ASTExprLocalStore store)
+            return store.local() == local || referencesLocal(store.value(), local);
+
+        if (expression instanceof ASTExprInvokeLocal invoke)
+            return invoke.local() == local || referencesArguments(invoke.arguments(), local);
+
+        if (expression instanceof ASTExprCallMethod call)
+            return referencesArguments(call.arguments(), local);
+
+        if (expression instanceof ASTExprCallEfun call)
+            return referencesArguments(call.arguments(), local);
+
+        if (expression instanceof ASTExprArrayStore store)
+            return referencesLocal(store.target(), local)
+                    || referencesLocal(store.index(), local)
+                    || referencesLocal(store.value(), local);
+
+        if (expression instanceof ASTExprArrayAccess access)
+            return referencesLocal(access.target(), local) || referencesLocal(access.index(), local);
+
+        if (expression instanceof ASTExprArrayLiteral arrayLiteral)
+            return arrayLiteral.elements().stream().anyMatch(elem -> referencesLocal(elem, local));
+
+        if (expression instanceof ASTExprMappingLiteral mappingLiteral)
+            return mappingLiteral.entries().stream()
+                    .anyMatch(entry -> referencesLocal(entry.key(), local) || referencesLocal(entry.value(), local));
+
+        if (expression instanceof ASTExprOpUnary unary)
+            return referencesLocal(unary.right(), local);
+
+        if (expression instanceof ASTExprOpBinary binary)
+            return referencesLocal(binary.left(), local) || referencesLocal(binary.right(), local);
+
+        return false;
+    }
+
+    private boolean referencesArguments(ASTArguments arguments, ASTLocal local) {
+        if (arguments == null)
+            return false;
+
+        for (ASTArgument argument : arguments)
+            if (referencesLocal(argument.expression(), local))
+                return true;
+
+        return false;
     }
 
     private void validateInheritance(ASTObject astObject, List<CompilationProblem> problems) {
@@ -348,6 +475,64 @@ public final class SemanticAnalyzer {
         List<LPCType> types = new ArrayList<>(method.parameters().size());
         method.parameters().forEach(param -> types.add(param.symbol().lpcType()));
         return types;
+    }
+
+    private static final class LocalSlotAllocator {
+        private final Deque<ScopeFrame> scopes = new ArrayDeque<>();
+        private final Deque<Integer> freeSlots = new ArrayDeque<>();
+        private int currentDepth = 0;
+        private int nextSlot;
+
+        LocalSlotAllocator(int parameterCount) {
+            nextSlot = parameterCount + 1; // slot 0 reserved for "this"
+            scopes.push(new ScopeFrame());
+        }
+
+        void place(ASTLocal local, List<CompilationProblem> problems) {
+            int targetDepth = Math.max(local.scopeDepth(), 0);
+            alignScopes(targetDepth);
+
+            ScopeFrame frame = scopes.peek();
+            ASTLocal existing = frame.locals.get(local.symbol().name());
+            if (existing != null && existing != local) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Duplicate local '" + local.symbol().name() + "' in scope",
+                                local.line()));
+            }
+
+            int slot = (!freeSlots.isEmpty()) ? freeSlots.pop() : nextSlot++;
+            local.setSlot(slot);
+            local.setScopeDepth(targetDepth);
+            frame.locals.put(local.symbol().name(), local);
+        }
+
+        private void alignScopes(int targetDepth) {
+            while (currentDepth > targetDepth)
+                releaseScope();
+
+            while (currentDepth < targetDepth)
+                openScope();
+        }
+
+        private void openScope() {
+            scopes.push(new ScopeFrame());
+            currentDepth++;
+        }
+
+        private void releaseScope() {
+            ScopeFrame expired = scopes.pop();
+            for (ASTLocal local : expired.locals.values()) {
+                if (local.slot() >= 0)
+                    freeSlots.push(local.slot());
+            }
+            currentDepth--;
+        }
+
+        private static final class ScopeFrame {
+            private final Map<String, ASTLocal> locals = new HashMap<>();
+        }
     }
 
 }

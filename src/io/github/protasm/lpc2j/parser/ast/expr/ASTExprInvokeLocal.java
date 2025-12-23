@@ -1,26 +1,31 @@
 package io.github.protasm.lpc2j.parser.ast.expr;
 
-import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public final class ASTExprInvokeLocal extends ASTExpression {
     private LPCType lpcType;
-    private final Integer slot;
+    private final ASTLocal local;
     private final String methodName;
     private final ASTArguments args;
 
-    public ASTExprInvokeLocal(int line, int slot, String methodName, ASTArguments args) {
+    public ASTExprInvokeLocal(int line, ASTLocal local, String methodName, ASTArguments args) {
         super(line);
 
         this.lpcType = null; // set in type inference pass
-        this.slot = slot;
+        this.local = local;
         this.methodName = methodName;
         this.args = args;
     }
 
+    public ASTLocal local() {
+        return local;
+    }
+
     public Integer slot() {
-        return slot;
+        return (local != null) ? local.slot() : null;
     }
 
     public String methodName() {

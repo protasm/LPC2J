@@ -4,8 +4,6 @@ import java.util.ListIterator;
 import java.util.Stack;
 
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
-import io.github.protasm.lpc2j.parser.ast.Symbol;
-import io.github.protasm.lpc2j.parser.type.LPCType;
 
 public class Locals {
     private final Stack<ASTLocal> locals;
@@ -13,31 +11,11 @@ public class Locals {
 
     public Locals() {
         locals = new Stack<>();
-        workingScopeDepth = 1;
-
-        // Locals slot 0 reserved for "this"
-        ASTLocal local = new ASTLocal(0, new Symbol(LPCType.LPCOBJECT, "this"));
-
-        // Ensure the implicit receiver uses the correct local slot so ASM frame
-        // computation sees a valid index.
-        local.setSlot(0);
-        local.setScopeDepth(0);
-
-        locals.push(local);
+        workingScopeDepth = 0;
     }
 
     public Stack<ASTLocal> locals() {
         return locals;
-    }
-
-    public boolean hasCollision(String name) {
-        ASTLocal local = get(name);
-
-        if (local != null)
-            if (local.scopeDepth() == workingScopeDepth)
-                return true;
-
-        return false;
     }
 
     public ASTLocal get(String name) {
@@ -47,22 +25,16 @@ public class Locals {
             ASTLocal local = localsItr.previous();
 
             if (local.symbol().name().equals(name))
-                if (local.scopeDepth() == -1) // "sentinel" value
-                    throw new ParseException("Can't read local variable in its own initializer.", local.line());
-                else
-                    return local;
+                return local;
         }
 
         return null;
     }
 
-    public void add(ASTLocal local, boolean markInitialized) {
+    public void add(ASTLocal local) {
         locals.push(local);
 
-        local.setSlot(locals.size() - 1);
-
-        if (markInitialized)
-            local.setScopeDepth(workingScopeDepth);
+        local.setScopeDepth(workingScopeDepth);
     }
 
     public void beginScope() {

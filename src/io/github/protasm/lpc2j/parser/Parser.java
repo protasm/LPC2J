@@ -334,7 +334,7 @@ public class Parser {
 
                         params.add(param);
 
-            locals.add(local, true);
+            locals.add(local);
         } while (tokens.match(T_COMMA));
 
         tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
@@ -390,17 +390,14 @@ public class Parser {
             String declaredType = typeToken.lexeme() + (isArrayType ? "*" : "");
             Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
 
-            if (locals.hasCollision(symbol.name()))
-                throw new ParseException("Already a local variable named '" + symbol.name() + "' in current scope.", nameToken);
-
             ASTLocal local = new ASTLocal(currLine(), symbol);
 
-            locals.add(local, true); // sets slot # and depth
+            locals.add(local);
             if (currentMethod != null)
                 currentMethod.addLocal(local);
 
             if (tokens.match(T_EQUAL)) { // local assignment
-                ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression());
+                ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression(), true);
                 ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
 
                 statements.add(exprStmt);

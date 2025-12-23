@@ -375,7 +375,7 @@ public final class IRLowerer {
         }
 
         if (expression instanceof ASTExprInvokeLocal invokeLocal) {
-            IRLocal target = context.localBySlot(invokeLocal.slot(), problems);
+            IRLocal target = context.requireLocal(invokeLocal.local(), problems);
             List<IRExpression> args = lowerArguments(invokeLocal.args(), context, problems);
             RuntimeType returnType = runtimeType(invokeLocal.lpcType());
             return new IRDynamicInvoke(invokeLocal.line(), target, invokeLocal.methodName(), args, returnType);

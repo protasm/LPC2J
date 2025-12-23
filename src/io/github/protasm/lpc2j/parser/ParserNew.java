@@ -1,0 +1,575 @@
+package io.github.protasm.lpc2j.parser;
+
+import static io.github.protasm.lpc2j.token.TokenType.T_COMMA;
+import static io.github.protasm.lpc2j.token.TokenType.T_ELSE;
+import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.token.TokenType.T_IF;
+import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_RETURN;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
+import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_PAREN;
+import static io.github.protasm.lpc2j.token.TokenType.T_SEMICOLON;
+import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
+
+import io.github.protasm.lpc2j.parser.ast.ASTArgument;
+import io.github.protasm.lpc2j.parser.ast.ASTArguments;
+import io.github.protasm.lpc2j.parser.ast.ASTExpression;
+import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTInherit;
+import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+import io.github.protasm.lpc2j.parser.ast.ASTMethod;
+import io.github.protasm.lpc2j.parser.ast.ASTObject;
+import io.github.protasm.lpc2j.parser.ast.ASTParameter;
+import io.github.protasm.lpc2j.parser.ast.ASTParameters;
+import io.github.protasm.lpc2j.parser.ast.ASTStatement;
+import io.github.protasm.lpc2j.parser.ast.Symbol;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
+import io.github.protasm.lpc2j.parser.parselet.PrefixParselet;
+import io.github.protasm.lpc2j.preproc.Preprocessor;
+import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import io.github.protasm.lpc2j.token.Token;
+import io.github.protasm.lpc2j.token.TokenClassifier;
+import io.github.protasm.lpc2j.token.TokenList;
+import io.github.protasm.lpc2j.token.TokenType;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Ground-up rewrite of the original parser, preserved alongside the legacy {@link Parser}.
+ *
+ * <p>Parsing strategy:
+ *
+ * <ul>
+ *   <li>Top-level declarations are parsed with straightforward recursive descent.
+ *   <li>Expression parsing is delegated to a Pratt parser (see {@link PrattParser}) to keep
+ *       operator/precedence handling compact.
+ *   <li>Blocks manage local scopes via {@link Locals}. The parser only tracks locals for AST
+ *       construction; no semantic checks are performed here.
+ * </ul>
+ *
+ * <p>Compatibility guarantees:
+ *
+ * <ul>
+ *   <li>AST shape and ordering match the previous implementation.
+ *   <li>No semantic validation or deduplication is performed; duplicate declarations are preserved.
+ *   <li>Downstream phases (semantic analysis, IR, codegen) remain untouched and expect the same AST.
+ * </ul>
+ */
+public class ParserNew extends Parser {
+    /** Token stream being consumed. */
+    private TokenList tokens;
+
+    /** Object under construction. */
+    private ASTObject currObj;
+
+    /** Threaded locals stack for block/method scopes. */
+    private Locals locals;
+
+    /** Current method (used to attach locals). */
+    private ASTMethod currentMethod;
+
+    /** Tracks how many times a field name has been defined so we can reference the correct entry. */
+    private final Map<String, Integer> fieldDefinitionIndex = new HashMap<>();
+
+    /** Tracks how many times a method name has been defined so we can reference the correct entry. */
+    private final Map<String, Integer> methodDefinitionIndex = new HashMap<>();
+
+    public ParserNew() {
+        this(new RuntimeContext(Preprocessor.rejectingResolver()), ParserOptions.defaults());
+    }
+
+    public ParserNew(ParserOptions options) {
+        this(new RuntimeContext(Preprocessor.rejectingResolver()), options);
+    }
+
+    public ParserNew(RuntimeContext runtimeContext) {
+        this(runtimeContext, ParserOptions.defaults());
+    }
+
+    public ParserNew(RuntimeContext runtimeContext, ParserOptions options) {
+        super(runtimeContext, options);
+    }
+
+    // ---------------------------------------------------------------------
+    // Accessors used by parselets and tests
+    // ---------------------------------------------------------------------
+
+    @Override
+    public TokenList tokens() {
+        return this.tokens;
+    }
+
+    @Override
+    public ASTObject currObj() {
+        return this.currObj;
+    }
+
+    @Override
+    public Locals locals() {
+        return this.locals;
+    }
+
+    @Override
+    public int currLine() {
+        return tokens.current().line();
+    }
+
+    // ---------------------------------------------------------------------
+    // Entry point
+    // ---------------------------------------------------------------------
+
+    /**
+     * Parse a full LPC object from a classified token stream.
+     *
+     * <p>This method performs no semantic validation. All declarations (including duplicates) are
+     * retained in source order.
+     */
+    @Override
+    public ASTObject parse(String objName, TokenList tokens) {
+        if (tokens == null) {
+            throw new ParseException("Token list cannot be null.");
+        }
+
+        // Normalize token classifications before parsing.
+        this.tokens = TokenClassifier.classify(tokens);
+
+        try {
+            currObj = new ASTObject(0, objName);
+            fieldDefinitionIndex.clear();
+            methodDefinitionIndex.clear();
+            locals = null;
+            currentMethod = null;
+
+            // Consume until EOF. Each iteration handles exactly one top-level construct.
+            while (!this.tokens.isAtEnd()) {
+                if (this.tokens.match(T_INHERIT)) {
+                    Token<String> parentToken = consumeInheritPath();
+                    currObj.addInherit(new ASTInherit(parentToken.line(), parentToken.lexeme()));
+                    continue;
+                }
+
+                parseProperty();
+            }
+
+            return currObj;
+        } catch (ParseException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            Token<?> current = (this.tokens != null) ? this.tokens.current() : null;
+            if (current != null) {
+                throw new ParseException("Unexpected parser failure: " + e.getMessage(), current, e);
+            }
+            throw new ParseException("Unexpected parser failure: " + e.getMessage(), -1, e);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Top-level declarations
+    // ---------------------------------------------------------------------
+
+    private Token<String> consumeInheritPath() {
+        Token<String> parentToken = tokens.consume(T_STRING_LITERAL, "Expect string after 'inherit'.");
+        tokens.consume(T_SEMICOLON, "Expect ';' after inherited object path.");
+        return parentToken;
+    }
+
+    /** Parse a single object-level property (field or method). */
+    private void parseProperty() {
+        Symbol symbol = declarationSymbol();
+        int declarationLine = tokens.previous().line();
+        boolean hasType = symbol.declaredTypeName() != null;
+
+        if (tokens.match(T_LEFT_PAREN)) {
+            parseMethod(symbol, declarationLine);
+        } else if (hasType) {
+            parseField(symbol, declarationLine);
+        } else {
+            throw new ParseException("Untyped declarations must be functions.", tokens.current());
+        }
+    }
+
+    /**
+     * Reads the leading portion of a declaration and returns the declared symbol.
+     *
+     * <p>Examples:
+     *
+     * <ul>
+     *   <li>{@code int foo} -> declaredTypeName=int, name=foo
+     *   <li>{@code foo} -> declaredTypeName=null, name=foo
+     *   <li>{@code int *foo} -> declaredTypeName=int*, name=foo
+     * </ul>
+     */
+    private Symbol declarationSymbol() {
+        if (!tokens.check(T_IDENTIFIER)) {
+            throw new ParseException("Expect property type or name.", tokens.current());
+        }
+
+        Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect property type or name.");
+        boolean isArrayType = tokens.match(TokenType.T_STAR);
+
+        if (tokens.check(T_IDENTIFIER)) {
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect property name.");
+            String declaredTypeName = firstToken.lexeme() + (isArrayType ? "*" : "");
+            return new Symbol(declaredTypeName, nameToken.lexeme());
+        }
+
+        // Untyped name (must become a method).
+        return new Symbol((String) null, firstToken.lexeme());
+    }
+
+    // ---------------------------------------------------------------------
+    // Fields
+    // ---------------------------------------------------------------------
+
+    private void parseField(Symbol symbol, int declarationLine) {
+        if (locals == null) {
+            locals = new Locals();
+        }
+
+        List<FieldDeclarator> declarators = fieldDeclarators(symbol);
+
+        for (FieldDeclarator declarator : declarators) {
+            boolean hasInitializer = declarator.initializer() != null;
+            if (!hasInitializer) {
+                ASTField field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
+                currObj.fields().put(field.symbol().name(), field);
+                continue;
+            }
+
+            int definitionIndex = nextFieldDefinitionIndex(declarator.symbol().name());
+            ASTField field = currObj.fields().get(declarator.symbol().name(), definitionIndex);
+            if (field == null) {
+                field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
+                currObj.fields().put(field.symbol().name(), field);
+            }
+
+            field.markDefined();
+            field.setInitializer(declarator.initializer());
+        }
+    }
+
+    private int nextFieldDefinitionIndex(String name) {
+        return fieldDefinitionIndex.merge(name, 1, Integer::sum) - 1;
+    }
+
+    /** Parse one or more field declarators of the same type (e.g., {@code int a, b = 3;}). */
+    private List<FieldDeclarator> fieldDeclarators(Symbol symbol) {
+        List<FieldDeclarator> declarators = new ArrayList<>();
+        declarators.add(fieldDeclarator(symbol));
+
+        while (tokens.match(T_COMMA)) {
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect field name.");
+            Symbol additionalSymbol = new Symbol(symbol.declaredTypeName(), nameToken.lexeme());
+            declarators.add(fieldDeclarator(additionalSymbol));
+        }
+
+        tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
+        return declarators;
+    }
+
+    private FieldDeclarator fieldDeclarator(Symbol symbol) {
+        ASTExpression initializer = null;
+        if (tokens.match(T_EQUAL)) {
+            initializer = expression();
+        }
+        return new FieldDeclarator(symbol, initializer);
+    }
+
+    // ---------------------------------------------------------------------
+    // Methods
+    // ---------------------------------------------------------------------
+
+    private void parseMethod(Symbol symbol, int declarationLine) {
+        locals = new Locals();
+        ParsedParameters parsedParams = parameters();
+        ASTParameters params = parsedParams.parameters();
+
+        // Forward declaration: "foo(int x);"
+        if (tokens.match(T_SEMICOLON)) {
+            ASTMethod declaration = new ASTMethod(declarationLine, currObj.name(), symbol);
+            declaration.setParameters(params);
+            parsedParams.locals().forEach(declaration::addLocal);
+            currObj.methods().put(declaration.symbol().name(), declaration);
+            currentMethod = null;
+            return;
+        }
+
+        int definitionIndex = nextMethodDefinitionIndex(symbol.name());
+        ASTMethod method = currObj.methods().get(symbol.name(), definitionIndex);
+        if (method == null) {
+            method = new ASTMethod(declarationLine, currObj.name(), symbol);
+            currObj.methods().put(method.symbol().name(), method);
+        }
+
+        method.setParameters(params);
+        if (method.locals().isEmpty()) {
+            parsedParams.locals().forEach(method::addLocal);
+        }
+
+        currentMethod = method;
+        method.markDefined();
+
+        tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");
+        method.setBody(block(true));
+        currentMethod = null;
+    }
+
+    private int nextMethodDefinitionIndex(String name) {
+        return methodDefinitionIndex.merge(name, 1, Integer::sum) - 1;
+    }
+
+    /** Parse a full parameter list (inside already-consumed '(' from caller). */
+    private ParsedParameters parameters() {
+        ASTParameters params = new ASTParameters(currLine());
+        List<ASTLocal> paramLocals = new ArrayList<>();
+
+        if (tokens.match(T_RIGHT_PAREN)) {
+            return new ParsedParameters(params, paramLocals);
+        }
+
+        do {
+            Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect parameter name or type.");
+            Token<String> nameToken;
+            String declaredType = null;
+            boolean isArrayType = tokens.match(TokenType.T_STAR);
+
+            if (tokens.check(T_IDENTIFIER)) {
+                nameToken = tokens.consume(T_IDENTIFIER, "Expect parameter name.");
+                declaredType = firstToken.lexeme() + (isArrayType ? "*" : "");
+            } else {
+                nameToken = firstToken;
+            }
+
+            Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
+            ASTParameter param = new ASTParameter(currLine(), symbol);
+            ASTLocal local = new ASTLocal(currLine(), symbol);
+
+            params.add(param);
+            locals.add(local);
+            paramLocals.add(local);
+        } while (tokens.match(T_COMMA));
+
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
+        return new ParsedParameters(params, paramLocals);
+    }
+
+    /** Parse an invocation argument list starting at the current '(' token. */
+    @Override
+    public ASTArguments arguments() {
+        ASTArguments args = new ASTArguments(currLine());
+        tokens.consume(T_LEFT_PAREN, "Expect '(' after method name.");
+
+        if (tokens.match(T_RIGHT_PAREN)) {
+            return args; // Empty list.
+        }
+
+        do {
+            ASTExpression expr = expression();
+            ASTArgument arg = new ASTArgument(currLine(), expr);
+            args.add(arg);
+        } while (tokens.match(T_COMMA));
+
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after method arguments.");
+        return args;
+    }
+
+    // ---------------------------------------------------------------------
+    // Blocks and statements
+    // ---------------------------------------------------------------------
+
+    private ASTStmtBlock block(boolean isMethodBody) {
+        locals.beginScope();
+
+        List<ASTStatement> statements = new ArrayList<>();
+        List<ASTStmtBlock.BlockLocalDeclaration> localDeclarations = new ArrayList<>();
+
+        while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd()) {
+            if (startsLocalDeclaration()) {
+                Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect local type.");
+                List<ASTLocal> declaredLocals = parseLocals(typeToken, statements);
+                if (!declaredLocals.isEmpty()) {
+                    localDeclarations.add(new ASTStmtBlock.BlockLocalDeclaration(statements.size(), declaredLocals));
+                }
+            } else {
+                statements.add(statement());
+            }
+        }
+
+        tokens.consume(T_RIGHT_BRACE, isMethodBody ? "Expect '}' after method body." : "Expect '}' after block.");
+        locals.endScope();
+
+        return new ASTStmtBlock(currLine(), statements, localDeclarations);
+    }
+
+    /**
+     * Parses one or more locals of a given type within a block.
+     *
+     * <p>Local initializers are desugared into {@link ASTStmtExpression} statements that appear in
+     * the same block, preserving ordering with other statements.
+     */
+    private List<ASTLocal> parseLocals(Token<String> typeToken, List<ASTStatement> statements) {
+        List<ASTLocal> declaredLocals = new ArrayList<>();
+
+        do {
+            boolean isArrayType = tokens.match(TokenType.T_STAR);
+            Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
+            String declaredType = typeToken.lexeme() + (isArrayType ? "*" : "");
+            Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
+
+            ASTLocal local = new ASTLocal(currLine(), symbol);
+            locals.add(local);
+            declaredLocals.add(local);
+            if (currentMethod != null) {
+                currentMethod.addLocal(local);
+            }
+
+            if (tokens.match(T_EQUAL)) {
+                ASTExprLocalStore expr = new ASTExprLocalStore(currLine(), local, expression(), true);
+                ASTStmtExpression exprStmt = new ASTStmtExpression(currLine(), expr);
+                statements.add(exprStmt);
+            }
+        } while (tokens.match(T_COMMA));
+
+        tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+        return declaredLocals;
+    }
+
+    @Override
+    public ASTStatement statement() {
+        if (tokens.match(T_IF)) {
+            return ifStatement();
+        } else if (tokens.match(T_RETURN)) {
+            return returnStatement();
+        } else if (tokens.match(T_LEFT_BRACE)) {
+            return block(false);
+        }
+
+        return expressionStatement();
+    }
+
+    private ASTStatement ifStatement() {
+        ASTExpression expr = ifCondition();
+        ASTStatement stmtThen = statement();
+
+        if (tokens.match(T_ELSE)) {
+            return new ASTStmtIfThenElse(currLine(), expr, stmtThen, statement());
+        }
+        return new ASTStmtIfThenElse(currLine(), expr, stmtThen, null);
+    }
+
+    private ASTExpression ifCondition() {
+        tokens.consume(T_LEFT_PAREN, "Expect '(' after if.");
+        ASTExpression expr = expression();
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after if condition.");
+        return expr;
+    }
+
+    private ASTStmtReturn returnStatement() {
+        if (tokens.match(T_SEMICOLON)) {
+            return new ASTStmtReturn(currLine(), null);
+        }
+
+        ASTExpression expr = expression();
+        tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
+        return new ASTStmtReturn(currLine(), expr);
+    }
+
+    private ASTStmtExpression expressionStatement() {
+        ASTExpression expr = expression();
+        tokens.consume(T_SEMICOLON, "Expect ';' after expression.");
+        return new ASTStmtExpression(currLine(), expr);
+    }
+
+    // ---------------------------------------------------------------------
+    // Expressions (Pratt)
+    // ---------------------------------------------------------------------
+
+    @Override
+    public ASTExpression expression() {
+        return parsePrecedence(PrattParser.Precedence.PREC_ASSIGNMENT);
+    }
+
+    @Override
+    public ASTExpression parsePrecedence(int precedence) {
+        tokens.advance();
+
+        PrefixParselet pp = PrattParser.getRule(tokens.previous()).prefix();
+        if (pp == null) {
+            throw new ParseException("Expect expression.", tokens.current());
+        }
+
+        boolean canAssign = (precedence <= PrattParser.Precedence.PREC_ASSIGNMENT);
+        ASTExpression expr = pp.parse(this, canAssign);
+
+        while (precedence <= PrattParser.getRule(tokens.current()).precedence()) {
+            tokens.advance();
+            InfixParselet ip = PrattParser.getRule(tokens.previous()).infix();
+            if (ip == null) {
+                throw new ParseException("Expect expression.", tokens.current());
+            }
+            expr = ip.parse(this, expr, canAssign);
+        }
+
+        if (canAssign) {
+            if (tokens.match(T_EQUAL) || tokens.match(T_PLUS_EQUAL) || tokens.match(T_MINUS_EQUAL)) {
+                throw new ParseException("Invalid assignment target.", tokens.current());
+            }
+        }
+
+        return expr;
+    }
+
+    // ---------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------
+
+    private boolean startsLocalDeclaration() {
+        if (!tokens.check(T_IDENTIFIER)) {
+            return false;
+        }
+
+        Token<?> next = tokens.peek(1);
+        if (next.type() == T_IDENTIFIER) {
+            return true;
+        }
+
+        if (next.type() == TokenType.T_STAR) {
+            Token<?> after = tokens.peek(2);
+            return after.type() == T_IDENTIFIER;
+        }
+
+        return false;
+    }
+
+    private record ParsedParameters(ASTParameters parameters, List<ASTLocal> locals) {}
+
+    private static class FieldDeclarator {
+        private final Symbol symbol;
+        private final ASTExpression initializer;
+
+        FieldDeclarator(Symbol symbol, ASTExpression initializer) {
+            this.symbol = symbol;
+            this.initializer = initializer;
+        }
+
+        Symbol symbol() {
+            return symbol;
+        }
+
+        ASTExpression initializer() {
+            return initializer;
+        }
+    }
+}

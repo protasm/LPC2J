@@ -5,7 +5,7 @@ import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.ir.IRLowerer;
 import io.github.protasm.lpc2j.ir.IRLoweringResult;
 import io.github.protasm.lpc2j.parser.ParseException;
-import io.github.protasm.lpc2j.parser.Parser;
+import io.github.protasm.lpc2j.parser.ParserNew;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
@@ -47,7 +47,7 @@ public class LPC2J {
     if (tokens == null) return null;
 
     try {
-      Parser parser = new Parser(runtimeContext, parserOptions);
+      ParserNew parser = new ParserNew(runtimeContext, parserOptions);
 
       return parser.parse("<input>", tokens);
     } catch (ParseException | IllegalArgumentException e) {

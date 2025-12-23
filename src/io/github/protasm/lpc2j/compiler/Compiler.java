@@ -25,6 +25,10 @@ import org.objectweb.asm.Type;
  * additional semantic checks or fallbacks.</p>
  */
 public final class Compiler {
+    private static final String INIT_METHOD_NAME = "$lpc$init";
+    private static final String INIT_METHOD_DESCRIPTOR = "()V";
+    private static final String INIT_GUARD_FIELD = "$lpc$initialized";
+    private static final String OBJECT_INTERNAL_NAME = Type.getInternalName(Object.class);
     private final String defaultParentInternalName;
 
     public Compiler(String defaultParentInternalName) {
@@ -47,8 +51,10 @@ public final class Compiler {
         // class into the generated superclass slot.
         cw.visit(V21, ACC_SUPER | ACC_PUBLIC, internalName, null, parentName, null);
 
+        emitDriverManagedFields(cw);
         emitFields(cw, object);
-        emitDefaultConstructor(cw, internalName, parentName, object.fields());
+        emitPrivateInitializer(cw, internalName, parentName, object.fields());
+        emitDefaultConstructor(cw, internalName, parentName);
 
         for (IRMethod method : object.methods())
             emitMethod(cw, internalName, method);
@@ -61,24 +67,71 @@ public final class Compiler {
             cw.visitField(ACC_PRIVATE, field.name(), descriptor(field.type()), null, null).visitEnd();
     }
 
-    private void emitDefaultConstructor(ClassWriter cw, String internalName, String parentName, List<IRField> fields) {
+    private void emitDriverManagedFields(ClassWriter cw) {
+        // Driver-managed lifecycle state never surfaces in LPC; it is synthetic and private to keep
+        // mudlib policy separate from the compiler's lifecycle wiring.
+        cw.visitField(ACC_PRIVATE | ACC_SYNTHETIC, INIT_GUARD_FIELD, "Z", null, null).visitEnd();
+    }
+
+    private void emitDefaultConstructor(ClassWriter cw, String internalName, String parentName) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitMethodInsn(INVOKESPECIAL, parentName, "<init>", "()V", false);
 
-        for (IRField field : fields) {
-            if (field.initializer() == null)
-                continue;
-
-            mv.visitVarInsn(ALOAD, 0);
-            emitExpression(mv, internalName, null, field.initializer());
-            mv.visitFieldInsn(PUTFIELD, internalName, field.name(), descriptor(field.type()));
-        }
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESPECIAL, internalName, INIT_METHOD_NAME, INIT_METHOD_DESCRIPTOR, false);
 
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
+    }
+
+    private void emitPrivateInitializer(ClassWriter cw, String internalName, String parentName, List<IRField> fields) {
+        MethodVisitor mv =
+                cw.visitMethod(ACC_PROTECTED | ACC_SYNTHETIC, INIT_METHOD_NAME, INIT_METHOD_DESCRIPTOR, null, null);
+        mv.visitCode();
+
+        Label alreadyInitialized = new Label();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, internalName, INIT_GUARD_FIELD, "Z");
+        mv.visitJumpInsn(IFNE, alreadyInitialized);
+
+        // Mark initialization as started up front so re-entrant calls from nested constructors or
+        // reflection never repeat initialization work on the same instance.
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ICONST_1);
+        mv.visitFieldInsn(PUTFIELD, internalName, INIT_GUARD_FIELD, "Z");
+
+        if (!OBJECT_INTERNAL_NAME.equals(parentName)) {
+            // Driver lifecycle: chain to the parent initializer before touching child state so that
+            // inheritance order remains deterministic. The mudlib retains full control of *what*
+            // initialization policy executes; the driver merely ensures *when* the chain runs.
+            mv.visitVarInsn(ALOAD, 0);
+            mv.visitMethodInsn(INVOKESPECIAL, parentName, INIT_METHOD_NAME, INIT_METHOD_DESCRIPTOR, false);
+        }
+
+        emitFieldInitializers(mv, internalName, fields);
+
+        mv.visitLabel(alreadyInitialized);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+    private void emitFieldInitializers(MethodVisitor mv, String internalName, List<IRField> fields) {
+        for (IRField field : fields) {
+            if (field.initializer() == null)
+                continue;
+
+            // Field initializers are part of the object definition and run exactly once per
+            // instance under the driver-managed lifecycle gate. The driver deliberately avoids
+            // invoking any mudlib-defined hooks here; mudlib policy remains explicit and
+            // user-controlled.
+            mv.visitVarInsn(ALOAD, 0);
+            emitExpression(mv, internalName, null, field.initializer());
+            mv.visitFieldInsn(PUTFIELD, internalName, field.name(), descriptor(field.type()));
+        }
     }
 
     private void emitMethod(ClassWriter cw, String internalName, IRMethod method) {

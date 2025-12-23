@@ -25,6 +25,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -195,6 +199,25 @@ final class SemanticModelPrinter {
     private PrettyNode expressionNode(ASTExpression expression) {
         if (expression == null)
             return new PrettyNode("<null expression>");
+
+        if (expression instanceof ASTExprUnresolvedIdentifier unresolvedIdentifier) {
+            return new PrettyNode("UnresolvedRef " + unresolvedIdentifier.name());
+        }
+
+        if (expression instanceof ASTExprUnresolvedAssignment unresolvedAssignment) {
+            return taggedChild(
+                    "UnresolvedAssign " + unresolvedAssignment.name(),
+                    expressionNode(unresolvedAssignment.value()));
+        }
+
+        if (expression instanceof ASTExprUnresolvedCall unresolvedCall) {
+            return new PrettyNode("UnresolvedCall " + unresolvedCall.name(), argumentNodes(unresolvedCall.arguments()));
+        }
+
+        if (expression instanceof ASTExprUnresolvedInvoke unresolvedInvoke) {
+            String label = "UnresolvedInvoke " + unresolvedInvoke.targetName() + " -> " + unresolvedInvoke.methodName();
+            return new PrettyNode(label, argumentNodes(unresolvedInvoke.arguments()));
+        }
 
         if (expression instanceof ASTExprLocalStore store) {
             return taggedChild(

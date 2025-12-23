@@ -20,18 +20,30 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingEntry;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.type.AssignOpType;
+import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 import io.github.protasm.lpc2j.parser.type.LPCType;
+import io.github.protasm.lpc2j.parser.type.UnaryOpType;
+import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.semantic.SemanticScope.ScopedSymbol;
 import io.github.protasm.lpc2j.token.Token;
@@ -42,6 +54,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Objects;
 
 /** Performs semantic analysis on a parsed AST and produces a typed model. */
@@ -127,6 +141,8 @@ public final class SemanticAnalyzer {
 
             objectScope.declare(method.symbol(), unit, null, method);
         }
+
+        resolveIdentifiers(astObject, objectScope, problems);
 
         for (ASTMethod method : astObject.methods()) {
             SemanticScope methodScope = new SemanticScope(objectScope);
@@ -220,10 +236,49 @@ public final class SemanticAnalyzer {
     }
 
     private void assignLocalSlots(ASTMethod method, List<CompilationProblem> problems) {
+        Set<Symbol> parameterSymbols = parameterSymbols(method);
+        int slot = 1; // slot 0 reserved for "this"
+
+        if (method.parameters() != null) {
+            for (ASTParameter parameter : method.parameters()) {
+                ASTLocal paramLocal = findLocalForSymbol(method.locals(), parameter.symbol());
+                if (paramLocal != null) {
+                    paramLocal.setSlot(slot);
+                    paramLocal.setScopeDepth(Math.max(paramLocal.scopeDepth(), 0));
+                }
+                slot++;
+            }
+        }
+
         LocalSlotAllocator allocator = new LocalSlotAllocator(parameterCount(method));
 
-        for (ASTLocal local : method.locals())
+        for (ASTLocal local : method.locals()) {
+            if (parameterSymbols.contains(local.symbol()))
+                continue;
             allocator.place(local, problems);
+        }
+    }
+
+    private Set<Symbol> parameterSymbols(ASTMethod method) {
+        if (method.parameters() == null)
+            return Set.of();
+
+        Set<Symbol> symbols = new HashSet<>();
+        for (ASTParameter parameter : method.parameters())
+            symbols.add(parameter.symbol());
+        return symbols;
+    }
+
+    private ASTLocal findLocalForSymbol(List<ASTLocal> locals, Symbol symbol) {
+        if (locals == null || symbol == null)
+            return null;
+
+        for (ASTLocal local : locals) {
+            if (local.symbol() == symbol)
+                return local;
+        }
+
+        return null;
     }
 
     private void validateLocalInitializers(ASTMethod method, List<CompilationProblem> problems) {
@@ -475,6 +530,418 @@ public final class SemanticAnalyzer {
         List<LPCType> types = new ArrayList<>(method.parameters().size());
         method.parameters().forEach(param -> types.add(param.symbol().lpcType()));
         return types;
+    }
+
+    private void resolveIdentifiers(
+            ASTObject astObject, SemanticScope objectScope, List<CompilationProblem> problems) {
+        IdentifierResolver resolver = new IdentifierResolver(objectScope, runtimeContext, problems);
+
+        for (ASTField field : astObject.fields()) {
+            if (field.initializer() != null)
+                field.setInitializer(resolver.resolveExpression(field.initializer(), null));
+        }
+
+        for (ASTMethod method : astObject.methods())
+            resolver.resolveMethod(method);
+    }
+
+    private static final class LocalResolutionContext {
+        private final Deque<List<ASTLocal>> scopes = new ArrayDeque<>();
+
+        void pushScope() {
+            scopes.push(new ArrayList<>());
+        }
+
+        void popScope() {
+            scopes.pop();
+        }
+
+        void declare(List<ASTLocal> locals) {
+            if (locals == null || locals.isEmpty())
+                return;
+
+            scopes.peek().addAll(locals);
+        }
+
+        ASTLocal resolve(String name) {
+            for (List<ASTLocal> scope : scopes) {
+                for (int i = scope.size() - 1; i >= 0; i--) {
+                    ASTLocal local = scope.get(i);
+                    if (local.symbol().name().equals(name))
+                        return local;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    private static final class IdentifierResolver {
+        private final SemanticScope objectScope;
+        private final RuntimeContext runtimeContext;
+        private final List<CompilationProblem> problems;
+
+        IdentifierResolver(
+                SemanticScope objectScope, RuntimeContext runtimeContext, List<CompilationProblem> problems) {
+            this.objectScope = objectScope;
+            this.runtimeContext = runtimeContext;
+            this.problems = problems;
+        }
+
+        void resolveMethod(ASTMethod method) {
+            if (method.body() == null)
+                return;
+
+            LocalResolutionContext context = new LocalResolutionContext();
+            context.pushScope();
+            context.declare(localsAtDepth(method.locals(), 0));
+            method.setBody(resolveBlock(method.body(), context));
+            context.popScope();
+        }
+
+        private List<ASTLocal> localsAtDepth(List<ASTLocal> locals, int depth) {
+            if (locals == null || locals.isEmpty())
+                return List.of();
+
+            List<ASTLocal> scoped = new ArrayList<>();
+            for (ASTLocal local : locals) {
+                if (local.scopeDepth() == depth)
+                    scoped.add(local);
+            }
+            return scoped;
+        }
+
+        ASTExpression resolveExpression(ASTExpression expression, LocalResolutionContext context) {
+            if (expression == null)
+                return null;
+
+            if (expression instanceof ASTExprUnresolvedIdentifier unresolvedIdentifier)
+                return resolveIdentifier(unresolvedIdentifier, context);
+
+            if (expression instanceof ASTExprUnresolvedAssignment unresolvedAssignment)
+                return resolveAssignment(unresolvedAssignment, context);
+
+            if (expression instanceof ASTExprUnresolvedCall unresolvedCall)
+                return resolveCall(unresolvedCall, context);
+
+            if (expression instanceof ASTExprUnresolvedInvoke unresolvedInvoke)
+                return resolveInvoke(unresolvedInvoke, context);
+
+            if (expression instanceof ASTExprLocalStore store) {
+                ASTExpression resolvedValue = resolveExpression(store.value(), context);
+                if (resolvedValue == store.value())
+                    return store;
+                return new ASTExprLocalStore(store.line(), store.local(), resolvedValue, store.isDeclarationInitializer());
+            }
+
+            if (expression instanceof ASTExprFieldStore store) {
+                ASTExpression resolvedValue = resolveExpression(store.value(), context);
+                if (resolvedValue == store.value())
+                    return store;
+                return new ASTExprFieldStore(store.line(), store.field(), resolvedValue);
+            }
+
+            if (expression instanceof ASTExprArrayStore store) {
+                ASTExpression resolvedTarget = resolveExpression(store.target(), context);
+                ASTExpression resolvedIndex = resolveExpression(store.index(), context);
+                ASTExpression resolvedValue = resolveExpression(store.value(), context);
+
+                if (resolvedTarget == store.target()
+                        && resolvedIndex == store.index()
+                        && resolvedValue == store.value())
+                    return store;
+
+                return new ASTExprArrayStore(store.line(), resolvedTarget, resolvedIndex, resolvedValue);
+            }
+
+            if (expression instanceof ASTExprArrayAccess access) {
+                ASTExpression resolvedTarget = resolveExpression(access.target(), context);
+                ASTExpression resolvedIndex = resolveExpression(access.index(), context);
+                if (resolvedTarget == access.target() && resolvedIndex == access.index())
+                    return access;
+                return new ASTExprArrayAccess(access.line(), resolvedTarget, resolvedIndex);
+            }
+
+            if (expression instanceof ASTExprLocalAccess access) {
+                return access;
+            }
+
+            if (expression instanceof ASTExprFieldAccess access) {
+                return access;
+            }
+
+            if (expression instanceof ASTExprOpUnary unary) {
+                ASTExpression resolvedRight = resolveExpression(unary.right(), context);
+                if (resolvedRight == unary.right())
+                    return unary;
+                return new ASTExprOpUnary(unary.line(), resolvedRight, unary.operator());
+            }
+
+            if (expression instanceof ASTExprOpBinary binary) {
+                ASTExpression resolvedLeft = resolveExpression(binary.left(), context);
+                ASTExpression resolvedRight = resolveExpression(binary.right(), context);
+                if (resolvedLeft == binary.left() && resolvedRight == binary.right())
+                    return binary;
+                return new ASTExprOpBinary(binary.line(), resolvedLeft, resolvedRight, binary.operator());
+            }
+
+            if (expression instanceof ASTExprCallMethod callMethod) {
+                ASTArguments resolvedArgs = resolveArguments(callMethod.arguments(), context);
+                if (resolvedArgs == callMethod.arguments())
+                    return callMethod;
+                return new ASTExprCallMethod(callMethod.line(), callMethod.method(), resolvedArgs);
+            }
+
+            if (expression instanceof ASTExprCallEfun callEfun) {
+                ASTArguments resolvedArgs = resolveArguments(callEfun.arguments(), context);
+                if (resolvedArgs == callEfun.arguments())
+                    return callEfun;
+                return new ASTExprCallEfun(callEfun.line(), callEfun.efun(), resolvedArgs);
+            }
+
+            if (expression instanceof ASTExprInvokeLocal invokeLocal) {
+                ASTArguments resolvedArgs = resolveArguments(invokeLocal.arguments(), context);
+                if (resolvedArgs == invokeLocal.arguments())
+                    return invokeLocal;
+                return new ASTExprInvokeLocal(invokeLocal.line(), invokeLocal.local(), invokeLocal.methodName(), resolvedArgs);
+            }
+
+            if (expression instanceof ASTExprArrayLiteral arrayLiteral) {
+                List<ASTExpression> resolvedElements = new ArrayList<>();
+                boolean changed = false;
+                for (ASTExpression element : arrayLiteral.elements()) {
+                    ASTExpression resolved = resolveExpression(element, context);
+                    changed |= resolved != element;
+                    resolvedElements.add(resolved);
+                }
+                if (!changed)
+                    return arrayLiteral;
+                return new ASTExprArrayLiteral(arrayLiteral.line(), resolvedElements);
+            }
+
+            if (expression instanceof ASTExprMappingLiteral mappingLiteral) {
+                List<ASTExprMappingEntry> resolvedEntries = new ArrayList<>();
+                boolean changed = false;
+                for (ASTExprMappingEntry entry : mappingLiteral.entries()) {
+                    ASTExpression resolvedKey = resolveExpression(entry.key(), context);
+                    ASTExpression resolvedValue = resolveExpression(entry.value(), context);
+                    changed |= resolvedKey != entry.key() || resolvedValue != entry.value();
+                    resolvedEntries.add(new ASTExprMappingEntry(resolvedKey, resolvedValue));
+                }
+                if (!changed)
+                    return mappingLiteral;
+                return new ASTExprMappingLiteral(mappingLiteral.line(), resolvedEntries);
+            }
+
+            return expression;
+        }
+
+        private ASTExpression resolveInvoke(ASTExprUnresolvedInvoke unresolvedInvoke, LocalResolutionContext context) {
+            ASTArguments resolvedArgs = resolveArguments(unresolvedInvoke.arguments(), context);
+            ASTLocal local = resolveLocal(context, unresolvedInvoke.targetName());
+
+            if (local != null)
+                return new ASTExprInvokeLocal(unresolvedInvoke.line(), local, unresolvedInvoke.methodName(), resolvedArgs);
+
+            ScopedSymbol scopedSymbol = resolveScopedSymbol(unresolvedInvoke.targetName());
+            if (scopedSymbol != null && scopedSymbol.field() != null) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Field invocation is not supported for '" + unresolvedInvoke.targetName() + "'",
+                                unresolvedInvoke.line()));
+                return new ASTExprNull(unresolvedInvoke.line());
+            }
+
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Unrecognized invoke target '" + unresolvedInvoke.targetName() + "'",
+                            unresolvedInvoke.line()));
+            return new ASTExprNull(unresolvedInvoke.line());
+        }
+
+        private ASTExpression resolveCall(ASTExprUnresolvedCall unresolvedCall, LocalResolutionContext context) {
+            ASTArguments resolvedArgs = resolveArguments(unresolvedCall.arguments(), context);
+            ASTMethod method = resolveMethod(unresolvedCall.name());
+
+            if (method != null)
+                return new ASTExprCallMethod(unresolvedCall.line(), method, resolvedArgs);
+
+            Efun efun = runtimeContext.resolveEfun(unresolvedCall.name(), resolvedArgs.size());
+
+            if (efun != null)
+                return new ASTExprCallEfun(unresolvedCall.line(), efun, resolvedArgs);
+
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Unrecognized method or function '" + unresolvedCall.name() + "'.",
+                            unresolvedCall.line()));
+            return new ASTExprNull(unresolvedCall.line());
+        }
+
+        private ASTExpression resolveAssignment(
+                ASTExprUnresolvedAssignment unresolvedAssignment, LocalResolutionContext context) {
+            ASTExpression resolvedValue = resolveExpression(unresolvedAssignment.value(), context);
+            ASTLocal local = resolveLocal(context, unresolvedAssignment.name());
+
+            if (local != null)
+                return buildLocalStore(unresolvedAssignment, local, resolvedValue);
+
+            ScopedSymbol scopedSymbol = resolveScopedSymbol(unresolvedAssignment.name());
+            if (scopedSymbol != null && scopedSymbol.field() != null)
+                return buildFieldStore(unresolvedAssignment, scopedSymbol.field(), resolvedValue);
+
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Unrecognized local or field '" + unresolvedAssignment.name() + "'.",
+                            unresolvedAssignment.line()));
+            return new ASTExprNull(unresolvedAssignment.line());
+        }
+
+        private ASTExpression resolveIdentifier(
+                ASTExprUnresolvedIdentifier unresolvedIdentifier, LocalResolutionContext context) {
+            ASTLocal local = resolveLocal(context, unresolvedIdentifier.name());
+            if (local != null)
+                return new ASTExprLocalAccess(unresolvedIdentifier.line(), local);
+
+            ScopedSymbol scopedSymbol = resolveScopedSymbol(unresolvedIdentifier.name());
+            if (scopedSymbol != null && scopedSymbol.field() != null)
+                return new ASTExprFieldAccess(unresolvedIdentifier.line(), scopedSymbol.field());
+
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Unrecognized local or field '" + unresolvedIdentifier.name() + "'.",
+                            unresolvedIdentifier.line()));
+            return new ASTExprNull(unresolvedIdentifier.line());
+        }
+
+        private ASTExprFieldStore buildFieldStore(
+                ASTExprUnresolvedAssignment assignment, ASTField field, ASTExpression resolvedValue) {
+            ASTExpression value = resolvedValue;
+            if (assignment.operator() == AssignOpType.ADD)
+                value = new ASTExprOpBinary(assignment.line(), new ASTExprFieldAccess(assignment.line(), field),
+                        resolvedValue, BinaryOpType.BOP_ADD);
+            else if (assignment.operator() == AssignOpType.SUB)
+                value = new ASTExprOpBinary(assignment.line(), new ASTExprFieldAccess(assignment.line(), field),
+                        resolvedValue, BinaryOpType.BOP_SUB);
+
+            return new ASTExprFieldStore(assignment.line(), field, value);
+        }
+
+        private ASTExprLocalStore buildLocalStore(
+                ASTExprUnresolvedAssignment assignment, ASTLocal local, ASTExpression resolvedValue) {
+            ASTExpression value = resolvedValue;
+            if (assignment.operator() == AssignOpType.ADD)
+                value = new ASTExprOpBinary(assignment.line(), new ASTExprLocalAccess(assignment.line(), local),
+                        resolvedValue, BinaryOpType.BOP_ADD);
+            else if (assignment.operator() == AssignOpType.SUB)
+                value = new ASTExprOpBinary(assignment.line(), new ASTExprLocalAccess(assignment.line(), local),
+                        resolvedValue, BinaryOpType.BOP_SUB);
+
+            return new ASTExprLocalStore(assignment.line(), local, value);
+        }
+
+        private ASTMethod resolveMethod(String name) {
+            ScopedSymbol scopedSymbol = resolveScopedSymbol(name);
+            if (scopedSymbol == null)
+                return null;
+
+            return scopedSymbol.method();
+        }
+
+        private ScopedSymbol resolveScopedSymbol(String name) {
+            if (objectScope == null)
+                return null;
+
+            return objectScope.resolve(name);
+        }
+
+        private ASTLocal resolveLocal(LocalResolutionContext context, String name) {
+            if (context == null)
+                return null;
+
+            return context.resolve(name);
+        }
+
+        private ASTArguments resolveArguments(ASTArguments arguments, LocalResolutionContext context) {
+            if (arguments == null)
+                return null;
+
+            ASTArguments resolvedArgs = new ASTArguments(arguments.line());
+            boolean changed = false;
+            for (ASTArgument argument : arguments) {
+                ASTExpression resolvedExpr = resolveExpression(argument.expression(), context);
+                changed |= resolvedExpr != argument.expression();
+                resolvedArgs.add(new ASTArgument(argument.line(), resolvedExpr));
+            }
+
+            return changed ? resolvedArgs : arguments;
+        }
+
+        private ASTStmtBlock resolveBlock(ASTStmtBlock block, LocalResolutionContext context) {
+            if (block == null)
+                return null;
+
+            context.pushScope();
+            List<ASTStatement> resolvedStatements = new ArrayList<>(block.statements().size());
+            List<ASTStmtBlock.BlockLocalDeclaration> localDeclarations = block.localDeclarations();
+            int declarationCursor = 0;
+
+            for (int i = 0; i <= block.statements().size(); i++) {
+                while (declarationCursor < localDeclarations.size()
+                        && localDeclarations.get(declarationCursor).statementIndex() == i) {
+                    context.declare(localDeclarations.get(declarationCursor).locals());
+                    declarationCursor++;
+                }
+
+                if (i == block.statements().size())
+                    break;
+
+                resolvedStatements.add(resolveStatement(block.statements().get(i), context));
+            }
+
+            context.popScope();
+            return new ASTStmtBlock(block.line(), resolvedStatements, localDeclarations);
+        }
+
+        private ASTStatement resolveStatement(ASTStatement statement, LocalResolutionContext context) {
+            if (statement == null)
+                return null;
+
+            if (statement instanceof ASTStmtBlock block)
+                return resolveBlock(block, context);
+
+            if (statement instanceof ASTStmtExpression stmtExpression) {
+                ASTExpression resolved = resolveExpression(stmtExpression.expression(), context);
+                if (resolved == stmtExpression.expression())
+                    return stmtExpression;
+                return new ASTStmtExpression(stmtExpression.line(), resolved);
+            }
+
+            if (statement instanceof ASTStmtIfThenElse stmtIf) {
+                ASTExpression resolvedCondition = resolveExpression(stmtIf.condition(), context);
+                ASTStatement resolvedThen = resolveStatement(stmtIf.thenBranch(), context);
+                ASTStatement resolvedElse = resolveStatement(stmtIf.elseBranch(), context);
+                if (resolvedCondition == stmtIf.condition()
+                        && resolvedThen == stmtIf.thenBranch()
+                        && resolvedElse == stmtIf.elseBranch())
+                    return stmtIf;
+                return new ASTStmtIfThenElse(stmtIf.line(), resolvedCondition, resolvedThen, resolvedElse);
+            }
+
+            if (statement instanceof ASTStmtReturn stmtReturn) {
+                ASTExpression resolved = resolveExpression(stmtReturn.returnValue(), context);
+                if (resolved == stmtReturn.returnValue())
+                    return stmtReturn;
+                return new ASTStmtReturn(stmtReturn.line(), resolved);
+            }
+
+            return statement;
+        }
     }
 
     private static final class LocalSlotAllocator {

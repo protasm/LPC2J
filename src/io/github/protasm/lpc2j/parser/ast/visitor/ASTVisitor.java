@@ -28,6 +28,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -69,6 +73,10 @@ public interface ASTVisitor {
         case ASTExprNull exprNull -> visitExprNull(exprNull);
         case ASTExprOpBinary exprOpBinary -> visitExprOpBinary(exprOpBinary);
         case ASTExprOpUnary exprOpUnary -> visitExprOpUnary(exprOpUnary);
+        case ASTExprUnresolvedAssignment exprUnresolvedAssignment -> visitExprUnresolvedAssignment(exprUnresolvedAssignment);
+        case ASTExprUnresolvedCall exprUnresolvedCall -> visitExprUnresolvedCall(exprUnresolvedCall);
+        case ASTExprUnresolvedIdentifier exprUnresolvedIdentifier -> visitExprUnresolvedIdentifier(exprUnresolvedIdentifier);
+        case ASTExprUnresolvedInvoke exprUnresolvedInvoke -> visitExprUnresolvedInvoke(exprUnresolvedInvoke);
         case ASTExpression expression -> visitExpression(expression);
         case ASTStmtBlock stmtBlock -> visitStmtBlock(stmtBlock);
         case ASTStmtExpression stmtExpression -> visitStmtExpression(stmtExpression);
@@ -140,6 +148,14 @@ public interface ASTVisitor {
     default void visitExprOpBinary(ASTExprOpBinary expr) {}
 
     default void visitExprOpUnary(ASTExprOpUnary expr) {}
+
+    default void visitExprUnresolvedAssignment(ASTExprUnresolvedAssignment expr) {}
+
+    default void visitExprUnresolvedCall(ASTExprUnresolvedCall expr) {}
+
+    default void visitExprUnresolvedIdentifier(ASTExprUnresolvedIdentifier expr) {}
+
+    default void visitExprUnresolvedInvoke(ASTExprUnresolvedInvoke expr) {}
 
     default void visitStmtBlock(ASTStmtBlock stmt) {}
 

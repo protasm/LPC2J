@@ -18,10 +18,12 @@ import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
+import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.preproc.IncludeResolution;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.PreprocessedSource;
@@ -60,6 +62,15 @@ public final class PipelineRegressionTests {
                 new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
                 new TestCase("parser concatenates adjacent string literals", PipelineRegressionTests::parserConcatenatesAdjacentStringLiterals),
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
+                new TestCase(
+                        "semantic resolves parent calls to inherited methods",
+                        PipelineRegressionTests::semanticResolvesParentCallsToParentMethods),
+                new TestCase(
+                        "semantic rejects parent calls without a parent",
+                        PipelineRegressionTests::semanticRejectsParentCallsWhenNoParent),
+                new TestCase(
+                        "semantic rejects parent calls when parent omits method",
+                        PipelineRegressionTests::semanticRejectsParentCallsWhenMethodMissing),
                 new TestCase("IR lowering preserves arithmetic", PipelineRegressionTests::irLoweringBuildsBinaryReturn),
                 new TestCase("codegen produces invokable bytecode", PipelineRegressionTests::codegenRoundTripProducesWorkingClass),
                 new TestCase("instance calls honor declared parameter types", PipelineRegressionTests::instanceCallsHonorDeclaredParameterTypes),
@@ -264,6 +275,91 @@ public final class PipelineRegressionTests {
                 LPCType.LPCINT,
                 ((ASTStmtReturn) lastStatement).returnValue().lpcType(),
                 "implicit return should follow legacy 'return 0' semantics");
+    }
+
+    private static void semanticResolvesParentCallsToParentMethods() {
+        String parentSource = "int shout() { return 1; }\n";
+        Scanner scanner = new Scanner();
+        Parser parser = new Parser();
+
+        TokenList parentTokens = scanner.scan(parentSource);
+        ASTObject parentAst = parser.parse("ParentObject", parentTokens);
+        CompilationUnit parentUnit = new CompilationUnit(null, "ParentObject", null, parentSource);
+        parentUnit.setTokens(parentTokens);
+        parentUnit.setASTObject(parentAst);
+        SemanticAnalysisResult parentAnalysis = new SemanticAnalyzer().analyze(parentUnit);
+        parentUnit.setSemanticModel(parentAnalysis.semanticModel());
+        if (!parentAnalysis.succeeded())
+            throw new AssertionError("parent analysis should succeed: " + describeProblems(parentAnalysis.problems()));
+
+        String childSource = "inherit \"/parent\";\nint call_parent() { return ::shout(); }\n";
+        TokenList childTokens = scanner.scan(childSource);
+        ASTObject childAst = parser.parse("ChildObject", childTokens);
+        CompilationUnit childUnit = new CompilationUnit(null, "ChildObject", null, childSource);
+        childUnit.setTokens(childTokens);
+        childUnit.setASTObject(childAst);
+        childUnit.setParentUnit(parentUnit);
+
+        SemanticAnalysisResult childAnalysis = new SemanticAnalyzer().analyze(childUnit);
+        if (!childAnalysis.succeeded())
+            throw new AssertionError("child analysis should succeed: " + describeProblems(childAnalysis.problems()));
+
+        ASTMethod callParent = childAst.methods().get("call_parent");
+        ASTMethod parentMethod = parentAst.methods().get("shout");
+        ASTStmtReturn ret = (ASTStmtReturn) callParent.body().statements().get(0);
+        ASTExprCallMethod call = (ASTExprCallMethod) ret.returnValue();
+
+        assertTrue(call.isParentDispatch(), "call should be marked as parent dispatch");
+        assertTrue(call.method() == parentMethod, "call should resolve to parent method definition");
+    }
+
+    private static void semanticRejectsParentCallsWhenNoParent() {
+        String source = "int lonely() { return ::missing(); }\n";
+        TokenList tokens = new Scanner().scan(source);
+        Parser parser = new Parser();
+        ASTObject astObject = parser.parse("LonelyChild", tokens);
+
+        SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
+        String problems = describeProblems(analysis.problems());
+
+        assertTrue(!analysis.succeeded(), "semantic analysis should fail without parent");
+        assertTrue(
+                analysis.problems().stream()
+                        .anyMatch(p -> p.getMessage().contains("without a parent object")),
+                "error should mention missing parent (" + problems + ")");
+    }
+
+    private static void semanticRejectsParentCallsWhenMethodMissing() {
+        String parentSource = "int stub() { return 0; }\n";
+        Scanner scanner = new Scanner();
+        Parser parser = new Parser();
+
+        TokenList parentTokens = scanner.scan(parentSource);
+        ASTObject parentAst = parser.parse("BareParent", parentTokens);
+        CompilationUnit parentUnit = new CompilationUnit(null, "BareParent", null, parentSource);
+        parentUnit.setTokens(parentTokens);
+        parentUnit.setASTObject(parentAst);
+        SemanticAnalysisResult parentAnalysis = new SemanticAnalyzer().analyze(parentUnit);
+        parentUnit.setSemanticModel(parentAnalysis.semanticModel());
+        if (!parentAnalysis.succeeded())
+            throw new AssertionError("parent analysis should succeed: " + describeProblems(parentAnalysis.problems()));
+
+        String childSource = "inherit \"/parent\";\nint child() { return ::missing(); }\n";
+        TokenList childTokens = scanner.scan(childSource);
+        ASTObject childAst = parser.parse("BareChild", childTokens);
+        CompilationUnit childUnit = new CompilationUnit(null, "BareChild", null, childSource);
+        childUnit.setTokens(childTokens);
+        childUnit.setASTObject(childAst);
+        childUnit.setParentUnit(parentUnit);
+
+        SemanticAnalysisResult childAnalysis = new SemanticAnalyzer().analyze(childUnit);
+        String problems = describeProblems(childAnalysis.problems());
+
+        assertTrue(!childAnalysis.succeeded(), "semantic analysis should fail when parent method is missing");
+        assertTrue(
+                childAnalysis.problems().stream()
+                        .anyMatch(p -> p.getMessage().contains("not defined in the parent object")),
+                "error should mention missing parent method (" + problems + ")");
     }
 
     private static void irLoweringBuildsBinaryReturn() {

@@ -225,7 +225,8 @@ final class IRPrinter {
                     (instanceCall.ownerInternalName() != null && !instanceCall.ownerInternalName().isEmpty())
                             ? instanceCall.ownerInternalName()
                             : "<local>";
-            return "call " + owner + "::" + instanceCall.methodName() + "(" + renderArgs(instanceCall.arguments())
+            String dispatch = instanceCall.parentDispatch() ? "parent_call " : "call ";
+            return dispatch + owner + "::" + instanceCall.methodName() + "(" + renderArgs(instanceCall.arguments())
                     + ") : " + typeLabel(instanceCall.type());
         }
 

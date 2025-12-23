@@ -258,9 +258,9 @@ final class SemanticModelPrinter {
 
         if (expression instanceof ASTExprCallMethod callMethod) {
             String owner = (callMethod.method().ownerName() != null) ? callMethod.method().ownerName() : "<local>";
+            String prefix = callMethod.isParentDispatch() ? "Call parent method " : "Call method ";
             String label =
-                    "Call method " + owner + "::" + callMethod.method().symbol().name() + " : "
-                            + formatType(callMethod.lpcType());
+                    prefix + owner + "::" + callMethod.method().symbol().name() + " : " + formatType(callMethod.lpcType());
             return new PrettyNode(label, argumentNodes(callMethod.arguments()));
         }
 

@@ -72,6 +72,7 @@ public final class SemanticAnalyzer {
 
         validateInheritance(astObject, problems);
         resolveObjectSignatures(astObject, problems);
+        validateDefinitionsHaveDeclarations(astObject, problems);
         validateDuplicates(astObject.fields(), "field", problems);
         validateDuplicates(astObject.methods(), "method", problems);
         mergeParentSymbols(objectScope, parentUnit);
@@ -245,6 +246,29 @@ public final class SemanticAnalyzer {
             if (method.parameters() != null) {
                 for (ASTParameter parameter : method.parameters())
                     resolveSymbolType(parameter.symbol(), parameter.line(), problems);
+            }
+        }
+    }
+
+    private void validateDefinitionsHaveDeclarations(
+            ASTObject astObject, List<CompilationProblem> problems) {
+        for (ASTField field : astObject.fields()) {
+            if (field.isDefined() && !field.isDeclared()) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Field '" + field.symbol().name() + "' is defined without a prior declaration.",
+                                field.line()));
+            }
+        }
+
+        for (ASTMethod method : astObject.methods()) {
+            if (method.isDefined() && !method.isDeclared()) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Method '" + method.symbol().name() + "' is defined without a prior declaration.",
+                                method.line()));
             }
         }
     }

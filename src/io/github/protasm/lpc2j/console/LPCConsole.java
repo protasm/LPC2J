@@ -33,7 +33,7 @@ public class LPCConsole {
   private final ParserOptions parserOptions;
   private final ConsoleConfig config;
 
-  private final java.util.Scanner inputScanner;
+  private final ConsoleLineReader lineReader;
 
   private static Map<Command, List<String>> commands = new LinkedHashMap<>();
 
@@ -70,7 +70,7 @@ public class LPCConsole {
     this.pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
     this.vPath = Path.of("/");
 
-    inputScanner = new java.util.Scanner(System.in);
+    lineReader = new ConsoleLineReader(System.in, System.out);
 
     // Register Efuns
     runtimeContext.registerEfun(EfunAddAction.INSTANCE);
@@ -142,12 +142,18 @@ public class LPCConsole {
 
   public void repl() {
     while (true) {
-      System.out.print(pwdShort() + " % ");
-      String line = inputScanner.nextLine().trim();
+      String line = lineReader.readLine(pwdShort() + " % ");
+      if (line == null) {
+        break;
+      }
+
+      line = line.trim();
 
       if (line.isEmpty()) {
         continue;
       }
+
+      lineReader.recordHistory(line);
 
       String[] parts = line.split("\\s+");
       String input = parts[0];
@@ -165,8 +171,6 @@ public class LPCConsole {
         System.out.println("Unrecognized command: '" + input + "'.");
       }
     }
-
-    inputScanner.close();
   }
 
   public static Command getCommand(String alias) {

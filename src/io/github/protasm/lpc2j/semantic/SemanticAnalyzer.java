@@ -115,13 +115,8 @@ public final class SemanticAnalyzer {
             boolean shadowsInherited =
                     hasInheritedField(parentScope, field.symbol().name());
             if (shadowsInherited) {
-                // Field shadowing: inherited field remains in scope, but emit a warning to highlight
-                // the name collision.
-                problems.add(
-                        new CompilationProblem(
-                                CompilationStage.ANALYZE,
-                                "Field '" + field.symbol().name() + "' shadows inherited field",
-                                field.line()));
+                // Field shadowing: inherited field remains in scope. Shadowing is permitted for
+                // compatibility with LPC mudlibs, so we do not surface it as an error.
             }
 
             objectScope.declare(field.symbol(), unit, field, null);

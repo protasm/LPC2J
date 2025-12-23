@@ -124,21 +124,33 @@ public final class ConsoleLineReader {
 
   private void recallHistory(StringBuilder buffer, String prompt, int delta) {
     int newCursor = historyCursor + delta;
-    if (newCursor >= 0 && newCursor <= history.size()) {
-      historyCursor = newCursor;
-      String replacement = (historyCursor == history.size()) ? "" : history.get(historyCursor);
-      buffer.setLength(0);
-      buffer.append(replacement);
+    if (newCursor < 0 || newCursor > history.size()) {
+      return;
     }
 
-    redrawLine(prompt, buffer);
+    int previousLength = buffer.length();
+    historyCursor = newCursor;
+
+    String replacement = (historyCursor == history.size()) ? "" : history.get(historyCursor);
+    buffer.setLength(0);
+    buffer.append(replacement);
+
+    redrawLine(prompt, buffer, previousLength);
   }
 
-  private void redrawLine(String prompt, StringBuilder buffer) {
+  private void redrawLine(String prompt, StringBuilder buffer, int previousLength) {
     out.print("\r");
     out.print(prompt);
     out.print(buffer);
-    out.print("\u001b[K"); // clear to end-of-line to remove any echoed escape characters
+
+    int clearCount = previousLength - buffer.length();
+    if (clearCount > 0) {
+      out.print(" ".repeat(clearCount));
+      out.print("\r");
+      out.print(prompt);
+      out.print(buffer);
+    }
+
     out.flush();
   }
 }

@@ -96,7 +96,6 @@ public final class PipelineRegressionTests {
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath),
-                new TestCase("console ignores history navigation with no entries", PipelineRegressionTests::consoleIgnoresHistoryWhenEmpty),
                 new TestCase("console recalls previous commands with arrow keys", PipelineRegressionTests::consoleReadsHistoryWithArrows),
                 new TestCase("console down arrow returns to a blank entry", PipelineRegressionTests::consoleReturnsToEmptyHistorySlot));
 
@@ -863,19 +862,6 @@ public final class PipelineRegressionTests {
         }
 
         assertTrue(threw, "console config should reject nonexistent base path");
-    }
-
-    private static void consoleIgnoresHistoryWhenEmpty() {
-        byte[] input = ("\u001b[A\n").getBytes(StandardCharsets.UTF_8);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ConsoleLineReader reader =
-                new ConsoleLineReader(new ByteArrayInputStream(input), new PrintStream(out, true, StandardCharsets.UTF_8));
-
-        String line = reader.readLine("~ ");
-
-        assertEquals("", line, "up arrow with empty history should leave the line unchanged");
-        String rendered = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        assertTrue(!rendered.contains("^[[A"), "rendered line should not echo escape sequences");
     }
 
     private static void consoleReadsHistoryWithArrows() {

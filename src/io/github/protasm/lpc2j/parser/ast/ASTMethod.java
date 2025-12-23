@@ -8,6 +8,7 @@ public final class ASTMethod extends ASTNode {
     private ASTParameters parameters;
     private ASTStmtBlock body;
     private final java.util.List<ASTLocal> locals;
+    private ASTMethod overrides;
 
     public ASTMethod(int line, String ownerName, Symbol symbol) {
         super(line);
@@ -50,6 +51,14 @@ public final class ASTMethod extends ASTNode {
 
     public void addLocal(ASTLocal local) {
         locals.add(local);
+    }
+
+    public ASTMethod overrides() {
+        return overrides;
+    }
+
+    public void setOverrides(ASTMethod overrides) {
+        this.overrides = overrides;
     }
 
     public String descriptor() {

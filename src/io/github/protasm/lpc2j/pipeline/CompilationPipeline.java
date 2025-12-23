@@ -102,7 +102,7 @@ public final class CompilationPipeline {
 
         SemanticAnalyzer analyzer = new SemanticAnalyzer(runtimeContext);
         try {
-            SemanticAnalysisResult analysisResult = analyzer.analyze(astObject);
+            SemanticAnalysisResult analysisResult = analyzer.analyze(unit);
             semanticModel = analysisResult.semanticModel();
             unit.setSemanticModel(semanticModel);
             problems.addAll(analysisResult.problems());

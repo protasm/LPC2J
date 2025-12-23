@@ -38,9 +38,14 @@ import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
+import io.github.protasm.lpc2j.console.ConsoleLineReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -90,7 +95,9 @@ public final class PipelineRegressionTests {
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
-                new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath));
+                new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath),
+                new TestCase("console recalls previous commands with arrow keys", PipelineRegressionTests::consoleReadsHistoryWithArrows),
+                new TestCase("console down arrow returns to a blank entry", PipelineRegressionTests::consoleReturnsToEmptyHistorySlot));
 
         List<String> failures = new ArrayList<>();
 
@@ -855,6 +862,33 @@ public final class PipelineRegressionTests {
         }
 
         assertTrue(threw, "console config should reject nonexistent base path");
+    }
+
+    private static void consoleReadsHistoryWithArrows() {
+        byte[] input = ("\u001b[A\n").getBytes(StandardCharsets.UTF_8);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ConsoleLineReader reader =
+                new ConsoleLineReader(new ByteArrayInputStream(input), new PrintStream(out, true, StandardCharsets.UTF_8));
+        reader.recordHistory("first");
+        reader.recordHistory("second");
+
+        String line = reader.readLine("> ");
+
+        assertEquals("second", line, "up arrow should recall the most recent command");
+        String rendered = new String(out.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(rendered.contains("> second"), "rendered line should show recalled command");
+    }
+
+    private static void consoleReturnsToEmptyHistorySlot() {
+        byte[] input = ("\u001b[A\u001b[B\n").getBytes(StandardCharsets.UTF_8);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ConsoleLineReader reader =
+                new ConsoleLineReader(new ByteArrayInputStream(input), new PrintStream(out, true, StandardCharsets.UTF_8));
+        reader.recordHistory("look");
+
+        String line = reader.readLine("$ ");
+
+        assertEquals("", line, "down arrow should return to a fresh entry after navigating history");
     }
 
     private static String sampleDisplayName(Path root, Path file) {

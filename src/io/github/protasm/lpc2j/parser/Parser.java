@@ -26,6 +26,7 @@ import java.util.Map;
 import io.github.protasm.lpc2j.parser.ast.ASTArgument;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.ASTInherit;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -122,26 +123,13 @@ public class Parser {
     }
 
     private void declarations() {
-        boolean seenProperty = false;
-
         while (!tokens.isAtEnd()) {
             if (tokens.match(T_INHERIT)) {
                 Token<String> parentToken = consumeInheritPath();
-
-                // Single-inheritance only: bail out on any additional inherit.
-                if (currObj.parentName() != null)
-                    throw new ParseException("Only one inherit statement is allowed per object.", parentToken);
-
-                // Inherit must be declared before any fields or functions.
-                if (seenProperty)
-                    throw new ParseException("inherit statements must appear before any variable or function declarations.", parentToken);
-
-                // Record the inherited path early for downstream stages.
-                currObj.setParentName(parentToken.lexeme());
+                currObj.addInherit(new ASTInherit(parentToken.line(), parentToken.lexeme()));
                 continue;
             }
 
-            seenProperty = true;
             property(false);
         }
     }
@@ -175,12 +163,13 @@ public class Parser {
 
     private void property(boolean define) {
         Symbol symbol = declarationSymbol();
+        int declarationLine = tokens.previous().line();
         boolean hasType = symbol.declaredTypeName() != null;
 
         if (tokens.match(T_LEFT_PAREN))
-            method(symbol, define);
+            method(symbol, define, declarationLine);
         else if (hasType)
-            field(symbol, define);
+            field(symbol, define, declarationLine);
         else
             throw new ParseException("Untyped declarations must be functions.", tokens.current());
     }
@@ -201,7 +190,7 @@ public class Parser {
         return new Symbol((String) null, firstToken.lexeme());
     }
 
-    private void field(Symbol symbol, boolean define) {
+    private void field(Symbol symbol, boolean define, int declarationLine) {
         if (define && locals == null)
             locals = new Locals();
 
@@ -209,7 +198,7 @@ public class Parser {
 
         if (!define) {
             for (FieldDeclarator declarator : declarators) {
-                ASTField field = new ASTField(currLine(), currObj.name(), declarator.symbol());
+                ASTField field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
 
                 currObj.fields().put(field.symbol().name(), field);
             }
@@ -262,11 +251,11 @@ public class Parser {
         return new FieldDeclarator(symbol, initializer);
     }
 
-        private void method(Symbol symbol, boolean define) {
+        private void method(Symbol symbol, boolean define, int declarationLine) {
                 if (!define) {
                         skipMethodBody();
 
-                        ASTMethod method = new ASTMethod(currLine(), currObj.name(), symbol);
+                        ASTMethod method = new ASTMethod(declarationLine, currObj.name(), symbol);
 
             currObj.methods().put(method.symbol().name(), method);
 

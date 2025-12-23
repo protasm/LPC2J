@@ -42,6 +42,7 @@ import io.github.protasm.lpc2j.runtime.RuntimeType;
 import io.github.protasm.lpc2j.runtime.RuntimeTypes;
 import io.github.protasm.lpc2j.runtime.RuntimeValueKind;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
+import io.github.protasm.lpc2j.semantic.SemanticScope;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,12 +63,16 @@ public final class IRLowerer {
 
         List<CompilationProblem> problems = new ArrayList<>();
         ASTObject astObject = semanticModel.astObject();
+        String objectInternalName = astObject.name();
         String parentInternalName =
                 (astObject.parentName() != null) ? astObject.parentName() : defaultParentInternalName;
+        SemanticScope objectScope = semanticModel.objectScope();
+        SemanticScope parentScope = (objectScope != null) ? objectScope.parent() : null;
 
         Map<Symbol, IRField> fieldsBySymbol = new HashMap<>();
-        List<IRField> fields = lowerFields(astObject.fields(), fieldsBySymbol, problems);
-        List<IRMethod> methods = lowerMethods(astObject, fieldsBySymbol, problems);
+        importInheritedFields(parentScope, fieldsBySymbol);
+        List<IRField> fields = lowerFields(astObject.fields(), fieldsBySymbol, problems, objectInternalName);
+        List<IRMethod> methods = lowerMethods(astObject, fieldsBySymbol, problems, objectInternalName);
 
         TypedIR typedIr = new TypedIR(new IRObject(astObject.line(), astObject.name(), parentInternalName, fields, methods));
 
@@ -75,13 +80,18 @@ public final class IRLowerer {
     }
 
     private List<IRField> lowerFields(
-            Iterable<ASTField> astFields, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
+            Iterable<ASTField> astFields,
+            Map<Symbol, IRField> fieldsBySymbol,
+            List<CompilationProblem> problems,
+            String ownerInternalName) {
         List<IRField> fields = new ArrayList<>();
 
         for (ASTField field : astFields) {
             RuntimeType fieldType = runtimeType(field.symbol().lpcType());
-            IRExpression initializer = lowerFieldInitializer(field.initializer(), fieldType, fieldsBySymbol, problems);
-            IRField irField = new IRField(field.line(), field.symbol().name(), fieldType, initializer);
+            IRExpression initializer =
+                    lowerFieldInitializer(field.initializer(), fieldType, fieldsBySymbol, problems, ownerInternalName);
+            IRField irField = new IRField(
+                    field.line(), ownerInternalName, field.symbol().name(), fieldType, initializer);
             fields.add(irField);
             fieldsBySymbol.put(field.symbol(), irField);
         }
@@ -90,28 +100,67 @@ public final class IRLowerer {
     }
 
     private IRExpression lowerFieldInitializer(
-            ASTExpression initializer, RuntimeType fieldType, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
+            ASTExpression initializer,
+            RuntimeType fieldType,
+            Map<Symbol, IRField> fieldsBySymbol,
+            List<CompilationProblem> problems,
+            String ownerInternalName) {
         if (initializer == null)
             return null;
 
-        MethodContext context = new MethodContext(fieldType, fieldsBySymbol);
+        MethodContext context = new MethodContext(fieldType, fieldsBySymbol, ownerInternalName);
         IRExpression lowered = lowerExpression(initializer, context, problems);
         return coerceIfNeeded(lowered, fieldType);
     }
 
+    private void importInheritedFields(SemanticScope scope, Map<Symbol, IRField> fieldsBySymbol) {
+        if (scope == null)
+            return;
+
+        for (List<SemanticScope.ScopedSymbol> scopedSymbols : scope.symbols().values()) {
+            for (SemanticScope.ScopedSymbol scopedSymbol : scopedSymbols) {
+                if (scopedSymbol == null || scopedSymbol.field() == null)
+                    continue;
+
+                Symbol symbol = scopedSymbol.symbol();
+                if (fieldsBySymbol.containsKey(symbol))
+                    continue;
+
+                RuntimeType type = runtimeType(symbol.lpcType());
+                String ownerInternalName = scopedSymbol.field().ownerName();
+                IRField inheritedField = new IRField(
+                        scopedSymbol.field().line(),
+                        (ownerInternalName != null) ? ownerInternalName : defaultParentInternalName,
+                        symbol.name(),
+                        type,
+                        null);
+                fieldsBySymbol.put(symbol, inheritedField);
+            }
+        }
+
+        importInheritedFields(scope.parent(), fieldsBySymbol);
+    }
+
     private List<IRMethod> lowerMethods(
-            ASTObject astObject, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
+            ASTObject astObject,
+            Map<Symbol, IRField> fieldsBySymbol,
+            List<CompilationProblem> problems,
+            String objectInternalName) {
         List<IRMethod> methods = new ArrayList<>();
 
         for (ASTMethod method : astObject.methods())
-            methods.add(lowerMethod(method, fieldsBySymbol, problems));
+            methods.add(lowerMethod(method, fieldsBySymbol, problems, objectInternalName));
 
         return methods;
     }
 
     private IRMethod lowerMethod(
-            ASTMethod method, Map<Symbol, IRField> fieldsBySymbol, List<CompilationProblem> problems) {
-        MethodContext context = new MethodContext(runtimeType(method.symbol().lpcType()), fieldsBySymbol);
+            ASTMethod method,
+            Map<Symbol, IRField> fieldsBySymbol,
+            List<CompilationProblem> problems,
+            String objectInternalName) {
+        MethodContext context =
+                new MethodContext(runtimeType(method.symbol().lpcType()), fieldsBySymbol, objectInternalName);
 
         lowerParameters(method, context);
         lowerLocals(method, context);
@@ -495,6 +544,7 @@ public final class IRLowerer {
     private static final class MethodContext {
         private final RuntimeType returnType;
         private final Map<Symbol, IRField> fieldsBySymbol;
+        private final String currentInternalName;
         private final Map<Symbol, IRLocal> localsBySymbol = new HashMap<>();
         private final Map<Integer, IRLocal> localsBySlot = new HashMap<>();
         private final List<IRParameter> parameters = new ArrayList<>();
@@ -503,9 +553,10 @@ public final class IRLowerer {
 
         private int blockCounter = 0;
 
-        private MethodContext(RuntimeType returnType, Map<Symbol, IRField> fieldsBySymbol) {
+        private MethodContext(RuntimeType returnType, Map<Symbol, IRField> fieldsBySymbol, String currentInternalName) {
             this.returnType = returnType != null ? returnType : RuntimeTypes.MIXED;
             this.fieldsBySymbol = fieldsBySymbol;
+            this.currentInternalName = currentInternalName;
         }
 
         public BlockBuilder newBlock(String prefix) {
@@ -564,7 +615,8 @@ public final class IRLowerer {
                 return field;
 
             RuntimeType type = RuntimeTypes.fromLpcType(astField.symbol().lpcType());
-            IRField synthesized = new IRField(astField.line(), astField.symbol().name(), type, null);
+            String owner = (astField.ownerName() != null) ? astField.ownerName() : currentInternalName;
+            IRField synthesized = new IRField(astField.line(), owner, astField.symbol().name(), type, null);
             fieldsBySymbol.put(astField.symbol(), synthesized);
             problems.add(
                     new CompilationProblem(

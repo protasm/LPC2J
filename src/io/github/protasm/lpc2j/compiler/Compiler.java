@@ -63,8 +63,11 @@ public final class Compiler {
     }
 
     private void emitFields(ClassWriter cw, IRObject object) {
-        for (IRField field : object.fields())
-            cw.visitField(ACC_PRIVATE, field.name(), descriptor(field.type()), null, null).visitEnd();
+        for (IRField field : object.fields()) {
+            // Only materialize fields owned by this object. Inheritance is handled by the JVM's
+            // class hierarchy so parent storage remains in the parent class.
+            cw.visitField(ACC_PROTECTED, field.name(), descriptor(field.type()), null, null).visitEnd();
+        }
     }
 
     private void emitDriverManagedFields(ClassWriter cw) {
@@ -130,7 +133,7 @@ public final class Compiler {
             // user-controlled.
             mv.visitVarInsn(ALOAD, 0);
             emitExpression(mv, internalName, null, field.initializer());
-            mv.visitFieldInsn(PUTFIELD, internalName, field.name(), descriptor(field.type()));
+            mv.visitFieldInsn(PUTFIELD, field.ownerInternalName(), field.name(), descriptor(field.type()));
         }
     }
 
@@ -370,14 +373,22 @@ public final class Compiler {
 
     private void emitFieldLoad(MethodVisitor mv, String internalName, IRField field) {
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, internalName, field.name(), descriptor(field.type()));
+        // Target the owning class so inherited fields resolve through the JVM hierarchy while
+        // allowing shadowed child fields to live alongside parent storage.
+        mv.visitFieldInsn(GETFIELD, field.ownerInternalName(), field.name(), descriptor(field.type()));
     }
 
     private void emitFieldStore(MethodVisitor mv, String internalName, IRMethod method, IRFieldStore fieldStore) {
         mv.visitVarInsn(ALOAD, 0);
         emitExpression(mv, internalName, method, fieldStore.value());
         mv.visitInsn(DUP_X1);
-        mv.visitFieldInsn(PUTFIELD, internalName, fieldStore.field().name(), descriptor(fieldStore.field().type()));
+        // Writes route to the declared owner to keep parent storage distinct from any child
+        // shadows without reintroducing initialization here (managed by the driver).
+        mv.visitFieldInsn(
+                PUTFIELD,
+                fieldStore.field().ownerInternalName(),
+                fieldStore.field().name(),
+                descriptor(fieldStore.field().type()));
     }
 
     private void emitUnaryOperation(MethodVisitor mv, String internalName, IRMethod method, IRUnaryOperation unary) {

@@ -2,9 +2,11 @@ package io.github.protasm.lpc2j.semantic;
 
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationStage;
+import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
 import io.github.protasm.lpc2j.parser.ast.ASTLocal;
+import io.github.protasm.lpc2j.parser.ast.ASTMapNode;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
@@ -14,11 +16,13 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import io.github.protasm.lpc2j.semantic.SemanticScope.ScopedSymbol;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /** Performs semantic analysis on a parsed AST and produces a typed model. */
 public final class SemanticAnalyzer {
@@ -44,20 +48,62 @@ public final class SemanticAnalyzer {
     }
 
     public SemanticAnalysisResult analyze(ASTObject astObject) {
+        return analyze(astObject, null);
+    }
+
+    public SemanticAnalysisResult analyze(CompilationUnit unit) {
+        if (unit == null)
+            throw new IllegalArgumentException("CompilationUnit cannot be null.");
+
+        return analyze(unit.astObject(), unit);
+    }
+
+    private SemanticAnalysisResult analyze(ASTObject astObject, CompilationUnit unit) {
         if (astObject == null)
             throw new IllegalArgumentException("ASTObject cannot be null.");
 
         List<CompilationProblem> problems = new ArrayList<>();
-        SemanticScope objectScope = new SemanticScope();
+        CompilationUnit parentUnit = (unit != null) ? unit.parentUnit() : null;
+        SemanticScope parentScope = (parentUnit != null && parentUnit.semanticModel() != null)
+                ? parentUnit.semanticModel().objectScope()
+                : null;
+        SemanticScope objectScope = new SemanticScope(parentScope);
+
+        resolveObjectSignatures(astObject, problems);
+        validateDuplicates(astObject.fields(), "field", problems);
+        validateDuplicates(astObject.methods(), "method", problems);
+        mergeParentSymbols(objectScope, parentUnit);
 
         for (ASTField field : astObject.fields()) {
-            resolveSymbolType(field.symbol(), field.line(), problems);
-            objectScope.declare(field.symbol());
+            boolean shadowsInherited =
+                    hasInheritedField(parentScope, field.symbol().name());
+            if (shadowsInherited) {
+                // Field shadowing: inherited field remains in scope, but emit a warning to highlight
+                // the name collision.
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Field '" + field.symbol().name() + "' shadows inherited field",
+                                field.line()));
+            }
+
+            objectScope.declare(field.symbol(), unit, field, null);
         }
 
         for (ASTMethod method : astObject.methods()) {
-            resolveSymbolType(method.symbol(), method.line(), problems);
-            objectScope.declare(method.symbol());
+            ASTMethod overridden = findOverriddenMethod(parentScope, method);
+            if (overridden != null && !isSignatureCompatible(method, overridden)) {
+                // Override detection: overriding is allowed only when the typed LPC signatures
+                // match; otherwise surface a hard error.
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Method '" + method.symbol().name() + "' overrides with incompatible signature",
+                                method.line()));
+            }
+            method.setOverrides(overridden);
+
+            objectScope.declare(method.symbol(), unit, null, method);
         }
 
         for (ASTMethod method : astObject.methods()) {
@@ -65,13 +111,11 @@ public final class SemanticAnalyzer {
 
             if (method.parameters() != null) {
                 for (ASTParameter parameter : method.parameters()) {
-                    resolveSymbolType(parameter.symbol(), parameter.line(), problems);
                     declareUnique(parameter.symbol(), methodScope, problems, "parameter");
                 }
             }
 
             for (ASTLocal local : method.locals()) {
-                resolveSymbolType(local.symbol(), local.line(), problems);
                 declareUnique(local.symbol(), methodScope, problems, "local");
             }
 
@@ -111,9 +155,12 @@ public final class SemanticAnalyzer {
 
     private void declareUnique(
             Symbol symbol, SemanticScope scope, List<CompilationProblem> problems, String kind) {
-        Symbol existing = scope.resolveLocally(symbol.name());
+        ScopedSymbol existing = scope.resolveLocally(symbol.name());
 
-        if (existing != null && existing != symbol) {
+        if (existing != null && existing.symbol() != symbol) {
+            // Duplicate detection is limited to the child scope; inherited entries have already
+            // been merged with origin metadata, so seeing a different symbol here means the child
+            // redeclared the same name.
             problems.add(
                     new CompilationProblem(
                             CompilationStage.ANALYZE,
@@ -142,6 +189,96 @@ public final class SemanticAnalyzer {
 
         return new ASTExprLiteralInteger(
                 method.body().line(), new Token<>(TokenType.T_INT_LITERAL, "0", 0, null));
+    }
+
+    private void resolveObjectSignatures(ASTObject astObject, List<CompilationProblem> problems) {
+        for (ASTField field : astObject.fields())
+            resolveSymbolType(field.symbol(), field.line(), problems);
+
+        for (ASTMethod method : astObject.methods()) {
+            resolveSymbolType(method.symbol(), method.line(), problems);
+            if (method.parameters() != null) {
+                for (ASTParameter parameter : method.parameters())
+                    resolveSymbolType(parameter.symbol(), parameter.line(), problems);
+            }
+        }
+    }
+
+    private <T> void validateDuplicates(ASTMapNode<T> nodes, String kind, List<CompilationProblem> problems) {
+        for (Map.Entry<String, List<T>> entry : nodes.nodes().entrySet()) {
+            List<T> occurrences = entry.getValue();
+            if (occurrences.size() > 1) {
+                // Emit once per duplicate cluster to surface user-facing name collisions.
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Duplicate " + kind + " '" + entry.getKey() + "' in object",
+                                nodes.line()));
+            }
+        }
+    }
+
+    private void mergeParentSymbols(SemanticScope objectScope, CompilationUnit parentUnit) {
+        if (parentUnit == null || parentUnit.semanticModel() == null)
+            return;
+
+        ASTObject parent = parentUnit.semanticModel().astObject();
+        for (ASTField field : parent.fields())
+            objectScope.importSymbol(new ScopedSymbol(field.symbol(), parentUnit, field, null));
+        for (ASTMethod method : parent.methods())
+            objectScope.importSymbol(new ScopedSymbol(method.symbol(), parentUnit, null, method));
+    }
+
+    private boolean hasInheritedField(SemanticScope parentScope, String name) {
+        if (parentScope == null)
+            return false;
+
+        return parentScope.resolveAll(name).stream().anyMatch(s -> s.field() != null);
+    }
+
+    private ASTMethod findOverriddenMethod(SemanticScope parentScope, ASTMethod method) {
+        if (parentScope == null)
+            return null;
+
+        return parentScope.resolveAll(method.symbol().name()).stream()
+                .map(ScopedSymbol::method)
+                .filter(Objects::nonNull)
+                .reduce((first, second) -> second)
+                .orElse(null);
+    }
+
+    private boolean isSignatureCompatible(ASTMethod child, ASTMethod parent) {
+        if (child == null || parent == null)
+            return false;
+
+        LPCType childReturn = child.symbol().lpcType();
+        LPCType parentReturn = parent.symbol().lpcType();
+        if (childReturn != null && parentReturn != null && childReturn != parentReturn)
+            return false;
+
+        List<LPCType> childParams = parameterTypes(child);
+        List<LPCType> parentParams = parameterTypes(parent);
+
+        if (childParams.size() != parentParams.size())
+            return false;
+
+        for (int i = 0; i < childParams.size(); i++) {
+            LPCType childType = childParams.get(i);
+            LPCType parentType = parentParams.get(i);
+            if (childType != null && parentType != null && childType != parentType)
+                return false;
+        }
+
+        return true;
+    }
+
+    private List<LPCType> parameterTypes(ASTMethod method) {
+        if (method.parameters() == null)
+            return List.of();
+
+        List<LPCType> types = new ArrayList<>(method.parameters().size());
+        method.parameters().forEach(param -> types.add(param.symbol().lpcType()));
+        return types;
     }
 
 }

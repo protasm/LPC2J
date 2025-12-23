@@ -385,6 +385,7 @@ public final class IRLowerer {
                     callMethod.line(),
                     ownerInternalName,
                     callMethod.method().symbol().name(),
+                    callMethod.isParentDispatch(),
                     args,
                     parameterTypes,
                     returnType);

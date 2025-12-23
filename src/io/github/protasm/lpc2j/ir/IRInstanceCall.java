@@ -8,6 +8,7 @@ public record IRInstanceCall(
         int line,
         String ownerInternalName,
         String methodName,
+        boolean parentDispatch,
         List<IRExpression> arguments,
         List<RuntimeType> parameterTypes,
         RuntimeType type) implements IRExpression {

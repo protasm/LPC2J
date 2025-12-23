@@ -26,6 +26,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_SLASH;
+import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
 import static io.github.protasm.lpc2j.token.TokenType.T_STAR;
 import static io.github.protasm.lpc2j.token.TokenType.T_STRING_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_TRUE;
@@ -41,6 +42,7 @@ import io.github.protasm.lpc2j.parser.parselet.PrefixLiteral;
 import io.github.protasm.lpc2j.parser.parselet.PrefixArrayLiteral;
 import io.github.protasm.lpc2j.parser.parselet.PrefixNumber;
 import io.github.protasm.lpc2j.parser.parselet.PrefixString;
+import io.github.protasm.lpc2j.parser.parselet.PrefixSuperCall;
 import io.github.protasm.lpc2j.parser.parselet.PrefixUnaryOp;
 import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenType;
@@ -97,6 +99,7 @@ public class PrattParser {
         tokenTypeToRule.put(T_FLOAT_LITERAL, new ParseRule(new PrefixNumber(), null, PREC_NONE));
         tokenTypeToRule.put(T_STRING_LITERAL, new ParseRule(new PrefixString(), null, PREC_NONE));
         tokenTypeToRule.put(T_TRUE, new ParseRule(new PrefixLiteral(), null, PREC_NONE));
+        tokenTypeToRule.put(T_SUPER, new ParseRule(new PrefixSuperCall(), null, PREC_NONE));
 
     }
 

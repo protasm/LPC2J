@@ -32,6 +32,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedParentCall;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -77,6 +78,7 @@ public interface ASTVisitor {
         case ASTExprUnresolvedCall exprUnresolvedCall -> visitExprUnresolvedCall(exprUnresolvedCall);
         case ASTExprUnresolvedIdentifier exprUnresolvedIdentifier -> visitExprUnresolvedIdentifier(exprUnresolvedIdentifier);
         case ASTExprUnresolvedInvoke exprUnresolvedInvoke -> visitExprUnresolvedInvoke(exprUnresolvedInvoke);
+        case ASTExprUnresolvedParentCall exprUnresolvedParentCall -> visitExprUnresolvedParentCall(exprUnresolvedParentCall);
         case ASTExpression expression -> visitExpression(expression);
         case ASTStmtBlock stmtBlock -> visitStmtBlock(stmtBlock);
         case ASTStmtExpression stmtExpression -> visitStmtExpression(stmtExpression);
@@ -156,6 +158,8 @@ public interface ASTVisitor {
     default void visitExprUnresolvedIdentifier(ASTExprUnresolvedIdentifier expr) {}
 
     default void visitExprUnresolvedInvoke(ASTExprUnresolvedInvoke expr) {}
+
+    default void visitExprUnresolvedParentCall(ASTExprUnresolvedParentCall expr) {}
 
     default void visitStmtBlock(ASTStmtBlock stmt) {}
 

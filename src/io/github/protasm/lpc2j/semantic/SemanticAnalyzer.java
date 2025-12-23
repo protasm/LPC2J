@@ -35,6 +35,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedParentCall;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -142,7 +143,7 @@ public final class SemanticAnalyzer {
             objectScope.declare(method.symbol(), unit, null, method);
         }
 
-        resolveIdentifiers(astObject, objectScope, problems);
+        resolveIdentifiers(astObject, objectScope, parentUnit, problems);
 
         for (ASTMethod method : astObject.methods()) {
             SemanticScope methodScope = new SemanticScope(objectScope);
@@ -533,8 +534,8 @@ public final class SemanticAnalyzer {
     }
 
     private void resolveIdentifiers(
-            ASTObject astObject, SemanticScope objectScope, List<CompilationProblem> problems) {
-        IdentifierResolver resolver = new IdentifierResolver(objectScope, runtimeContext, problems);
+            ASTObject astObject, SemanticScope objectScope, CompilationUnit parentUnit, List<CompilationProblem> problems) {
+        IdentifierResolver resolver = new IdentifierResolver(objectScope, parentUnit, runtimeContext, problems);
 
         for (ASTField field : astObject.fields()) {
             if (field.initializer() != null)
@@ -578,12 +579,17 @@ public final class SemanticAnalyzer {
 
     private static final class IdentifierResolver {
         private final SemanticScope objectScope;
+        private final CompilationUnit parentUnit;
         private final RuntimeContext runtimeContext;
         private final List<CompilationProblem> problems;
 
         IdentifierResolver(
-                SemanticScope objectScope, RuntimeContext runtimeContext, List<CompilationProblem> problems) {
+                SemanticScope objectScope,
+                CompilationUnit parentUnit,
+                RuntimeContext runtimeContext,
+                List<CompilationProblem> problems) {
             this.objectScope = objectScope;
+            this.parentUnit = parentUnit;
             this.runtimeContext = runtimeContext;
             this.problems = problems;
         }
@@ -623,6 +629,9 @@ public final class SemanticAnalyzer {
 
             if (expression instanceof ASTExprUnresolvedCall unresolvedCall)
                 return resolveCall(unresolvedCall, context);
+
+            if (expression instanceof ASTExprUnresolvedParentCall unresolvedParentCall)
+                return resolveParentCall(unresolvedParentCall, context);
 
             if (expression instanceof ASTExprUnresolvedInvoke unresolvedInvoke)
                 return resolveInvoke(unresolvedInvoke, context);
@@ -689,7 +698,8 @@ public final class SemanticAnalyzer {
                 ASTArguments resolvedArgs = resolveArguments(callMethod.arguments(), context);
                 if (resolvedArgs == callMethod.arguments())
                     return callMethod;
-                return new ASTExprCallMethod(callMethod.line(), callMethod.method(), resolvedArgs);
+                return new ASTExprCallMethod(
+                        callMethod.line(), callMethod.method(), resolvedArgs, callMethod.isParentDispatch());
             }
 
             if (expression instanceof ASTExprCallEfun callEfun) {
@@ -779,6 +789,33 @@ public final class SemanticAnalyzer {
                             "Unrecognized method or function '" + unresolvedCall.name() + "'.",
                             unresolvedCall.line()));
             return new ASTExprNull(unresolvedCall.line());
+        }
+
+        private ASTExpression resolveParentCall(
+                ASTExprUnresolvedParentCall unresolvedParentCall, LocalResolutionContext context) {
+            ASTArguments resolvedArgs = resolveArguments(unresolvedParentCall.arguments(), context);
+            SemanticScope parentScope = (objectScope != null) ? objectScope.parent() : null;
+
+            if (parentScope == null || parentUnit == null || parentUnit.semanticModel() == null) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.ANALYZE,
+                                "Cannot call inherited method '" + unresolvedParentCall.name() + "' without a parent object.",
+                                unresolvedParentCall.line()));
+                return new ASTExprNull(unresolvedParentCall.line());
+            }
+
+            ScopedSymbol parentSymbol = parentScope.resolveLocally(unresolvedParentCall.name());
+            ASTMethod parentMethod = (parentSymbol != null) ? parentSymbol.method() : null;
+            if (parentMethod != null)
+                return new ASTExprCallMethod(unresolvedParentCall.line(), parentMethod, resolvedArgs, true);
+
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Inherited method '" + unresolvedParentCall.name() + "' is not defined in the parent object.",
+                            unresolvedParentCall.line()));
+            return new ASTExprNull(unresolvedParentCall.line());
         }
 
         private ASTExpression resolveAssignment(

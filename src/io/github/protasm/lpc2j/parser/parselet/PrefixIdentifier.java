@@ -7,24 +7,15 @@ import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 
-import io.github.protasm.lpc2j.efun.Efun;
-import io.github.protasm.lpc2j.parser.ParseException;
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
-import io.github.protasm.lpc2j.parser.ast.ASTField;
-import io.github.protasm.lpc2j.parser.ast.ASTLocal;
-import io.github.protasm.lpc2j.parser.ast.ASTMethod;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
-import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore.AssignmentOp;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.token.Token;
-import io.github.protasm.lpc2j.parser.type.BinaryOpType;
 
 public class PrefixIdentifier implements PrefixParselet {
     @Override
@@ -36,69 +27,24 @@ public class PrefixIdentifier implements PrefixParselet {
         if (parser.tokens().check(T_LEFT_PAREN)) {
             ASTArguments args = parser.arguments();
 
-            // Method of same object?
-            // TODO: handle overloaded methods
-            ASTMethod method = parser.currObj().methods().get(identifier);
-
-            if (method != null) // Call
-                return new ASTExprCallMethod(line, method, args);
-
-            // Efun?
-            Efun efun = parser.runtimeContext().resolveEfun(identifier, args.size());
-
-            if (efun != null) // Call
-                return new ASTExprCallEfun(line, efun, args);
-
-            throw new ParseException("Unrecognized method or function '" + identifier + "'.", parser.tokens().previous());
+            return new ASTExprIdentifierCall(line, identifier, args);
         }
 
-        // Local?
-        ASTLocal local = parser.locals().get(identifier);
+        // Dynamic invoke on a target identifier.
+        if (parser.tokens().match(T_RIGHT_ARROW)) {
+            Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
+            return new ASTExprInvokeIdentifier(line, identifier, nameToken.lexeme(), parser.arguments());
+        }
 
-        if (local != null)
-            // Invoke?
-            if (parser.tokens().match(T_RIGHT_ARROW)) {
-                Token<String> nameToken = parser.tokens().consume(T_IDENTIFIER, "Expect method name.");
+        if (canAssign && parser.tokens().match(T_EQUAL))
+            return new ASTExprIdentifierStore(line, identifier, AssignmentOp.ASSIGN, parser.expression());
 
-                return new ASTExprInvokeLocal(line, local.slot(), nameToken.lexeme(), parser.arguments());
-                // Assign?
-            } else if (canAssign && parser.tokens().match(T_EQUAL))
-                return new ASTExprLocalStore(line, local, parser.expression());
-            else if (canAssign && parser.tokens().match(T_PLUS_EQUAL))
-                return new ASTExprLocalStore(line, local,
-                        new ASTExprOpBinary(line, new ASTExprLocalAccess(line, local), parser.expression(),
-                                BinaryOpType.BOP_ADD));
-            else if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
-                return new ASTExprLocalStore(line, local,
-                        new ASTExprOpBinary(line, new ASTExprLocalAccess(line, local), parser.expression(),
-                                BinaryOpType.BOP_SUB));
-            // Retrieve.
-            else
-                return new ASTExprLocalAccess(line, local);
+        if (canAssign && parser.tokens().match(T_PLUS_EQUAL))
+            return new ASTExprIdentifierStore(line, identifier, AssignmentOp.PLUS_EQUAL, parser.expression());
 
-        // Field?
-        ASTField field = parser.currObj().fields().get(identifier);
+        if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
+            return new ASTExprIdentifierStore(line, identifier, AssignmentOp.MINUS_EQUAL, parser.expression());
 
-        if (field != null)
-            // Invoke?
-            if (parser.tokens().match(T_RIGHT_ARROW)) {
-                System.out.println("TODO: implement field invocation (PrefixIdentifier.java)");
-                return null; // TODO
-                // Assign?
-            } else if (canAssign && parser.tokens().match(T_EQUAL))
-                return new ASTExprFieldStore(line, field, parser.expression());
-            else if (canAssign && parser.tokens().match(T_PLUS_EQUAL))
-                return new ASTExprFieldStore(line, field,
-                        new ASTExprOpBinary(line, new ASTExprFieldAccess(line, field), parser.expression(),
-                                BinaryOpType.BOP_ADD));
-            else if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
-                return new ASTExprFieldStore(line, field,
-                        new ASTExprOpBinary(line, new ASTExprFieldAccess(line, field), parser.expression(),
-                                BinaryOpType.BOP_SUB));
-            // Retrieve.
-            else
-                return new ASTExprFieldAccess(line, field);
-
-        throw new ParseException("Unrecognized local or field '" + identifier + "'.", parser.tokens().previous());
+        return new ASTExprIdentifierAccess(line, identifier);
     }
 }

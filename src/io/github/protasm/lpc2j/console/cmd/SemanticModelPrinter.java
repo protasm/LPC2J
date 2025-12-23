@@ -196,6 +196,35 @@ final class SemanticModelPrinter {
         if (expression == null)
             return new PrettyNode("<null expression>");
 
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore store) {
+            String target = (store.resolution() != null) ? store.resolution().name() : store.name();
+            return taggedChild(
+                    "Assign ident " + target + " : " + formatType(store.lpcType()),
+                    expressionNode(store.value()));
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess access) {
+            String target = (access.resolution() != null) ? access.resolution().name() : access.name();
+            return new PrettyNode("IdentRef " + target + " : " + formatType(access.lpcType()));
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall call) {
+            String target = (call.resolution() != null) ? call.resolution().name() : call.name();
+            String label = "Call ident " + target + " : " + formatType(call.lpcType());
+            return new PrettyNode(label, argumentNodes(call.arguments()));
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier invoke) {
+            String label =
+                    "DynamicInvoke ident "
+                            + invoke.targetName()
+                            + " -> "
+                            + invoke.methodName()
+                            + " : "
+                            + formatType(invoke.lpcType());
+            return new PrettyNode(label, argumentNodes(invoke.arguments()));
+        }
+
         if (expression instanceof ASTExprLocalStore store) {
             return taggedChild(
                     "Assign " + store.local().symbol().name() + " : " + formatType(store.lpcType()),

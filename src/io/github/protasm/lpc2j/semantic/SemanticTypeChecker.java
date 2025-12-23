@@ -13,6 +13,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
+import io.github.protasm.lpc2j.parser.ast.IdentifierResolution;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
@@ -22,6 +23,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
@@ -123,6 +128,18 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprMappingLiteral)
             return LPCType.LPCMAPPING;
 
+        if (expression instanceof ASTExprIdentifierAccess identifierAccess)
+            return inferIdentifierAccess(identifierAccess, context);
+
+        if (expression instanceof ASTExprIdentifierStore identifierStore)
+            return inferIdentifierStore(identifierStore, context);
+
+        if (expression instanceof ASTExprIdentifierCall identifierCall)
+            return inferIdentifierCall(identifierCall, context);
+
+        if (expression instanceof ASTExprInvokeIdentifier invokeIdentifier)
+            return inferInvokeIdentifier(invokeIdentifier, context);
+
         if (expression instanceof ASTExprLocalAccess access)
             return valueType(access.local().symbol());
 
@@ -189,8 +206,10 @@ public final class SemanticTypeChecker {
     private LPCType inferBinaryType(ASTExprOpBinary expr, MethodContext context) {
         LPCType leftType = inferExpressionType(expr.left(), context);
         LPCType rightType = inferExpressionType(expr.right(), context);
-        BinaryOpType op = expr.operator();
+        return inferBinaryType(expr.operator(), leftType, rightType, expr.line());
+    }
 
+    private LPCType inferBinaryType(BinaryOpType op, LPCType leftType, LPCType rightType, int line) {
         switch (op) {
         case BOP_ADD -> {
             if (leftType == LPCType.LPCARRAY || rightType == LPCType.LPCARRAY) {
@@ -199,7 +218,7 @@ public final class SemanticTypeChecker {
                             new CompilationProblem(
                                     CompilationStage.ANALYZE,
                                     "Array concatenation requires two arrays",
-                                    expr.line()));
+                                    line));
                 }
                 return LPCType.LPCARRAY;
             }
@@ -211,23 +230,23 @@ public final class SemanticTypeChecker {
                             new CompilationProblem(
                                     CompilationStage.ANALYZE,
                                     "Mapping concatenation requires two mappings",
-                                    expr.line()));
+                                    line));
                 }
                 return LPCType.LPCMAPPING;
             }
 
-            ensureNumericOperands(leftType, rightType, expr.line(), "Addition expects numeric operands");
+            ensureNumericOperands(leftType, rightType, line, "Addition expects numeric operands");
             return LPCType.LPCINT;
         }
         case BOP_SUB, BOP_MULT, BOP_DIV -> {
-            ensureNumericOperands(leftType, rightType, expr.line(), op + " expects numeric operands");
+            ensureNumericOperands(leftType, rightType, line, op + " expects numeric operands");
             return LPCType.LPCINT;
         }
         case BOP_AND, BOP_OR -> {
             return LPCType.LPCSTATUS;
         }
         case BOP_GT, BOP_GE, BOP_LT, BOP_LE -> {
-            ensureNumericOperands(leftType, rightType, expr.line(), "Comparison expects numeric operands");
+            ensureNumericOperands(leftType, rightType, line, "Comparison expects numeric operands");
             return LPCType.LPCSTATUS;
         }
         case BOP_EQ, BOP_NE -> {
@@ -235,23 +254,169 @@ public final class SemanticTypeChecker {
         }
         }
 
+        problems.add(
+                new CompilationProblem(
+                        CompilationStage.ANALYZE,
+                        "Unsupported binary operator: " + op,
+                        line));
+        return LPCType.LPCMIXED;
+    }
+
+    private LPCType inferIdentifierAccess(ASTExprIdentifierAccess access, MethodContext context) {
+        IdentifierResolution resolution = access.resolution();
+        if (resolution == null) {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Identifier '" + access.name() + "' is not bound to a symbol",
+                            access.line()));
+            return LPCType.LPCMIXED;
+        }
+
+        LPCType type = switch (resolution.kind()) {
+        case LOCAL -> valueType(resolution.local().symbol());
+        case FIELD -> valueType(resolution.field().symbol());
+        default -> {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Identifier '" + access.name() + "' cannot be used as a value",
+                            access.line()));
+            yield LPCType.LPCMIXED;
+        }
+        };
+
+        access.setLpcType(type);
+        return type != null ? type : LPCType.LPCMIXED;
+    }
+
+    private LPCType inferIdentifierStore(ASTExprIdentifierStore store, MethodContext context) {
+        IdentifierResolution resolution = store.resolution();
+        if (resolution == null) {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Identifier '" + store.name() + "' is not bound to a symbol",
+                            store.line()));
+            return inferExpressionType(store.value(), context);
+        }
+
+        LPCType targetType = switch (resolution.kind()) {
+        case LOCAL -> valueType(resolution.local().symbol());
+        case FIELD -> valueType(resolution.field().symbol());
+        default -> {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Identifier '" + store.name() + "' cannot be assigned",
+                            store.line()));
+            yield LPCType.LPCMIXED;
+        }
+        };
+
+        LPCType valueType;
+        if (store.operator() == ASTExprIdentifierStore.AssignmentOp.PLUS_EQUAL) {
+            valueType = inferBinaryType(
+                    BinaryOpType.BOP_ADD,
+                    targetType,
+                    inferExpressionType(store.value(), context),
+                    store.line());
+        } else if (store.operator() == ASTExprIdentifierStore.AssignmentOp.MINUS_EQUAL) {
+            valueType = inferBinaryType(
+                    BinaryOpType.BOP_SUB,
+                    targetType,
+                    inferExpressionType(store.value(), context),
+                    store.line());
+        } else {
+            valueType = inferExpressionType(store.value(), context);
+        }
+
+        String targetKind =
+                (resolution.kind() == IdentifierResolution.Kind.FIELD) ? "Field" : "Local";
+        ensureAssignable(targetType, valueType, store.line(), targetKind + " assignment type mismatch");
+        LPCType resolvedType = (targetType != null) ? targetType : valueType;
+        store.setLpcType(resolvedType);
+        return resolvedType;
+    }
+
+    private LPCType inferIdentifierCall(ASTExprIdentifierCall call, MethodContext context) {
+        IdentifierResolution resolution = call.resolution();
+        if (resolution == null) {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Call to '" + call.name() + "' could not be resolved",
+                            call.line()));
+            inferArguments(call.arguments(), null, context);
+            return LPCType.LPCMIXED;
+        }
+
+        return switch (resolution.kind()) {
+        case METHOD -> {
+            ASTMethod method = resolution.method();
+            ASTParameters parameters = method.parameters();
+            inferArguments(
+                    call.arguments(),
+                    parameters != null
+                            ? parameters.nodes().stream().map(ASTParameter::symbol).map(Symbol::lpcType).toList()
+                            : null,
+                    context);
+            LPCType type = valueType(method.symbol());
+            call.setLpcType(type);
+            yield type;
+        }
+        case EFUN -> {
+            LPCType type = inferEfunCall(resolution.efun(), call.arguments(), call.line(), context);
+            call.setLpcType(type);
+            yield type;
+        }
+        default -> {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Identifier '" + call.name() + "' is not callable",
+                            call.line()));
+            yield LPCType.LPCMIXED;
+        }
+        };
+    }
+
+    private LPCType inferInvokeIdentifier(ASTExprInvokeIdentifier invoke, MethodContext context) {
+        if (invoke.resolution() == null || invoke.resolution().kind() != IdentifierResolution.Kind.LOCAL) {
+            problems.add(
+                    new CompilationProblem(
+                            CompilationStage.ANALYZE,
+                            "Invocation target '" + invoke.targetName() + "' is not a local value",
+                            invoke.line()));
+        }
+
+        inferArguments(invoke.arguments(), null, context);
+        invoke.setLpcType(LPCType.LPCMIXED);
         return LPCType.LPCMIXED;
     }
 
     private LPCType inferEfunCall(ASTExprCallEfun expr, MethodContext context) {
-        EfunSignature signature = expr.signature();
+        return inferEfunCall(expr.efun(), expr.arguments(), expr.line(), context);
+    }
+
+    private LPCType inferEfunCall(
+            io.github.protasm.lpc2j.efun.Efun efun,
+            ASTArguments arguments,
+            int line,
+            MethodContext context) {
+        EfunSignature signature = (efun != null) ? efun.signature() : null;
 
         if (signature == null) {
             problems.add(
                     new CompilationProblem(
                             CompilationStage.ANALYZE,
-                            "Missing efun signature for call on line " + expr.line(),
-                            expr.line()));
-            inferArguments(expr.arguments(), null, context);
+                            "Missing efun signature for call on line " + line,
+                            line));
+            inferArguments(arguments, null, context);
             return LPCType.LPCMIXED;
         }
 
-        inferArguments(expr.arguments(), signature.parameterTypes(), context);
+        inferArguments(arguments, signature.parameterTypes(), context);
         return signature.returnType();
     }
 

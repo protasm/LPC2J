@@ -12,8 +12,13 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
+import io.github.protasm.lpc2j.parser.ast.IdentifierResolution;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.LPCType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
@@ -123,6 +128,7 @@ public final class SemanticAnalyzer {
             }
 
             ensureImplicitReturn(method);
+            resolveIdentifiers(astObject, method, methodScope, problems);
         }
 
         SemanticTypeChecker typeChecker = new SemanticTypeChecker(problems);
@@ -192,6 +198,243 @@ public final class SemanticAnalyzer {
 
         return new ASTExprLiteralInteger(
                 method.body().line(), new Token<>(TokenType.T_INT_LITERAL, "0", 0, null));
+    }
+
+    private void resolveIdentifiers(
+            ASTObject astObject,
+            ASTMethod method,
+            SemanticScope methodScope,
+            List<CompilationProblem> problems) {
+        if (method.body() == null)
+            return;
+
+        resolveStatement(astObject, method, methodScope, method.body(), problems);
+    }
+
+    private void resolveStatement(
+            ASTObject astObject,
+            ASTMethod method,
+            SemanticScope methodScope,
+            ASTStatement statement,
+            List<CompilationProblem> problems) {
+        if (statement == null)
+            return;
+
+        if (statement instanceof io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock block) {
+            for (ASTStatement nested : block.statements())
+                resolveStatement(astObject, method, methodScope, nested, problems);
+            return;
+        }
+
+        if (statement instanceof io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression exprStmt) {
+            resolveExpression(astObject, method, methodScope, exprStmt.expression(), problems);
+            return;
+        }
+
+        if (statement instanceof io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse ifStmt) {
+            resolveExpression(astObject, method, methodScope, ifStmt.condition(), problems);
+            resolveStatement(astObject, method, methodScope, ifStmt.thenBranch(), problems);
+            resolveStatement(astObject, method, methodScope, ifStmt.elseBranch(), problems);
+            return;
+        }
+
+        if (statement instanceof ASTStmtReturn stmtReturn) {
+            resolveExpression(astObject, method, methodScope, stmtReturn.returnValue(), problems);
+        }
+    }
+
+    private void resolveExpression(
+            ASTObject astObject,
+            ASTMethod method,
+            SemanticScope methodScope,
+            ASTExpression expression,
+            List<CompilationProblem> problems) {
+        if (expression == null)
+            return;
+
+        if (expression instanceof ASTExprIdentifierAccess identifierAccess) {
+            IdentifierResolution resolution = resolveValueTarget(method, methodScope, identifierAccess.name());
+            if (resolution == null) {
+                problems.add(new CompilationProblem(
+                        CompilationStage.ANALYZE,
+                        "Unresolved identifier '" + identifierAccess.name() + "'.",
+                        identifierAccess.line()));
+                return;
+            }
+
+            identifierAccess.setResolution(resolution);
+            return;
+        }
+
+        if (expression instanceof ASTExprIdentifierStore store) {
+            resolveExpression(astObject, method, methodScope, store.value(), problems);
+            IdentifierResolution resolution = resolveValueTarget(method, methodScope, store.name());
+            if (resolution == null) {
+                problems.add(new CompilationProblem(
+                        CompilationStage.ANALYZE,
+                        "Unresolved assignment target '" + store.name() + "'.",
+                        store.line()));
+                return;
+            }
+
+            store.setResolution(resolution);
+            return;
+        }
+
+        if (expression instanceof ASTExprIdentifierCall call) {
+            resolveArguments(astObject, method, methodScope, call.arguments(), problems);
+            IdentifierResolution resolution = resolveCallable(methodScope, call.name(), call.arguments().size());
+            if (resolution == null) {
+                problems.add(new CompilationProblem(
+                        CompilationStage.ANALYZE,
+                        "Unrecognized method or function '" + call.name() + "'.",
+                        call.line()));
+                return;
+            }
+
+            call.setResolution(resolution);
+            return;
+        }
+
+        if (expression instanceof ASTExprInvokeIdentifier invoke) {
+            resolveArguments(astObject, method, methodScope, invoke.arguments(), problems);
+            ASTLocal local = findLocal(method, invoke.targetName());
+            if (local == null) {
+                problems.add(new CompilationProblem(
+                        CompilationStage.ANALYZE,
+                        "Unresolved local '" + invoke.targetName() + "' for invocation.",
+                        invoke.line()));
+                return;
+            }
+
+            invoke.setResolution(IdentifierResolution.forLocal(local));
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary binary) {
+            resolveExpression(astObject, method, methodScope, binary.left(), problems);
+            resolveExpression(astObject, method, methodScope, binary.right(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary unary) {
+            resolveExpression(astObject, method, methodScope, unary.right(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayAccess arrayAccess) {
+            resolveExpression(astObject, method, methodScope, arrayAccess.target(), problems);
+            resolveExpression(astObject, method, methodScope, arrayAccess.index(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore arrayStore) {
+            resolveExpression(astObject, method, methodScope, arrayStore.target(), problems);
+            resolveExpression(astObject, method, methodScope, arrayStore.index(), problems);
+            resolveExpression(astObject, method, methodScope, arrayStore.value(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral arrayLiteral) {
+            for (ASTExpression element : arrayLiteral.elements())
+                resolveExpression(astObject, method, methodScope, element, problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral mappingLiteral) {
+            for (io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingEntry entry : mappingLiteral.entries()) {
+                resolveExpression(astObject, method, methodScope, entry.key(), problems);
+                resolveExpression(astObject, method, methodScope, entry.value(), problems);
+            }
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod callMethod) {
+            resolveArguments(astObject, method, methodScope, callMethod.arguments(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun callEfun) {
+            resolveArguments(astObject, method, methodScope, callEfun.arguments(), problems);
+            return;
+        }
+
+        if (expression instanceof io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal invokeLocal) {
+            resolveArguments(astObject, method, methodScope, invokeLocal.arguments(), problems);
+        }
+    }
+
+    private void resolveArguments(
+            ASTObject astObject,
+            ASTMethod method,
+            SemanticScope methodScope,
+            io.github.protasm.lpc2j.parser.ast.ASTArguments arguments,
+            List<CompilationProblem> problems) {
+        if (arguments == null)
+            return;
+
+        for (io.github.protasm.lpc2j.parser.ast.ASTArgument argument : arguments)
+            resolveExpression(astObject, method, methodScope, argument.expression(), problems);
+    }
+
+    private IdentifierResolution resolveValueTarget(
+            ASTMethod method, SemanticScope methodScope, String name) {
+        ASTLocal local = findLocal(method, name);
+        if (local != null)
+            return IdentifierResolution.forLocal(local);
+
+        ASTField field = resolveField(methodScope, name);
+        if (field != null)
+            return IdentifierResolution.forField(field);
+
+        return null;
+    }
+
+    private IdentifierResolution resolveCallable(SemanticScope methodScope, String name, int arity) {
+        ASTMethod method = resolveMethod(methodScope, name);
+        if (method != null)
+            return IdentifierResolution.forMethod(method);
+
+        io.github.protasm.lpc2j.efun.Efun efun = runtimeContext.resolveEfun(name, arity);
+        if (efun != null)
+            return IdentifierResolution.forEfun(efun);
+
+        return null;
+    }
+
+    private ASTLocal findLocal(ASTMethod method, String name) {
+        if (method.locals() == null)
+            return null;
+
+        for (ASTLocal local : method.locals()) {
+            if (local.symbol().name().equals(name))
+                return local;
+        }
+
+        return null;
+    }
+
+    private ASTField resolveField(SemanticScope scope, String name) {
+        if (scope == null)
+            return null;
+
+        return scope.resolveAll(name).stream()
+                .map(ScopedSymbol::field)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private ASTMethod resolveMethod(SemanticScope methodScope, String name) {
+        SemanticScope scope = (methodScope != null) ? methodScope.parent() : null;
+        if (scope == null)
+            return null;
+
+        return scope.resolveAll(name).stream()
+                .map(ScopedSymbol::method)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     private void validateInheritance(ASTObject astObject, List<CompilationProblem> problems) {

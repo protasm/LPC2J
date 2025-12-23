@@ -11,6 +11,10 @@ import io.github.protasm.lpc2j.parser.ast.ASTMethods;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTParameters;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
@@ -94,6 +98,37 @@ public final class PrintVisitor implements ASTVisitor {
         indentLvl++;
         expr.field().accept(this);
         expr.value().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprIdentifierAccess(ASTExprIdentifierAccess expr) {
+        doOutput(String.format("%s[name=%s]", expr.className(), expr.name()));
+    }
+
+    @Override
+    public void visitExprIdentifierCall(ASTExprIdentifierCall expr) {
+        doOutput(String.format("%s[name=%s]", expr.className(), expr.name()));
+        indentLvl++;
+        expr.arguments().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprIdentifierStore(ASTExprIdentifierStore expr) {
+        doOutput(String.format("%s[name=%s, op=%s]", expr.className(), expr.name(), expr.operator()));
+        indentLvl++;
+        expr.value().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprInvokeIdentifier(ASTExprInvokeIdentifier expr) {
+        doOutput(String.format(
+                "%s([%s] target=%s, methodName=%s)",
+                expr.className(), expr.lpcType(), expr.targetName(), expr.methodName()));
+        indentLvl++;
+        expr.arguments().accept(this);
         indentLvl--;
     }
 

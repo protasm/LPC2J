@@ -329,12 +329,14 @@ public class Parser {
 
             Symbol symbol = new Symbol(declaredType, nameToken.lexeme());
 
-                        ASTParameter param = new ASTParameter(currLine(), symbol);
-                        ASTLocal local = new ASTLocal(currLine(), symbol);
+            ASTParameter param = new ASTParameter(currLine(), symbol);
+            ASTLocal local = new ASTLocal(currLine(), symbol);
 
-                        params.add(param);
+            params.add(param);
 
             locals.add(local, true);
+            if (currentMethod != null)
+                currentMethod.addLocal(local);
         } while (tokens.match(T_COMMA));
 
         tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");

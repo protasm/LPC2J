@@ -18,6 +18,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -59,6 +63,10 @@ public interface ASTVisitor {
         case ASTExprCallMethod exprCallMethod -> visitExprCallMethod(exprCallMethod);
         case ASTExprFieldAccess exprFieldAccess -> visitExprFieldAccess(exprFieldAccess);
         case ASTExprFieldStore exprFieldStore -> visitExprFieldStore(exprFieldStore);
+        case ASTExprIdentifierAccess exprIdentifierAccess -> visitExprIdentifierAccess(exprIdentifierAccess);
+        case ASTExprIdentifierCall exprIdentifierCall -> visitExprIdentifierCall(exprIdentifierCall);
+        case ASTExprIdentifierStore exprIdentifierStore -> visitExprIdentifierStore(exprIdentifierStore);
+        case ASTExprInvokeIdentifier exprInvokeIdentifier -> visitExprInvokeIdentifier(exprInvokeIdentifier);
         case ASTExprInvokeLocal exprInvokeLocal -> visitExprInvokeLocal(exprInvokeLocal);
         case ASTExprLiteralFalse exprLiteralFalse -> visitExprLiteralFalse(exprLiteralFalse);
         case ASTExprLiteralInteger exprLiteralInteger -> visitExprLiteralInteger(exprLiteralInteger);
@@ -121,7 +129,15 @@ public interface ASTVisitor {
 
     default void visitExprFieldStore(ASTExprFieldStore expr) {}
 
+    default void visitExprIdentifierAccess(ASTExprIdentifierAccess expr) {}
+
+    default void visitExprIdentifierCall(ASTExprIdentifierCall expr) {}
+
+    default void visitExprIdentifierStore(ASTExprIdentifierStore expr) {}
+
     default void visitExprInvokeLocal(ASTExprInvokeLocal expr) {}
+
+    default void visitExprInvokeIdentifier(ASTExprInvokeIdentifier expr) {}
 
     default void visitExprLiteralFalse(ASTExprLiteralFalse expr) {}
 

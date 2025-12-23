@@ -17,8 +17,13 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
+import io.github.protasm.lpc2j.parser.ast.IdentifierResolution;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierAccess;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprIdentifierStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -273,6 +278,18 @@ public final class IRLowerer {
         if (expression instanceof ASTExprNull literalNull)
             return new IRConstant(literalNull.line(), null, RuntimeTypes.NULL);
 
+        if (expression instanceof ASTExprIdentifierAccess access)
+            return lowerIdentifierAccess(access, context, problems);
+
+        if (expression instanceof ASTExprIdentifierStore store)
+            return lowerIdentifierStore(store, context, problems);
+
+        if (expression instanceof ASTExprIdentifierCall call)
+            return lowerIdentifierCall(call, context, problems);
+
+        if (expression instanceof ASTExprInvokeIdentifier invokeIdentifier)
+            return lowerInvokeIdentifier(invokeIdentifier, context, problems);
+
         if (expression instanceof ASTExprLocalAccess access)
             return new IRLocalLoad(access.line(), context.requireLocal(access.local(), problems));
 
@@ -387,6 +404,148 @@ public final class IRLowerer {
                         "Unsupported expression kind: " + expression.getClass().getSimpleName(),
                         expression.line()));
         return new IRConstant(expression.line(), null, RuntimeTypes.MIXED);
+    }
+
+    private IRExpression lowerIdentifierAccess(
+            ASTExprIdentifierAccess access, MethodContext context, List<CompilationProblem> problems) {
+        IdentifierResolution resolution = access.resolution();
+        if (resolution == null) {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Identifier '" + access.name() + "' is not resolved for lowering",
+                    access.line()));
+            return new IRConstant(access.line(), null, RuntimeTypes.MIXED);
+        }
+
+        return switch (resolution.kind()) {
+        case LOCAL -> new IRLocalLoad(access.line(), context.requireLocal(resolution.local(), problems));
+        case FIELD -> {
+            IRField field = context.requireField(resolution.field(), problems);
+            yield new IRFieldLoad(access.line(), field);
+        }
+        default -> {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Identifier '" + access.name() + "' cannot be lowered as a value",
+                    access.line()));
+            yield new IRConstant(access.line(), null, RuntimeTypes.MIXED);
+        }
+        };
+    }
+
+    private IRExpression lowerIdentifierStore(
+            ASTExprIdentifierStore store, MethodContext context, List<CompilationProblem> problems) {
+        IdentifierResolution resolution = store.resolution();
+        if (resolution == null) {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Assignment target '" + store.name() + "' is not resolved",
+                    store.line()));
+            return new IRConstant(store.line(), null, RuntimeTypes.MIXED);
+        }
+
+        return switch (resolution.kind()) {
+        case LOCAL -> {
+            IRLocal target = context.requireLocal(resolution.local(), problems);
+            IRExpression value = lowerExpression(store.value(), context, problems);
+            value = applyCompoundAssignment(
+                    store, value, new IRLocalLoad(store.line(), target), target.type());
+            yield new IRLocalStore(store.line(), target, coerceIfNeeded(value, target.type()));
+        }
+        case FIELD -> {
+            IRField field = context.requireField(resolution.field(), problems);
+            IRExpression value = lowerExpression(store.value(), context, problems);
+            value = applyCompoundAssignment(
+                    store, value, new IRFieldLoad(store.line(), field), field.type());
+            yield new IRFieldStore(store.line(), field, coerceIfNeeded(value, field.type()));
+        }
+        default -> {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Identifier '" + store.name() + "' cannot be assigned",
+                    store.line()));
+            yield new IRConstant(store.line(), null, RuntimeTypes.MIXED);
+        }
+        };
+    }
+
+    private IRExpression applyCompoundAssignment(
+            ASTExprIdentifierStore store, IRExpression value, IRExpression currentValue, RuntimeType targetType) {
+        if (store.operator() == ASTExprIdentifierStore.AssignmentOp.ASSIGN)
+            return value;
+
+        io.github.protasm.lpc2j.parser.type.BinaryOpType op =
+                (store.operator() == ASTExprIdentifierStore.AssignmentOp.PLUS_EQUAL)
+                        ? io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD
+                        : io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_SUB;
+
+        if (op == io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD
+                && store.lpcType() == LPCType.LPCARRAY) {
+            return new IRArrayConcat(
+                    store.line(), currentValue, value, RuntimeTypes.arrayOf(RuntimeTypes.MIXED));
+        }
+
+        if (op == io.github.protasm.lpc2j.parser.type.BinaryOpType.BOP_ADD
+                && store.lpcType() == LPCType.LPCMAPPING) {
+            return new IRMappingMerge(store.line(), currentValue, value, RuntimeTypes.MAPPING);
+        }
+
+        RuntimeType operationType = (targetType != null) ? targetType : runtimeType(store.lpcType());
+        return new IRBinaryOperation(store.line(), op, currentValue, value, operationType);
+    }
+
+    private IRExpression lowerIdentifierCall(
+            ASTExprIdentifierCall call, MethodContext context, List<CompilationProblem> problems) {
+        IdentifierResolution resolution = call.resolution();
+        if (resolution == null) {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Call to '" + call.name() + "' is not resolved",
+                    call.line()));
+            return new IRConstant(call.line(), null, RuntimeTypes.MIXED);
+        }
+
+        return switch (resolution.kind()) {
+        case EFUN -> {
+            List<IRExpression> args = lowerArguments(call.arguments(), context, problems);
+            RuntimeType returnType = runtimeType(call.lpcType());
+            yield new IREfunCall(call.line(), resolution.efun().signature().name(), args, returnType);
+        }
+        case METHOD -> {
+            List<IRExpression> args = lowerArguments(call.arguments(), context, problems);
+            RuntimeType returnType = runtimeType(call.lpcType());
+            ASTMethod method = resolution.method();
+            String ownerInternalName =
+                    (method.ownerName() != null) ? method.ownerName() : defaultParentInternalName;
+            List<RuntimeType> parameterTypes = parameterTypes(method);
+            yield new IRInstanceCall(
+                    call.line(), ownerInternalName, method.symbol().name(), args, parameterTypes, returnType);
+        }
+        default -> {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Identifier '" + call.name() + "' is not callable",
+                    call.line()));
+            yield new IRConstant(call.line(), null, RuntimeTypes.MIXED);
+        }
+        };
+    }
+
+    private IRExpression lowerInvokeIdentifier(
+            ASTExprInvokeIdentifier invoke, MethodContext context, List<CompilationProblem> problems) {
+        IdentifierResolution resolution = invoke.resolution();
+        if (resolution == null || resolution.kind() != IdentifierResolution.Kind.LOCAL) {
+            problems.add(new CompilationProblem(
+                    CompilationStage.LOWER,
+                    "Invocation target '" + invoke.targetName() + "' is not a resolved local",
+                    invoke.line()));
+            return new IRConstant(invoke.line(), null, RuntimeTypes.MIXED);
+        }
+
+        IRLocal target = context.requireLocal(resolution.local(), problems);
+        List<IRExpression> args = lowerArguments(invoke.arguments(), context, problems);
+        RuntimeType returnType = runtimeType(invoke.lpcType());
+        return new IRDynamicInvoke(invoke.line(), target, invoke.methodName(), args, returnType);
     }
 
     private List<IRExpression> lowerArguments(

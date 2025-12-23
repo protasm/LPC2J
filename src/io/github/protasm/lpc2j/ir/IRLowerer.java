@@ -10,6 +10,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTLocal;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.parser.ast.ASTParameter;
+import io.github.protasm.lpc2j.parser.ast.ASTParameters;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
@@ -146,10 +147,25 @@ public final class IRLowerer {
         }
     }
 
+    private boolean isParameterSymbol(Symbol symbol, ASTParameters parameters) {
+        if (symbol == null || parameters == null)
+            return false;
+
+        for (ASTParameter parameter : parameters) {
+            if (parameter.symbol() == symbol)
+                return true;
+        }
+
+        return false;
+    }
+
     private void lowerLocals(ASTMethod method, MethodContext context) {
         int nextSlot = context.parameters.size() + 1; // include "this"
 
         for (ASTLocal local : method.locals()) {
+            if (isParameterSymbol(local.symbol(), method.parameters()))
+                continue;
+
             RuntimeType type = runtimeType(local.symbol().lpcType());
             int slot = (local.slot() >= 0) ? local.slot() : nextSlot++;
             IRLocal irLocal = new IRLocal(local.line(), local.symbol().name(), type, slot, false);

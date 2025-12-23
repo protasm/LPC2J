@@ -97,60 +97,37 @@ public class Parser {
     }
 
     public ASTObject parse(String objName, TokenList tokens) {
-        if (tokens == null)
-            throw new ParseException("Token list cannot be null.");
+                if (tokens == null)
+                        throw new ParseException("Token list cannot be null.");
 
-        this.tokens = TokenClassifier.classify(tokens);
+                this.tokens = TokenClassifier.classify(tokens);
 
-        try {
-            currObj = new ASTObject(0, objName);
+                try {
+                        currObj = new ASTObject(0, objName);
+                        fieldDefinitionIndex.clear();
+                        methodDefinitionIndex.clear();
 
-            declarations(); // pass 1
+                        while (!this.tokens.isAtEnd()) {
+                                if (this.tokens.match(T_INHERIT)) {
+                                        Token<String> parentToken = consumeInheritPath();
+                                        currObj.addInherit(new ASTInherit(parentToken.line(), parentToken.lexeme()));
+                                        continue;
+                                }
 
-            definitions(); // pass 2
+                                property();
+                        }
 
-            return currObj;
-        } catch (ParseException e) {
-            throw e;
-        } catch (RuntimeException e) {
-            Token<?> current = (this.tokens != null) ? this.tokens.current() : null;
+                        return currObj;
+                } catch (ParseException e) {
+                        throw e;
+                } catch (RuntimeException e) {
+                        Token<?> current = (this.tokens != null) ? this.tokens.current() : null;
 
-            if (current != null)
-                throw new ParseException("Unexpected parser failure: " + e.getMessage(), current, e);
+                        if (current != null)
+                                throw new ParseException("Unexpected parser failure: " + e.getMessage(), current, e);
 
-            throw new ParseException("Unexpected parser failure: " + e.getMessage(), -1, e);
-        }
-    }
-
-    private void declarations() {
-        while (!tokens.isAtEnd()) {
-            if (tokens.match(T_INHERIT)) {
-                Token<String> parentToken = consumeInheritPath();
-                currObj.addInherit(new ASTInherit(parentToken.line(), parentToken.lexeme()));
-                continue;
-            }
-
-            property(false);
-        }
-    }
-
-    private void definitions() {
-        tokens.reset();
-        fieldDefinitionIndex.clear();
-        methodDefinitionIndex.clear();
-
-        while (!tokens.isAtEnd()) {
-            if (tokens.match(T_INHERIT)) {
-                Token<String> parentToken = consumeInheritPath();
-
-                if (currObj.parentName() == null)
-                    currObj.setParentName(parentToken.lexeme());
-
-                continue;
-            }
-
-            property(true);
-        }
+                        throw new ParseException("Unexpected parser failure: " + e.getMessage(), -1, e);
+                }
     }
 
     private Token<String> consumeInheritPath() {
@@ -161,15 +138,15 @@ public class Parser {
         return parentToken;
     }
 
-    private void property(boolean define) {
+    private void property() {
         Symbol symbol = declarationSymbol();
         int declarationLine = tokens.previous().line();
         boolean hasType = symbol.declaredTypeName() != null;
 
         if (tokens.match(T_LEFT_PAREN))
-            method(symbol, define, declarationLine);
+            method(symbol, declarationLine);
         else if (hasType)
-            field(symbol, define, declarationLine);
+            field(symbol, declarationLine);
         else
             throw new ParseException("Untyped declarations must be functions.", tokens.current());
     }
@@ -190,28 +167,25 @@ public class Parser {
         return new Symbol((String) null, firstToken.lexeme());
     }
 
-    private void field(Symbol symbol, boolean define, int declarationLine) {
-        if (define && locals == null)
+    private void field(Symbol symbol, int declarationLine) {
+        if (locals == null)
             locals = new Locals();
 
-        List<FieldDeclarator> declarators = fieldDeclarators(symbol, define);
-
-        if (!define) {
-            for (FieldDeclarator declarator : declarators) {
-                ASTField field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
-
-                currObj.fields().put(field.symbol().name(), field);
-            }
-
-            return;
-        }
+        List<FieldDeclarator> declarators = fieldDeclarators(symbol);
 
         for (FieldDeclarator declarator : declarators) {
+            boolean hasInitializer = declarator.initializer() != null;
+            if (!hasInitializer) {
+                ASTField field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
+                currObj.fields().put(field.symbol().name(), field);
+                continue;
+            }
+
             int definitionIndex = nextFieldDefinitionIndex(declarator.symbol().name());
             ASTField field = currObj.fields().get(declarator.symbol().name(), definitionIndex);
 
             if (field == null) {
-                field = new ASTField(declarationLine, currObj.name(), declarator.symbol(), false);
+                field = new ASTField(declarationLine, currObj.name(), declarator.symbol());
                 currObj.fields().put(field.symbol().name(), field);
             }
 
@@ -224,16 +198,16 @@ public class Parser {
         return fieldDefinitionIndex.merge(name, 1, Integer::sum) - 1;
     }
 
-    private List<FieldDeclarator> fieldDeclarators(Symbol symbol, boolean define) {
+    private List<FieldDeclarator> fieldDeclarators(Symbol symbol) {
         List<FieldDeclarator> declarators = new ArrayList<>();
 
-        declarators.add(fieldDeclarator(symbol, define));
+        declarators.add(fieldDeclarator(symbol));
 
         while (tokens.match(T_COMMA)) {
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect field name.");
             Symbol additionalSymbol = new Symbol(symbol.declaredTypeName(), nameToken.lexeme());
 
-            declarators.add(fieldDeclarator(additionalSymbol, define));
+            declarators.add(fieldDeclarator(additionalSymbol));
         }
 
         tokens.consume(T_SEMICOLON, "Expect ';' after field declaration.");
@@ -241,43 +215,44 @@ public class Parser {
         return declarators;
     }
 
-    private FieldDeclarator fieldDeclarator(Symbol symbol, boolean define) {
+    private FieldDeclarator fieldDeclarator(Symbol symbol) {
         ASTExpression initializer = null;
 
-        if (tokens.match(T_EQUAL)) {
-            if (define)
-                initializer = expression();
-            else
-                skipInitializer();
-        }
+        if (tokens.match(T_EQUAL))
+            initializer = expression();
 
         return new FieldDeclarator(symbol, initializer);
     }
 
-        private void method(Symbol symbol, boolean define, int declarationLine) {
-                if (!define) {
-                        skipMethodBody();
+        private void method(Symbol symbol, int declarationLine) {
+                locals = new Locals();
+                ParsedParameters parsedParams = parameters();
+                ASTParameters params = parsedParams.parameters();
 
-                        ASTMethod method = new ASTMethod(declarationLine, currObj.name(), symbol);
-
-            currObj.methods().put(method.symbol().name(), method);
-
-            return;
-        }
+                if (tokens.match(T_SEMICOLON)) {
+                        ASTMethod declaration = new ASTMethod(declarationLine, currObj.name(), symbol);
+                        declaration.setParameters(params);
+                        parsedParams.locals().forEach(declaration::addLocal);
+                        currObj.methods().put(declaration.symbol().name(), declaration);
+                        currentMethod = null;
+                        return;
+                }
 
                 int definitionIndex = nextMethodDefinitionIndex(symbol.name());
                 ASTMethod method = currObj.methods().get(symbol.name(), definitionIndex);
 
                 if (method == null) {
-                        method = new ASTMethod(declarationLine, currObj.name(), symbol, false);
+                        method = new ASTMethod(declarationLine, currObj.name(), symbol);
                         currObj.methods().put(method.symbol().name(), method);
                 }
 
-                locals = new Locals();
+                method.setParameters(params);
+                if (method.locals().isEmpty())
+                        parsedParams.locals().forEach(method::addLocal);
+
                 currentMethod = method;
 
                 method.markDefined();
-                method.setParameters(parameters());
 
                 tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");
 
@@ -290,28 +265,12 @@ public class Parser {
         return methodDefinitionIndex.merge(name, 1, Integer::sum) - 1;
     }
 
-    private void skipMethodBody() {
-        int count = 0;
-
-        while (!tokens.isAtEnd())
-            if (tokens.match(T_LEFT_BRACE))
-                count++;
-            else if (tokens.match(T_RIGHT_BRACE)) {
-                count--;
-
-                if (count == 0)
-                    return;
-            } else
-                tokens.advance();
-
-                throw new ParseException("Unmatched '{' in method body.", tokens.current());
-    }
-
-        private ASTParameters parameters() {
+    private ParsedParameters parameters() {
         ASTParameters params = new ASTParameters(currLine());
+        List<ASTLocal> paramLocals = new ArrayList<>();
 
         if (tokens.match(T_RIGHT_PAREN)) // No parameters
-            return params;
+            return new ParsedParameters(params, paramLocals);
 
         do {
             Token<String> firstToken = tokens.consume(T_IDENTIFIER, "Expect parameter name or type.");
@@ -335,11 +294,13 @@ public class Parser {
                         params.add(param);
 
             locals.add(local);
+            paramLocals.add(local);
+
         } while (tokens.match(T_COMMA));
 
         tokens.consume(T_RIGHT_PAREN, "Expect ')' after method parameters.");
 
-        return params;
+        return new ParsedParameters(params, paramLocals);
     }
 
     public ASTArguments arguments() {
@@ -366,12 +327,16 @@ public class Parser {
                 locals.beginScope();
 
                 List<ASTStatement> statements = new ArrayList<>();
+                List<ASTStmtBlock.BlockLocalDeclaration> localDeclarations = new ArrayList<>();
 
                 while (!tokens.check(T_RIGHT_BRACE) && !tokens.isAtEnd())
                         if (startsLocalDeclaration()) { // local declaration
                                 Token<String> typeToken = tokens.consume(T_IDENTIFIER, "Expect local type.");
 
-                                locals(typeToken, statements);
+                                List<ASTLocal> declaredLocals = locals(typeToken, statements);
+                                if (!declaredLocals.isEmpty())
+                                        localDeclarations.add(
+                                                        new ASTStmtBlock.BlockLocalDeclaration(statements.size(), declaredLocals));
                         } else
                                 statements.add(statement());
 
@@ -380,10 +345,12 @@ public class Parser {
 
                 locals.endScope();
 
-                return new ASTStmtBlock(currLine(), statements);
+                return new ASTStmtBlock(currLine(), statements, localDeclarations);
         }
 
-    private void locals(Token<String> typeToken, List<ASTStatement> statements) {
+    private List<ASTLocal> locals(Token<String> typeToken, List<ASTStatement> statements) {
+        List<ASTLocal> declaredLocals = new ArrayList<>();
+
         do {
             boolean isArrayType = tokens.match(TokenType.T_STAR);
             Token<String> nameToken = tokens.consume(T_IDENTIFIER, "Expect local variable name.");
@@ -393,6 +360,7 @@ public class Parser {
             ASTLocal local = new ASTLocal(currLine(), symbol);
 
             locals.add(local);
+            declaredLocals.add(local);
             if (currentMethod != null)
                 currentMethod.addLocal(local);
 
@@ -405,6 +373,8 @@ public class Parser {
         } while (tokens.match(T_COMMA));
 
         tokens.consume(T_SEMICOLON, "Expect ';' after local variable declaration.");
+
+        return declaredLocals;
     }
 
         public ASTStatement statement() {
@@ -414,9 +384,11 @@ public class Parser {
                         return returnStatement();
                 else if (tokens.match(T_LEFT_BRACE))
                         return block(false);
-                else
+        else
                         return expressionStatement();
         }
+
+    private record ParsedParameters(ASTParameters parameters, List<ASTLocal> locals) {}
 
     private static class FieldDeclarator {
         private final Symbol symbol;
@@ -508,41 +480,6 @@ public class Parser {
                 throw new ParseException("Invalid assignment target.", tokens.current());
 
         return expr;
-    }
-
-    private void skipInitializer() {
-        int parenDepth = 0;
-        int bracketDepth = 0;
-
-        while (!tokens.isAtEnd()) {
-            TokenType type = tokens.current().type();
-
-            if (type == T_LEFT_PAREN) {
-                parenDepth++;
-                tokens.advance();
-            } else if (type == T_RIGHT_PAREN) {
-                if (parenDepth == 0 && bracketDepth == 0)
-                    break;
-
-                parenDepth--;
-                tokens.advance();
-            } else if (type == T_LEFT_BRACKET) {
-                bracketDepth++;
-                tokens.advance();
-            } else if (type == T_RIGHT_BRACKET) {
-                if (parenDepth == 0 && bracketDepth == 0)
-                    break;
-
-                bracketDepth--;
-                tokens.advance();
-            } else if ((parenDepth == 0) && (bracketDepth == 0) && (type == T_COMMA || type == T_SEMICOLON))
-                break;
-            else
-                tokens.advance();
-        }
-
-        if (tokens.isAtEnd())
-            throw new ParseException("Unterminated initializer.", tokens.current());
     }
 
     private boolean startsLocalDeclaration() {

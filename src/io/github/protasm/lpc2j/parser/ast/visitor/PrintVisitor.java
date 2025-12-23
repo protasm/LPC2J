@@ -25,6 +25,10 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
@@ -81,6 +85,14 @@ public final class PrintVisitor implements ASTVisitor {
     }
 
     @Override
+    public void visitExprUnresolvedCall(ASTExprUnresolvedCall expr) {
+        doOutput(String.format("%s%s", expr.className(), expr.name()));
+        indentLvl++;
+        expr.arguments().accept(this);
+        indentLvl--;
+    }
+
+    @Override
     public void visitExprFieldAccess(ASTExprFieldAccess expr) {
         doOutput(expr.className());
         indentLvl++;
@@ -94,6 +106,27 @@ public final class PrintVisitor implements ASTVisitor {
         indentLvl++;
         expr.field().accept(this);
         expr.value().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprUnresolvedAssignment(ASTExprUnresolvedAssignment expr) {
+        doOutput(String.format("%s[%s]", expr.className(), expr.name()));
+        indentLvl++;
+        expr.value().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprUnresolvedIdentifier(ASTExprUnresolvedIdentifier expr) {
+        doOutput(String.format("%s[%s]", expr.className(), expr.name()));
+    }
+
+    @Override
+    public void visitExprUnresolvedInvoke(ASTExprUnresolvedInvoke expr) {
+        doOutput(String.format("%s[target=%s, method=%s]", expr.className(), expr.targetName(), expr.methodName()));
+        indentLvl++;
+        expr.arguments().accept(this);
         indentLvl--;
     }
 

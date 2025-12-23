@@ -210,9 +210,12 @@ public class Parser {
             int definitionIndex = nextFieldDefinitionIndex(declarator.symbol().name());
             ASTField field = currObj.fields().get(declarator.symbol().name(), definitionIndex);
 
-            if (field == null)
-                throw new ParseException("Unrecognized field '" + declarator.symbol().name() + "'.", tokens.current());
+            if (field == null) {
+                field = new ASTField(declarationLine, currObj.name(), declarator.symbol(), false);
+                currObj.fields().put(field.symbol().name(), field);
+            }
 
+            field.markDefined();
             field.setInitializer(declarator.initializer());
         }
     }
@@ -265,12 +268,15 @@ public class Parser {
                 int definitionIndex = nextMethodDefinitionIndex(symbol.name());
                 ASTMethod method = currObj.methods().get(symbol.name(), definitionIndex);
 
-                if (method == null)
-                        throw new ParseException("Unrecognized method '" + symbol.name() + "'.", tokens.current());
+                if (method == null) {
+                        method = new ASTMethod(declarationLine, currObj.name(), symbol, false);
+                        currObj.methods().put(method.symbol().name(), method);
+                }
 
                 locals = new Locals();
                 currentMethod = method;
 
+                method.markDefined();
                 method.setParameters(parameters());
 
                 tokens.consume(T_LEFT_BRACE, "Expect '{' after method declaration.");

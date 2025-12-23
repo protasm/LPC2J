@@ -9,16 +9,24 @@ public final class ASTMethod extends ASTNode {
     private ASTStmtBlock body;
     private final java.util.List<ASTLocal> locals;
     private ASTMethod overrides;
+    private final boolean declared;
+    private boolean defined;
 
     public ASTMethod(int line, String ownerName, Symbol symbol) {
+        this(line, ownerName, symbol, true);
+    }
+
+    public ASTMethod(int line, String ownerName, Symbol symbol, boolean declared) {
         super(line);
 
         this.ownerName = ownerName;
         this.symbol = symbol;
+        this.declared = declared;
 
         parameters = null;
         body = null;
         locals = new java.util.ArrayList<>();
+        defined = false;
     }
 
     public String ownerName() {
@@ -63,5 +71,17 @@ public final class ASTMethod extends ASTNode {
 
     public String descriptor() {
         return parameters.descriptor() + symbol.descriptor();
+    }
+
+    public boolean isDeclared() {
+        return declared;
+    }
+
+    public boolean isDefined() {
+        return defined;
+    }
+
+    public void markDefined() {
+        this.defined = true;
     }
 }

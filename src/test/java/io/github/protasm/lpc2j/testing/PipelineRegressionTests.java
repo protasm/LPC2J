@@ -16,6 +16,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTParameter;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTField;
+import io.github.protasm.lpc2j.parser.ast.Symbol;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralString;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
@@ -55,6 +56,7 @@ public final class PipelineRegressionTests {
                 new TestCase("scanner spans honor preprocessor mapping", PipelineRegressionTests::scannerSpansReflectMappedFiles),
                 new TestCase("semantic analysis surfaces type mismatches", PipelineRegressionTests::semanticAnalysisReportsReturnMismatch),
                 new TestCase("semantic defers inherit validation to analysis", PipelineRegressionTests::semanticFlagsInvalidInheritancePlacement),
+                new TestCase("semantic reports definition without declaration", PipelineRegressionTests::semanticReportsDefinitionWithoutDeclaration),
                 new TestCase("parser accepts typed and untyped functions", PipelineRegressionTests::parserAcceptsTypedAndUntypedFunctions),
                 new TestCase("parser concatenates adjacent string literals", PipelineRegressionTests::parserConcatenatesAdjacentStringLiterals),
                 new TestCase("semantic normalizes untyped functions", PipelineRegressionTests::semanticDefaultsUntypedFunctionsToMixed),
@@ -183,6 +185,32 @@ public final class PipelineRegressionTests {
                         .anyMatch(p -> p.getMessage().contains("inherit statements must appear before any variable or function declarations.")),
                 "semantic analysis should enforce inherit ordering (" + problemSummary + ", inheritLines=" + inheritLines
                         + ", firstPropertyLine=" + firstPropertyLine + ")");
+    }
+
+    private static void semanticReportsDefinitionWithoutDeclaration() {
+        ASTObject astObject = new ASTObject(1, "OrphanedDefinitions");
+
+        Symbol fieldSymbol = new Symbol("int", "ghost_field");
+        ASTField orphanField = new ASTField(2, astObject.name(), fieldSymbol, false);
+        orphanField.markDefined();
+        astObject.fields().put(fieldSymbol.name(), orphanField);
+
+        Symbol methodSymbol = new Symbol("void", "ghost_method");
+        ASTMethod orphanMethod = new ASTMethod(3, astObject.name(), methodSymbol, false);
+        orphanMethod.markDefined();
+        astObject.methods().put(methodSymbol.name(), orphanMethod);
+
+        SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
+        String problemSummary = describeProblems(analysis.problems());
+
+        assertTrue(
+                analysis.problems().stream()
+                        .anyMatch(p -> p.getMessage().contains("Field 'ghost_field' is defined without a prior declaration.")),
+                "semantic analysis should flag orphaned field definitions (" + problemSummary + ")");
+        assertTrue(
+                analysis.problems().stream()
+                        .anyMatch(p -> p.getMessage().contains("Method 'ghost_method' is defined without a prior declaration.")),
+                "semantic analysis should flag orphaned method definitions (" + problemSummary + ")");
     }
 
     private static void parserAcceptsTypedAndUntypedFunctions() {

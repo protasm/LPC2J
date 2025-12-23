@@ -83,7 +83,9 @@ public final class CompilationPipeline {
         try {
             astObject = parser.parse(unit.parseName(), tokens);
             unit.setASTObject(astObject);
-            unit.setInheritedPath(astObject.parentName());
+            String inheritedPath = normalizeInheritedPath(astObject.parentName());
+            unit.setInheritedPath(inheritedPath);
+            astObject.setParentName(inheritedPath);
         } catch (ParseException | IllegalArgumentException e) {
             problems.add(
                     new CompilationProblem(
@@ -156,9 +158,10 @@ public final class CompilationPipeline {
             List<CompilationProblem> problems) {
         IncludeResolver resolver = runtimeContext.includeResolver();
         IncludeResolution resolution;
+        String inheritedPath = normalizeInheritedPath(childUnit.inheritedPath());
 
         try {
-            resolution = resolver.resolve(childUnit.sourcePath(), childUnit.inheritedPath(), false);
+            resolution = resolver.resolve(childUnit.sourcePath(), inheritedPath, false);
         } catch (Exception e) {
             problems.add(
                     new CompilationProblem(
@@ -169,7 +172,11 @@ public final class CompilationPipeline {
         }
 
         CompilationUnit parentUnit =
-                new CompilationUnit(resolution.resolvedPath(), null, resolution.displayPath(), resolution.source());
+                new CompilationUnit(
+                        resolution.resolvedPath(),
+                        resolvedParentSourceName(childUnit, inheritedPath, resolution),
+                        resolution.displayPath(),
+                        resolution.source());
 
         String parentKey = inheritanceKey(parentUnit);
         if (inheritanceStack.contains(parentKey)) {
@@ -206,5 +213,62 @@ public final class CompilationPipeline {
             return unit.displayPath();
 
         return unit.parseName();
+    }
+
+    private String normalizeInheritedPath(String inheritedPath) {
+        if (inheritedPath == null)
+            return null;
+
+        String trimmed = inheritedPath.trim();
+
+        if (trimmed.isEmpty())
+            return null;
+
+        if ((trimmed.length() >= 2) && trimmed.startsWith("\"") && trimmed.endsWith("\""))
+            trimmed = trimmed.substring(1, trimmed.length() - 1);
+
+        while (trimmed.startsWith("/"))
+            trimmed = trimmed.substring(1);
+
+        if (trimmed.isEmpty())
+            return null;
+
+        return trimmed;
+    }
+
+    private String resolvedParentSourceName(
+            CompilationUnit childUnit, String inheritedPath, IncludeResolution resolution) {
+        String normalized =
+                normalizeInheritedPath((resolution.displayPath() != null) ? resolution.displayPath() : inheritedPath);
+        if ((normalized == null) || normalized.isEmpty())
+            return null;
+
+        Path path = Path.of(normalized);
+        String stem = stripExtension(path.getFileName().toString());
+        Path withoutExt = (path.getParent() == null) ? Path.of(stem) : path.getParent().resolve(stem);
+        Path normalizedPath = withoutExt.normalize();
+
+        if ((childUnit.sourceName() != null) && !normalizedPath.isAbsolute()) {
+            Path childPath = Path.of(childUnit.sourceName());
+            if (childPath.getNameCount() > 0) {
+                Path childPrefix = childPath.getName(0);
+                if ((normalizedPath.getNameCount() == 0) || !normalizedPath.getName(0).equals(childPrefix))
+                    normalizedPath = childPrefix.resolve(normalizedPath).normalize();
+            }
+        }
+
+        String normalizedName = normalizedPath.toString();
+
+        normalizedName = normalizedName.replace('\\', '/');
+
+        while (normalizedName.startsWith("/"))
+            normalizedName = normalizedName.substring(1);
+
+        return normalizedName;
+    }
+
+    private String stripExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return (dot == -1) ? name : name.substring(0, dot);
     }
 }

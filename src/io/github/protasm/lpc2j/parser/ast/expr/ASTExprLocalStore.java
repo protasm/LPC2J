@@ -7,12 +7,18 @@ import io.github.protasm.lpc2j.parser.type.LPCType;
 public final class ASTExprLocalStore extends ASTExpression {
     private final ASTLocal local;
     private final ASTExpression value;
+    private final boolean declarationInitializer;
 
     public ASTExprLocalStore(int line, ASTLocal local, ASTExpression value) {
+        this(line, local, value, false);
+    }
+
+    public ASTExprLocalStore(int line, ASTLocal local, ASTExpression value, boolean declarationInitializer) {
         super(line);
 
         this.local = local;
         this.value = value;
+        this.declarationInitializer = declarationInitializer;
     }
 
     public ASTLocal local() {
@@ -21,6 +27,10 @@ public final class ASTExprLocalStore extends ASTExpression {
 
     public ASTExpression value() {
         return value;
+    }
+
+    public boolean isDeclarationInitializer() {
+        return declarationInitializer;
     }
 
     @Override

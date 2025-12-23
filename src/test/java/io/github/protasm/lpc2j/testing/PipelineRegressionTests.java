@@ -1,7 +1,9 @@
 package io.github.protasm.lpc2j.testing;
 
-import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.console.ConsoleConfig;
+import io.github.protasm.lpc2j.console.LPCConsole;
+import io.github.protasm.lpc2j.console.fs.FSSourceFile;
+import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.ir.IRBlock;
 import io.github.protasm.lpc2j.ir.IRBinaryOperation;
 import io.github.protasm.lpc2j.ir.IRLowerer;
@@ -98,7 +100,8 @@ public final class PipelineRegressionTests {
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath),
                 new TestCase("console recalls previous commands with arrow keys", PipelineRegressionTests::consoleReadsHistoryWithArrows),
-                new TestCase("console down arrow returns to a blank entry", PipelineRegressionTests::consoleReturnsToEmptyHistorySlot));
+                new TestCase("console down arrow returns to a blank entry", PipelineRegressionTests::consoleReturnsToEmptyHistorySlot),
+                new TestCase("console load resolves inherited objects", PipelineRegressionTests::consoleLoadHandlesInheritance));
 
         List<String> failures = new ArrayList<>();
 
@@ -880,6 +883,29 @@ public final class PipelineRegressionTests {
         String line = reader.readLine("$ ");
 
         assertEquals("", line, "down arrow should return to a fresh entry after navigating history");
+    }
+
+    private static void consoleLoadHandlesInheritance() throws Exception {
+        Path cfgPath = Path.of("lpc2j/sample/sample.cfg");
+        ConsoleConfig config = ConsoleConfig.load(cfgPath);
+        LPCConsole console = new LPCConsole(config);
+
+        FSSourceFile child = console.load("inheritance/inherit_child.c");
+        if (child == null || child.lpcObject() == null) {
+            throw new AssertionError("console load should produce an instantiated object");
+        }
+
+        Object instance = child.lpcObject();
+        Class<?> childClass = instance.getClass();
+
+        assertEquals(
+                "inheritance.inherit_parent",
+                childClass.getSuperclass().getName(),
+                "loaded child should extend the inherited parent");
+        int self = ((Number) childClass.getMethod("call_self_shout").invoke(instance)).intValue();
+        assertEquals(205, self, "child override should dispatch correctly");
+        int parent = ((Number) childClass.getMethod("call_parent_shout").invoke(instance)).intValue();
+        assertEquals(101, parent, "explicit parent dispatch should reach the parent implementation");
     }
 
     private static String sampleDisplayName(Path root, Path file) {

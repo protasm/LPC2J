@@ -9,11 +9,6 @@
 ## Where things live
 - `src/io/github/protasm/lpc2j/preproc`, `scanner`, `parser`, `semantic`, `ir`, and `compiler` mirror the compilation stages. `runtime` holds minimal helpers; `efun` defines the efun registry; `console` contains the REPL and its commands/fs helpers. Tests live under `src/test/java/io/github/protasm/lpc2j/testing`.
 - `doc/` contains architecture notes, plans, and design reviews—skim here for background before significant refactors.
-- `libs/` carries third-party jars referenced by the simple shell scripts. `comp` builds all sources into `out`; `test` compiles then runs `PipelineRegressionTests` with assertions enabled.
-
-## How to build and test quickly
-- `./comp` — compiles Java sources against `libs/*` into `out`.
-- `./test` — cleans `out`, rebuilds, then runs the regression test harness (`PipelineRegressionTests`).
 
 ## Working conventions
 - Prefer `ParserOptions.defaults()` unless tests need specific toggles; thread `RuntimeContext` through when includes or efuns matter (console does this already).

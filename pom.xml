@@ -21,6 +21,17 @@
 
     <build>
         <sourceDirectory>src</sourceDirectory>
+
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.1.0</version>
+            <configuration>
+              <mainClass>io.github.protasm.lpc2j.console.LPCConsole</mainClass>
+            </configuration>
+          </plugin>
+        </plugins>
     </build>
 
     <dependencies>

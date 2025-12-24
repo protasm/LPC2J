@@ -3,7 +3,7 @@ package io.github.protasm.lpc2j.pipeline;
 import io.github.protasm.lpc2j.compiler.CompileException;
 import io.github.protasm.lpc2j.compiler.Compiler;
 import io.github.protasm.lpc2j.parser.ParseException;
-import io.github.protasm.lpc2j.parser.ParserNew;
+import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.scanner.ScanException;
@@ -79,7 +79,7 @@ public final class CompilationPipeline {
             return new CompilationResult(unit, tokens, astObject, semanticModel, typedIr, bytecode, problems);
         }
 
-        ParserNew parser = new ParserNew(runtimeContext, parserOptions);
+        Parser parser = new Parser(runtimeContext, parserOptions);
         try {
             astObject = parser.parse(unit.parseName(), tokens);
             unit.setASTObject(astObject);

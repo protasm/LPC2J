@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: io.github.protasm.lpc2j.testing.PipelineRegressionTests
+-------------------------------------------------------------------------------
+Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in io.github.protasm.lpc2j.testing.PipelineRegressionTests

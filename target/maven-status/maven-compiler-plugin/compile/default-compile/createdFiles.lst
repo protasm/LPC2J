@@ -143,7 +143,6 @@ io/github/protasm/lpc2j/parser/ast/expr/ASTExprLiteralFalse.class
 io/github/protasm/lpc2j/sourcepos/SegmentedSourceMapper$Builder.class
 io/github/protasm/lpc2j/console/package-info.class
 io/github/protasm/lpc2j/parser/ast/expr/ASTExprFieldStore.class
-io/github/protasm/lpc2j/parser/ParserNew.class
 io/github/protasm/lpc2j/console/cmd/SemanticModelPrinter$PrettyNode.class
 io/github/protasm/lpc2j/preproc/Preprocessor.class
 io/github/protasm/lpc2j/parser/parselet/InfixInvoke.class
@@ -224,7 +223,6 @@ io/github/protasm/lpc2j/parser/ParseRule.class
 io/github/protasm/lpc2j/ir/IRLocal.class
 io/github/protasm/lpc2j/parser/type/package-info.class
 io/github/protasm/lpc2j/ir/IRReturn.class
-io/github/protasm/lpc2j/parser/ParserNew$FieldDeclarator.class
 io/github/protasm/lpc2j/testing/PipelineRegressionTests$StrengthProbe.class
 io/github/protasm/lpc2j/ir/IRMappingSet.class
 io/github/protasm/lpc2j/parser/package-info.class
@@ -255,7 +253,6 @@ io/github/protasm/lpc2j/testing/PipelineRegressionTests$5.class
 io/github/protasm/lpc2j/parser/type/JType.class
 io/github/protasm/lpc2j/console/LPCConsole$CompilationRun.class
 io/github/protasm/lpc2j/console/fs/VirtualFileServer.class
-io/github/protasm/lpc2j/parser/ParserNew$ParsedParameters.class
 io/github/protasm/lpc2j/preproc/Preprocessor$PPToken.class
 io/github/protasm/lpc2j/parser/parselet/InfixParselet.class
 io/github/protasm/lpc2j/semantic/SemanticAnalyzer$LocalSlotAllocator$ScopeFrame.class

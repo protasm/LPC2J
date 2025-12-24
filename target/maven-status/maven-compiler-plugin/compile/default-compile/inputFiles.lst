@@ -90,7 +90,6 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ParseException.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ParseRule.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/Parser.java
-/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ParserNew.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ParserOptions.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/PrattParser.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/ASTArgument.java

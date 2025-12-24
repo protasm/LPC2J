@@ -67,7 +67,7 @@ import java.util.Map;
  *   <li>Downstream phases (semantic analysis, IR, codegen) remain untouched and expect the same AST.
  * </ul>
  */
-public class ParserNew extends Parser {
+public class Parser extends Parser {
     /** Token stream being consumed. */
     private TokenList tokens;
 
@@ -86,19 +86,19 @@ public class ParserNew extends Parser {
     /** Tracks how many times a method name has been defined so we can reference the correct entry. */
     private final Map<String, Integer> methodDefinitionIndex = new HashMap<>();
 
-    public ParserNew() {
+    public Parser() {
         this(new RuntimeContext(Preprocessor.rejectingResolver()), ParserOptions.defaults());
     }
 
-    public ParserNew(ParserOptions options) {
+    public Parser(ParserOptions options) {
         this(new RuntimeContext(Preprocessor.rejectingResolver()), options);
     }
 
-    public ParserNew(RuntimeContext runtimeContext) {
+    public Parser(RuntimeContext runtimeContext) {
         this(runtimeContext, ParserOptions.defaults());
     }
 
-    public ParserNew(RuntimeContext runtimeContext, ParserOptions options) {
+    public Parser(RuntimeContext runtimeContext, ParserOptions options) {
         super(runtimeContext, options);
     }
 

@@ -10,7 +10,7 @@ import io.github.protasm.lpc2j.ir.IRLowerer;
 import io.github.protasm.lpc2j.ir.IRLoweringResult;
 import io.github.protasm.lpc2j.ir.IRMethod;
 import io.github.protasm.lpc2j.ir.IRReturn;
-import io.github.protasm.lpc2j.parser.ParserNew;
+import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.parser.ast.ASTMethod;
 import io.github.protasm.lpc2j.parser.ast.ASTObject;
@@ -181,7 +181,7 @@ public final class PipelineRegressionTests {
     private static void semanticAnalysisReportsReturnMismatch() {
         String source = "int bad() { return \"oops\"; }\n";
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("SemanticSample", tokens);
 
         SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
@@ -198,7 +198,7 @@ public final class PipelineRegressionTests {
                 + "int value;\n"
                 + "inherit \"/std/base2\";\n";
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("InheritanceSample", tokens);
 
         assertEquals(2, astObject.inherits().size(), "parser should record all inherit directives");
@@ -249,7 +249,7 @@ public final class PipelineRegressionTests {
         String source = "foo(bar) { return bar; }\nint typed(string name) { return 1; }\n";
 
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("ParsingSample", tokens);
 
         assertEquals(2, astObject.methods().size(), "both methods should be parsed");
@@ -264,7 +264,7 @@ public final class PipelineRegressionTests {
                 + "string description = LONG_DESC;\n";
 
         TokenList tokens = new Scanner().scan(Path.of("/obj/room.c"), source, "/obj/room.c");
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("RoomSample", tokens);
 
         ASTField field = astObject.fields().get("description");
@@ -278,7 +278,7 @@ public final class PipelineRegressionTests {
     private static void semanticDefaultsUntypedFunctionsToMixed() {
         String source = "legacy(x) { x = 5; }\n";
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("LegacySample", tokens);
 
         SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
@@ -301,7 +301,7 @@ public final class PipelineRegressionTests {
     private static void semanticResolvesParentCallsToParentMethods() {
         String parentSource = "int shout() { return 1; }\n";
         Scanner scanner = new Scanner();
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
 
         TokenList parentTokens = scanner.scan(parentSource);
         ASTObject parentAst = parser.parse("ParentObject", parentTokens);
@@ -337,7 +337,7 @@ public final class PipelineRegressionTests {
     private static void semanticRejectsParentCallsWhenNoParent() {
         String source = "int lonely() { return ::missing(); }\n";
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("LonelyChild", tokens);
 
         SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);
@@ -353,7 +353,7 @@ public final class PipelineRegressionTests {
     private static void semanticRejectsParentCallsWhenMethodMissing() {
         String parentSource = "int stub() { return 0; }\n";
         Scanner scanner = new Scanner();
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
 
         TokenList parentTokens = scanner.scan(parentSource);
         ASTObject parentAst = parser.parse("BareParent", parentTokens);
@@ -386,7 +386,7 @@ public final class PipelineRegressionTests {
     private static void irLoweringBuildsBinaryReturn() {
         String source = "int add(int a, int b) { return a + b; }\n";
         TokenList tokens = new Scanner().scan(source);
-        ParserNew parser = new ParserNew();
+        Parser parser = new Parser();
         ASTObject astObject = parser.parse("IRSample", tokens);
 
         SemanticAnalysisResult analysis = new SemanticAnalyzer().analyze(astObject);

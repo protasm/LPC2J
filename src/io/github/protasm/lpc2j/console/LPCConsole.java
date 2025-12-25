@@ -89,6 +89,10 @@ public class LPCConsole {
     runtimeContext.registerEfun(EfunSetLight.INSTANCE);
     runtimeContext.registerEfun(EfunSay.INSTANCE);
     runtimeContext.registerEfun(EfunWrite.INSTANCE);
+    runtimeContext.registerEfun(EfunExplode.INSTANCE);
+    runtimeContext.registerEfun(EfunKeys.INSTANCE);
+    runtimeContext.registerEfun(EfunLowerCase.INSTANCE);
+    runtimeContext.registerEfun(EfunSizeof.INSTANCE);
   }
 
   public VirtualFileServer vfs() {

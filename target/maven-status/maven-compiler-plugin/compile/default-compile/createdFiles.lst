@@ -24,6 +24,7 @@ io/github/protasm/lpc2j/parser/ast/ASTFields.class
 io/github/protasm/lpc2j/preproc/Preprocessor$TokenizedLine.class
 io/github/protasm/lpc2j/parser/ast/expr/ASTExprLiteralInteger.class
 io/github/protasm/lpc2j/console/cmd/Command.class
+io/github/protasm/lpc2j/ir/IRConditionalExpression.class
 io/github/protasm/lpc2j/parser/ast/ASTMethods.class
 io/github/protasm/lpc2j/console/efuns/EfunCallOther.class
 io/github/protasm/lpc2j/console/cmd/CmdCompile.class
@@ -34,6 +35,7 @@ io/github/protasm/lpc2j/ir/IRConstant.class
 io/github/protasm/lpc2j/pipeline/CompilationStage.class
 io/github/protasm/lpc2j/runtime/RuntimeValueKind.class
 io/github/protasm/lpc2j/pipeline/CompilationProblem.class
+io/github/protasm/lpc2j/testing/PipelineRegressionTests$9.class
 io/github/protasm/lpc2j/ir/IRBlock.class
 io/github/protasm/lpc2j/parser/ast/expr/ASTExprOpBinary.class
 io/github/protasm/lpc2j/preproc/Preprocessor$1P.class
@@ -54,6 +56,7 @@ io/github/protasm/lpc2j/console/cmd/IRPrinter.class
 io/github/protasm/lpc2j/parser/ast/ASTArguments.class
 io/github/protasm/lpc2j/ir/IRArrayGet.class
 io/github/protasm/lpc2j/efun/Efun.class
+io/github/protasm/lpc2j/parser/parselet/InfixTernary.class
 io/github/protasm/lpc2j/parser/parselet/PrefixLiteral$1.class
 io/github/protasm/lpc2j/parser/parselet/PrefixArrayLiteral.class
 io/github/protasm/lpc2j/console/efuns/EfunThisObject.class
@@ -63,17 +66,19 @@ io/github/protasm/lpc2j/parser/PrattParser$Precedence.class
 io/github/protasm/lpc2j/scanner/Scanner.class
 io/github/protasm/lpc2j/console/efuns/EfunAddVerb.class
 io/github/protasm/lpc2j/preproc/PreprocessException.class
+io/github/protasm/lpc2j/parser/ast/expr/ASTExprTernary.class
 io/github/protasm/lpc2j/preproc/SearchPathIncludeResolver.class
+io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtFor.class
 io/github/protasm/lpc2j/console/cmd/SemanticModelPrinter.class
 io/github/protasm/lpc2j/ir/IRExpression.class
 io/github/protasm/lpc2j/parser/parselet/PrefixNumber$1.class
+io/github/protasm/lpc2j/ir/IRDynamicInvokeField.class
 io/github/protasm/lpc2j/parser/ast/stmt/package-info.class
 io/github/protasm/lpc2j/semantic/SemanticAnalyzer$LocalResolutionContext.class
 io/github/protasm/lpc2j/console/LPCConsole$CallResult.class
 io/github/protasm/lpc2j/parser/parselet/PrefixUnaryOp.class
 io/github/protasm/lpc2j/parser/ast/expr/ASTExprCallEfun.class
 io/github/protasm/lpc2j/ir/IRJump.class
-io/github/protasm/lpc2j/LPC2J.class
 io/github/protasm/lpc2j/parser/Locals.class
 io/github/protasm/lpc2j/sourcepos/CharCursor.class
 io/github/protasm/lpc2j/console/efuns/EfunWrite.class
@@ -176,8 +181,11 @@ io/github/protasm/lpc2j/preproc/PreprocessedSourceBuilder.class
 io/github/protasm/lpc2j/parser/ast/ASTStatement.class
 io/github/protasm/lpc2j/semantic/SemanticAnalyzer.class
 io/github/protasm/lpc2j/sourcepos/SegmentedSourceMapper.class
+io/github/protasm/lpc2j/testing/PipelineRegressionTests$8.class
+io/github/protasm/lpc2j/console/efuns/EfunKeys.class
 io/github/protasm/lpc2j/ir/IRDynamicInvoke.class
 io/github/protasm/lpc2j/runtime/Truth.class
+io/github/protasm/lpc2j/console/efuns/EfunLowerCase.class
 io/github/protasm/lpc2j/ir/IRArrayLiteral.class
 io/github/protasm/lpc2j/scanner/ScanException.class
 io/github/protasm/lpc2j/scanner/ScannableSource.class
@@ -229,8 +237,10 @@ io/github/protasm/lpc2j/parser/package-info.class
 io/github/protasm/lpc2j/semantic/SemanticModel.class
 io/github/protasm/lpc2j/console/cmd/CmdParse.class
 io/github/protasm/lpc2j/pipeline/CompilationUnit.class
+io/github/protasm/lpc2j/console/efuns/EfunSizeof.class
 io/github/protasm/lpc2j/console/efuns/EfunDestruct.class
 io/github/protasm/lpc2j/parser/type/InstrType.class
+io/github/protasm/lpc2j/parser/ast/expr/ASTExprInvokeField.class
 io/github/protasm/lpc2j/parser/ast/ASTParameters.class
 io/github/protasm/lpc2j/sourcepos/SourcePos.class
 io/github/protasm/lpc2j/sourcepos/LineMap.class
@@ -240,6 +250,7 @@ io/github/protasm/lpc2j/console/fs/FSSourceFile.class
 io/github/protasm/lpc2j/testing/PipelineRegressionTests$6.class
 io/github/protasm/lpc2j/parser/ast/expr/ASTExprLocalAccess.class
 io/github/protasm/lpc2j/parser/ast/ASTMapNode.class
+io/github/protasm/lpc2j/console/efuns/EfunExplode.class
 io/github/protasm/lpc2j/ir/IRMethod.class
 io/github/protasm/lpc2j/preproc/IncludeResolver.class
 io/github/protasm/lpc2j/parser/parselet/PrefixIdentifier.class

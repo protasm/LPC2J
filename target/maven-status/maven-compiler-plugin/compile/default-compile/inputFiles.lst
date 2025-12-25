@@ -1,4 +1,3 @@
-/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/LPC2J.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/compiler/CompileException.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/compiler/Compiler.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/compiler/package-info.java
@@ -30,11 +29,15 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunCallOther.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunDestruct.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunEnvironment.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunExplode.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunFoo.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunKeys.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunLowerCase.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunRandom.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunSay.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunSetHeartBeat.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunSetLight.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunSizeof.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunThisObject.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunThisPlayer.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/console/efuns/EfunWrite.java
@@ -54,9 +57,11 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRBinaryOperation.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRBlock.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRCoerce.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRConditionalExpression.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRConditionalJump.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRConstant.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRDynamicInvoke.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRDynamicInvokeField.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IREfunCall.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRExpression.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/ir/IRExpressionStatement.java
@@ -116,6 +121,7 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprCallMethod.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprFieldAccess.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprFieldStore.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprInvokeField.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprInvokeLocal.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprLiteralFalse.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprLiteralInteger.java
@@ -128,6 +134,7 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprNull.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprOpBinary.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprOpUnary.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprTernary.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprUnresolvedAssignment.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprUnresolvedCall.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/ASTExprUnresolvedIdentifier.java
@@ -137,6 +144,7 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/package-info.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtBlock.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtExpression.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtFor.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtIfThenElse.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtReturn.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/package-info.java
@@ -148,6 +156,7 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/InfixIndex.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/InfixInvoke.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/InfixParselet.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/InfixTernary.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/PrefixArrayLiteral.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/PrefixIdentifier.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/parselet/PrefixLParen.java

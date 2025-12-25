@@ -38,6 +38,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedParentCall;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.AssignOpType;
@@ -298,6 +299,13 @@ public final class SemanticAnalyzer {
             validateInitializers(stmtIf.thenBranch(), problems);
             if (stmtIf.elseBranch() != null)
                 validateInitializers(stmtIf.elseBranch(), problems);
+            return;
+        }
+
+        if (statement instanceof ASTStmtFor stmtFor) {
+            inspectInitializerExpression(stmtFor.initializer(), problems);
+            inspectInitializerExpression(stmtFor.update(), problems);
+            validateInitializers(stmtFor.body(), problems);
             return;
         }
 
@@ -963,6 +971,19 @@ public final class SemanticAnalyzer {
                         && resolvedElse == stmtIf.elseBranch())
                     return stmtIf;
                 return new ASTStmtIfThenElse(stmtIf.line(), resolvedCondition, resolvedThen, resolvedElse);
+            }
+
+            if (statement instanceof ASTStmtFor stmtFor) {
+                ASTExpression resolvedInit = resolveExpression(stmtFor.initializer(), context);
+                ASTExpression resolvedCondition = resolveExpression(stmtFor.condition(), context);
+                ASTExpression resolvedUpdate = resolveExpression(stmtFor.update(), context);
+                ASTStatement resolvedBody = resolveStatement(stmtFor.body(), context);
+                if (resolvedInit == stmtFor.initializer()
+                        && resolvedCondition == stmtFor.condition()
+                        && resolvedUpdate == stmtFor.update()
+                        && resolvedBody == stmtFor.body())
+                    return stmtFor;
+                return new ASTStmtFor(stmtFor.line(), resolvedInit, resolvedCondition, resolvedUpdate, resolvedBody);
             }
 
             if (statement instanceof ASTStmtReturn stmtReturn) {

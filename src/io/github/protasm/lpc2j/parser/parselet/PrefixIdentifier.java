@@ -4,12 +4,15 @@ import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
+import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_PLUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 
 import io.github.protasm.lpc2j.parser.Parser;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTArguments;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
@@ -39,6 +42,12 @@ public class PrefixIdentifier implements PrefixParselet {
             return new ASTExprUnresolvedAssignment(line, identifier, AssignOpType.ADD, parser.expression());
         else if (canAssign && parser.tokens().match(T_MINUS_EQUAL))
             return new ASTExprUnresolvedAssignment(line, identifier, AssignOpType.SUB, parser.expression());
+        else if (canAssign && parser.tokens().match(T_PLUS_PLUS))
+            return new ASTExprUnresolvedAssignment(
+                    line, identifier, AssignOpType.ADD, new ASTExprLiteralInteger(line, 1));
+        else if (canAssign && parser.tokens().match(T_MINUS_MINUS))
+            return new ASTExprUnresolvedAssignment(
+                    line, identifier, AssignOpType.SUB, new ASTExprLiteralInteger(line, 1));
 
         return new ASTExprUnresolvedIdentifier(line, identifier);
     }

@@ -32,6 +32,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 
@@ -318,6 +319,33 @@ public final class PrintVisitor implements ASTVisitor {
         doOutput(stmt.className());
         indentLvl++;
         stmt.expression().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitStmtFor(ASTStmtFor stmt) {
+        doOutput(stmt.className());
+        indentLvl++;
+        doOutput("[INIT]");
+        if (stmt.initializer() != null)
+            stmt.initializer().accept(this);
+        else
+            doOutput("[No Initializer]");
+        System.out.println();
+        doOutput("[CONDITION]");
+        if (stmt.condition() != null)
+            stmt.condition().accept(this);
+        else
+            doOutput("[No Condition]");
+        System.out.println();
+        doOutput("[UPDATE]");
+        if (stmt.update() != null)
+            stmt.update().accept(this);
+        else
+            doOutput("[No Update]");
+        System.out.println();
+        doOutput("[BODY]");
+        stmt.body().accept(this);
         indentLvl--;
     }
 

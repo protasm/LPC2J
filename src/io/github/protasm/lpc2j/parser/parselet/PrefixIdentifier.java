@@ -2,6 +2,7 @@ package io.github.protasm.lpc2j.parser.parselet;
 
 import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
+import static io.github.protasm.lpc2j.token.TokenType.T_INT_LITERAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_MINUS;
@@ -44,10 +45,16 @@ public class PrefixIdentifier implements PrefixParselet {
             return new ASTExprUnresolvedAssignment(line, identifier, AssignOpType.SUB, parser.expression());
         else if (canAssign && parser.tokens().match(T_PLUS_PLUS))
             return new ASTExprUnresolvedAssignment(
-                    line, identifier, AssignOpType.ADD, new ASTExprLiteralInteger(line, 1));
+                    line,
+                    identifier,
+                    AssignOpType.ADD,
+                    new ASTExprLiteralInteger(line, new Token<>(T_INT_LITERAL, "1", 1, null)));
         else if (canAssign && parser.tokens().match(T_MINUS_MINUS))
             return new ASTExprUnresolvedAssignment(
-                    line, identifier, AssignOpType.SUB, new ASTExprLiteralInteger(line, 1));
+                    line,
+                    identifier,
+                    AssignOpType.SUB,
+                    new ASTExprLiteralInteger(line, new Token<>(T_INT_LITERAL, "1", 1, null)));
 
         return new ASTExprUnresolvedIdentifier(line, identifier);
     }

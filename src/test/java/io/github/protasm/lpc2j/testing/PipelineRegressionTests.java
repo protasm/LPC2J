@@ -690,7 +690,8 @@ public final class PipelineRegressionTests {
                 + "int notStringNonEmpty() { return !\"abc\"; }\n"
                 + "int notObject(object o) { return !o; }\n"
                 + "int notMixed(mixed x) { return !x; }\n"
-                + "int ifOnString() { string s = \"\"; if (s) return 1; return 0; }\n";
+                + "int ifOnString() { string s = \"\"; if (s) return 1; return 0; }\n"
+                + "int eqString(string verb) { return verb == \"train\"; }\n";
 
         CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
         CompilationResult result = pipeline.run(null, source, "regression/Truthiness", null, ParserOptions.defaults());
@@ -724,6 +725,8 @@ public final class PipelineRegressionTests {
         assertEquals(0, ((Number) clazz.getMethod("notMixed", Object.class).invoke(instance, "value")).intValue(), "mixed non-zero/non-null is truthy");
 
         assertEquals(1, ((Number) clazz.getMethod("ifOnString").invoke(instance)).intValue(), "strings participate in truthiness within conditionals");
+        assertEquals(1, ((Number) clazz.getMethod("eqString", String.class).invoke(instance, "train")).intValue(), "string equality should compare contents");
+        assertEquals(0, ((Number) clazz.getMethod("eqString", String.class).invoke(instance, "walk")).intValue(), "string inequality should return false");
     }
 
     private static void ternaryOperatorExecutes() throws Exception {

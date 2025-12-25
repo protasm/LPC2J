@@ -435,6 +435,12 @@ public final class Compiler {
             return;
         }
 
+        if ((op == BinaryOpType.BOP_EQ || op == BinaryOpType.BOP_NE)
+                && (binary.left().type().isReferenceLike() || binary.right().type().isReferenceLike())) {
+            emitReferenceEquality(mv, internalName, method, binary);
+            return;
+        }
+
         emitIntOperand(mv, internalName, method, binary.left());
         emitIntOperand(mv, internalName, method, binary.right());
 
@@ -485,6 +491,19 @@ public final class Compiler {
         mv.visitLabel(trueLabel);
         mv.visitInsn(ICONST_1);
         mv.visitLabel(endLabel);
+    }
+
+    private void emitReferenceEquality(
+            MethodVisitor mv, String internalName, IRMethod method, IRBinaryOperation binary) {
+        emitExpression(mv, internalName, method, binary.left());
+        boxIfNeeded(mv, binary.left().type());
+        emitExpression(mv, internalName, method, binary.right());
+        boxIfNeeded(mv, binary.right().type());
+        mv.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+
+        if (binary.operator() == BinaryOpType.BOP_NE) {
+            emitBooleanInvert(mv);
+        }
     }
 
     private void emitIntOperand(MethodVisitor mv, String internalName, IRMethod method, IRExpression operand) {
@@ -662,6 +681,17 @@ public final class Compiler {
                 "(Ljava/lang/Object;)Z",
                 false);
 
+        Label trueLabel = new Label();
+        Label endLabel = new Label();
+        mv.visitJumpInsn(IFEQ, trueLabel);
+        mv.visitInsn(ICONST_0);
+        mv.visitJumpInsn(GOTO, endLabel);
+        mv.visitLabel(trueLabel);
+        mv.visitInsn(ICONST_1);
+        mv.visitLabel(endLabel);
+    }
+
+    private void emitBooleanInvert(MethodVisitor mv) {
         Label trueLabel = new Label();
         Label endLabel = new Label();
         mv.visitJumpInsn(IFEQ, trueLabel);

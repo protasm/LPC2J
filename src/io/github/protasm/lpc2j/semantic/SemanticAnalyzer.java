@@ -39,6 +39,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedParentCall;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -150,6 +151,7 @@ public final class SemanticAnalyzer {
             assignLocalSlots(method, problems);
             validateLocalInitializers(method, problems);
             ensureImplicitReturn(method);
+            resolveLocalTypes(method, problems);
         }
 
         SemanticTypeChecker typeChecker = new SemanticTypeChecker(problems);
@@ -213,6 +215,14 @@ public final class SemanticAnalyzer {
 
     private int parameterCount(ASTMethod method) {
         return (method.parameters() != null) ? method.parameters().size() : 0;
+    }
+
+    private void resolveLocalTypes(ASTMethod method, List<CompilationProblem> problems) {
+        if (method.locals() == null)
+            return;
+
+        for (ASTLocal local : method.locals())
+            resolveSymbolType(local.symbol(), local.line(), problems);
     }
 
     private void ensureImplicitReturn(ASTMethod method) {
@@ -1011,6 +1021,9 @@ public final class SemanticAnalyzer {
                     return stmtFor;
                 return new ASTStmtFor(stmtFor.line(), resolvedInit, resolvedCondition, resolvedUpdate, resolvedBody);
             }
+
+            if (statement instanceof ASTStmtBreak stmtBreak)
+                return stmtBreak;
 
             if (statement instanceof ASTStmtReturn stmtReturn) {
                 ASTExpression resolved = resolveExpression(stmtReturn.returnValue(), context);

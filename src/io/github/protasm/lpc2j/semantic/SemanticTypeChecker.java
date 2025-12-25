@@ -35,6 +35,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprTernary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -102,10 +103,18 @@ public final class SemanticTypeChecker {
             return;
         }
 
+        if (statement instanceof ASTStmtBreak)
+            return;
+
         if (statement instanceof ASTStmtReturn stmtReturn) {
             LPCType valueType = (stmtReturn.returnValue() != null)
                     ? inferExpressionType(stmtReturn.returnValue(), context)
                     : LPCType.LPCVOID;
+            if (stmtReturn.returnValue() != null) {
+                LPCType declaredReturn =
+                        (context.method != null && context.method.symbol() != null) ? context.method.symbol().lpcType() : null;
+                valueType = coerceZeroLiteralNull(declaredReturn, stmtReturn.returnValue(), valueType);
+            }
             context.recordReturn(valueType, stmtReturn.isSynthetic(), stmtReturn.line());
             return;
         }
@@ -146,6 +155,7 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprFieldStore store) {
             LPCType valueType = inferExpressionType(store.value(), context);
             LPCType fieldType = valueType(store.field().symbol());
+            valueType = coerceZeroLiteralNull(fieldType, store.value(), valueType);
             ensureAssignable(fieldType, valueType, store.line(), "Field assignment type mismatch");
             return fieldType(store.field().symbol(), valueType);
         }
@@ -153,6 +163,7 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprLocalStore store) {
             LPCType valueType = inferExpressionType(store.value(), context);
             LPCType localType = valueType(store.local().symbol());
+            valueType = coerceZeroLiteralNull(localType, store.value(), valueType);
             ensureAssignable(localType, valueType, store.line(), "Local assignment type mismatch");
             return localType != null ? localType : valueType;
         }
@@ -199,6 +210,11 @@ public final class SemanticTypeChecker {
         inferExpressionType(expr.condition(), context);
         LPCType thenType = inferExpressionType(expr.thenBranch(), context);
         LPCType elseType = inferExpressionType(expr.elseBranch(), context);
+
+        if (isZeroLiteral(expr.thenBranch()))
+            thenType = coerceZeroLiteralNull(elseType, expr.thenBranch(), thenType);
+        if (isZeroLiteral(expr.elseBranch()))
+            elseType = coerceZeroLiteralNull(thenType, expr.elseBranch(), elseType);
 
         LPCType resolved = resolveTernaryType(thenType, elseType);
         expr.setLpcType(resolved);
@@ -313,8 +329,10 @@ public final class SemanticTypeChecker {
             LPCType actual = inferExpressionType(argument.expression(), context);
             LPCType expected = (expectedTypes != null && i < expectedTypes.size()) ? expectedTypes.get(i) : null;
 
-            if (expected != null)
+            if (expected != null) {
+                actual = coerceZeroLiteralNull(expected, argument.expression(), actual);
                 ensureAssignable(expected, actual, argument.line(), "Argument " + (i + 1) + " type mismatch");
+            }
         }
 
         if (expectedTypes != null && arguments.size() != expectedTypes.size()) {
@@ -408,6 +426,31 @@ public final class SemanticTypeChecker {
                     || expected == LPCType.LPCARRAY || expected == LPCType.LPCMAPPING;
 
         return expected == actual;
+    }
+
+    private LPCType coerceZeroLiteralNull(LPCType expected, ASTExpression expression, LPCType actual) {
+        if (expected == null || actual == null)
+            return actual;
+
+        if (actual == LPCType.LPCINT && isZeroLiteral(expression) && isNullAssignable(expected))
+            return LPCType.LPCNULL;
+
+        return actual;
+    }
+
+    private boolean isZeroLiteral(ASTExpression expression) {
+        return expression instanceof ASTExprLiteralInteger literal && literal.value() == 0;
+    }
+
+    private boolean isNullAssignable(LPCType expected) {
+        if (expected == null)
+            return false;
+
+        return expected == LPCType.LPCOBJECT
+                || expected == LPCType.LPCSTRING
+                || expected == LPCType.LPCMIXED
+                || expected == LPCType.LPCARRAY
+                || expected == LPCType.LPCMAPPING;
     }
 
     private LPCType valueType(Symbol symbol) {

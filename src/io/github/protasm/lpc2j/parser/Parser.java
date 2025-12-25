@@ -38,6 +38,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -384,6 +385,8 @@ public class Parser {
                         return ifStatement();
                 else if (tokens.match(T_FOR))
                         return forStatement();
+                else if (tokens.match(T_BREAK))
+                        return breakStatement();
                 else if (tokens.match(T_RETURN))
                         return returnStatement();
                 else if (tokens.match(T_LEFT_BRACE))
@@ -442,6 +445,11 @@ public class Parser {
         tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
 
         return new ASTStmtReturn(currLine(), expr);
+    }
+
+    private ASTStatement breakStatement() {
+        tokens.consume(T_SEMICOLON, "Expect ';' after break.");
+        return new ASTStmtBreak(currLine());
     }
 
     private ASTStmtFor forStatement() {

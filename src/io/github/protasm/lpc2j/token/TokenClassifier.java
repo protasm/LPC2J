@@ -12,6 +12,7 @@ import java.util.Map;
 public final class TokenClassifier {
     private static final Map<String, TokenType> RESERVED_KEYWORDS =
             Map.of(
+                    "break", TokenType.T_BREAK,
                     "else", TokenType.T_ELSE,
                     "false", TokenType.T_FALSE,
                     "for", TokenType.T_FOR,

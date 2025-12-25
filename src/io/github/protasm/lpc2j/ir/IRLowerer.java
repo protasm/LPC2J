@@ -35,6 +35,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprTernary;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -46,7 +47,9 @@ import io.github.protasm.lpc2j.runtime.RuntimeTypes;
 import io.github.protasm.lpc2j.runtime.RuntimeValueKind;
 import io.github.protasm.lpc2j.semantic.SemanticModel;
 import io.github.protasm.lpc2j.semantic.SemanticScope;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -245,8 +248,11 @@ public final class IRLowerer {
         }
 
         if (statement instanceof ASTStmtBlock block) {
-            for (ASTStatement nested : block)
+            for (ASTStatement nested : block) {
+                if (current == null)
+                    break;
                 current = lowerStatement(nested, current, context, problems);
+            }
 
             return current;
         }
@@ -263,6 +269,21 @@ public final class IRLowerer {
 
         if (statement instanceof ASTStmtFor forStmt) {
             return lowerForStatement(forStmt, current, context, problems);
+        }
+
+        if (statement instanceof ASTStmtBreak) {
+            String breakTarget = context.currentBreakTarget();
+            if (breakTarget == null) {
+                problems.add(
+                        new CompilationProblem(
+                                CompilationStage.LOWER,
+                                "Encountered break statement outside of a loop.",
+                                statement.line()));
+                return current;
+            }
+
+            current.terminate(new IRJump(statement.line(), breakTarget));
+            return null;
         }
 
         if (statement instanceof ASTStmtReturn stmtReturn) {
@@ -310,7 +331,9 @@ public final class IRLowerer {
             conditionBlock.terminate(new IRJump(forStmt.line(), bodyBlock.label()));
         }
 
+        context.pushLoop(mergeBlock.label());
         BlockBuilder bodyTail = lowerStatement(forStmt.body(), bodyBlock, context, problems);
+        context.popLoop();
         if (bodyTail != null && !bodyTail.isTerminated()) {
             String nextLabel = (updateBlock != null) ? updateBlock.label() : conditionBlock.label();
             bodyTail.terminate(new IRJump(forStmt.line(), nextLabel));
@@ -616,6 +639,7 @@ public final class IRLowerer {
         private final List<IRParameter> parameters = new ArrayList<>();
         private final List<IRLocal> locals = new ArrayList<>();
         private final List<BlockBuilder> blocks = new ArrayList<>();
+        private final Deque<String> breakTargets = new ArrayDeque<>();
 
         private int blockCounter = 0;
 
@@ -634,6 +658,19 @@ public final class IRLowerer {
         public void registerLocal(Symbol symbol, IRLocal local) {
             localsBySymbol.put(symbol, local);
             localsBySlot.put(local.slot(), local);
+        }
+
+        public void pushLoop(String breakTarget) {
+            breakTargets.push(breakTarget);
+        }
+
+        public void popLoop() {
+            if (!breakTargets.isEmpty())
+                breakTargets.pop();
+        }
+
+        public String currentBreakTarget() {
+            return breakTargets.peek();
         }
 
         public IRLocal requireLocal(ASTLocal astLocal, List<CompilationProblem> problems) {

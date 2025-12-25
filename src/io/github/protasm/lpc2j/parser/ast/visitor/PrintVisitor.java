@@ -32,6 +32,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
@@ -322,6 +323,11 @@ public final class PrintVisitor implements ASTVisitor {
                 System.out.println();
         }
         indentLvl--;
+    }
+
+    @Override
+    public void visitStmtBreak(ASTStmtBreak stmt) {
+        doOutput(stmt.className());
     }
 
     @Override

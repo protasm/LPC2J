@@ -31,6 +31,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBreak;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
@@ -168,6 +169,9 @@ final class SemanticModelPrinter {
     private PrettyNode statementNode(ASTStatement statement) {
         if (statement instanceof ASTStmtBlock stmtBlock)
             return blockNode(stmtBlock);
+
+        if (statement instanceof ASTStmtBreak)
+            return new PrettyNode("Break");
 
         if (statement instanceof ASTStmtExpression stmtExpression)
             return expressionNode(stmtExpression.expression());

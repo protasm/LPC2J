@@ -20,6 +20,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -508,6 +509,13 @@ public final class IRLowerer {
             List<IRExpression> args = lowerArguments(invokeLocal.args(), context, problems);
             RuntimeType returnType = runtimeType(invokeLocal.lpcType());
             return new IRDynamicInvoke(invokeLocal.line(), target, invokeLocal.methodName(), args, returnType);
+        }
+
+        if (expression instanceof ASTExprInvokeField invokeField) {
+            IRField target = context.requireField(invokeField.field(), problems);
+            List<IRExpression> args = lowerArguments(invokeField.args(), context, problems);
+            RuntimeType returnType = runtimeType(invokeField.lpcType());
+            return new IRDynamicInvokeField(invokeField.line(), target, invokeField.methodName(), args, returnType);
         }
 
         problems.add(

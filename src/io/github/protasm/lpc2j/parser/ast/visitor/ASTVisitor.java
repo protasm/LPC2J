@@ -18,6 +18,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -65,6 +66,7 @@ public interface ASTVisitor {
         case ASTExprCallMethod exprCallMethod -> visitExprCallMethod(exprCallMethod);
         case ASTExprFieldAccess exprFieldAccess -> visitExprFieldAccess(exprFieldAccess);
         case ASTExprFieldStore exprFieldStore -> visitExprFieldStore(exprFieldStore);
+        case ASTExprInvokeField exprInvokeField -> visitExprInvokeField(exprInvokeField);
         case ASTExprInvokeLocal exprInvokeLocal -> visitExprInvokeLocal(exprInvokeLocal);
         case ASTExprLiteralFalse exprLiteralFalse -> visitExprLiteralFalse(exprLiteralFalse);
         case ASTExprLiteralInteger exprLiteralInteger -> visitExprLiteralInteger(exprLiteralInteger);
@@ -132,6 +134,8 @@ public interface ASTVisitor {
     default void visitExprFieldAccess(ASTExprFieldAccess expr) {}
 
     default void visitExprFieldStore(ASTExprFieldStore expr) {}
+
+    default void visitExprInvokeField(ASTExprInvokeField expr) {}
 
     default void visitExprInvokeLocal(ASTExprInvokeLocal expr) {}
 

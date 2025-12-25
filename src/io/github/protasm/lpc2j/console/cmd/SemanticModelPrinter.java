@@ -15,6 +15,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -273,6 +274,17 @@ final class SemanticModelPrinter {
                             + " : "
                             + formatType(invokeLocal.lpcType());
             return new PrettyNode(label, argumentNodes(invokeLocal.arguments()));
+        }
+
+        if (expression instanceof ASTExprInvokeField invokeField) {
+            String label =
+                    "DynamicInvoke field "
+                            + invokeField.field().symbol().name()
+                            + " -> "
+                            + invokeField.methodName()
+                            + " : "
+                            + formatType(invokeField.lpcType());
+            return new PrettyNode(label, argumentNodes(invokeField.arguments()));
         }
 
         if (expression instanceof ASTExprLiteralInteger literal) {

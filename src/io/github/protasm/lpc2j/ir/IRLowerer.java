@@ -581,6 +581,19 @@ public final class IRLowerer {
         if (targetType == null || targetType.equals(value.type()))
             return value;
 
+        if (value instanceof IRConstant constant
+                && constant.type() == RuntimeTypes.INT
+                && Integer.valueOf(0).equals(constant.value())) {
+            return switch (targetType.kind()) {
+            case STRING -> new IRConstant(value.line(), "", RuntimeTypes.STRING);
+            case STATUS -> new IRConstant(value.line(), 0, RuntimeTypes.STATUS);
+            case OBJECT -> new IRConstant(value.line(), null, RuntimeTypes.OBJECT);
+            case ARRAY -> new IRArrayLiteral(value.line(), List.of(), targetType);
+            case MAPPING -> new IRMappingLiteral(value.line(), List.of(), targetType);
+            default -> new IRCoerce(value.line(), value, targetType);
+            };
+        }
+
         return new IRCoerce(value.line(), value, targetType);
     }
 

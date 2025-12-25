@@ -3,6 +3,7 @@ package io.github.protasm.lpc2j.console.cmd;
 import io.github.protasm.lpc2j.ir.IRBinaryOperation;
 import io.github.protasm.lpc2j.ir.IRBlock;
 import io.github.protasm.lpc2j.ir.IRCoerce;
+import io.github.protasm.lpc2j.ir.IRConditionalExpression;
 import io.github.protasm.lpc2j.ir.IRConditionalJump;
 import io.github.protasm.lpc2j.ir.IRConstant;
 import io.github.protasm.lpc2j.ir.IRDynamicInvoke;
@@ -213,6 +214,17 @@ final class IRPrinter {
         if (expression instanceof IRBinaryOperation binary) {
             return "(" + renderExpression(binary.left()) + " " + binarySymbol(binary.operator()) + " "
                     + renderExpression(binary.right()) + ") : " + typeLabel(binary.type());
+        }
+
+        if (expression instanceof IRConditionalExpression conditional) {
+            return "("
+                    + renderExpression(conditional.condition())
+                    + " ? "
+                    + renderExpression(conditional.thenBranch())
+                    + " : "
+                    + renderExpression(conditional.elseBranch())
+                    + ") : "
+                    + typeLabel(conditional.type());
         }
 
         if (expression instanceof IREfunCall efunCall) {

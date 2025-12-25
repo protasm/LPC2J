@@ -273,6 +273,11 @@ public final class Compiler {
             return;
         }
 
+        if (expression instanceof IRConditionalExpression conditionalExpression) {
+            emitConditionalExpression(mv, internalName, method, conditionalExpression);
+            return;
+        }
+
         if (expression instanceof IRArrayLiteral arrayLiteral) {
             emitArrayLiteral(mv, internalName, method, arrayLiteral);
             return;
@@ -658,6 +663,22 @@ public final class Compiler {
             return;
 
         coerceValue(mv, source, target);
+    }
+
+    private void emitConditionalExpression(
+            MethodVisitor mv, String internalName, IRMethod method, IRConditionalExpression conditionalExpression) {
+        Label elseLabel = new Label();
+        Label endLabel = new Label();
+
+        emitBooleanValue(mv, internalName, method, conditionalExpression.condition());
+        mv.visitJumpInsn(IFEQ, elseLabel);
+
+        emitExpression(mv, internalName, method, conditionalExpression.thenBranch());
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        mv.visitLabel(elseLabel);
+        emitExpression(mv, internalName, method, conditionalExpression.elseBranch());
+        mv.visitLabel(endLabel);
     }
 
     private void emitArrayLiteral(MethodVisitor mv, String internalName, IRMethod method, IRArrayLiteral literal) {

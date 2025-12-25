@@ -123,6 +123,7 @@ io/github/protasm/lpc2j/ir/IRNode.class
 io/github/protasm/lpc2j/parser/ast/ASTObject.class
 io/github/protasm/lpc2j/ir/TypedIR.class
 io/github/protasm/lpc2j/parser/ast/ASTInherit.class
+io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtBreak.class
 io/github/protasm/lpc2j/parser/type/UnaryOpType.class
 io/github/protasm/lpc2j/ir/IRMappingGet.class
 io/github/protasm/lpc2j/console/LPCConsole$ConsoleClassLoader.class

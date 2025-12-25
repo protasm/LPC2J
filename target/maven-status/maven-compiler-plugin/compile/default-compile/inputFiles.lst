@@ -143,6 +143,7 @@
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/expr/package-info.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/package-info.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtBlock.java
+/Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtBreak.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtExpression.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtFor.java
 /Users/jonathan/Projects/LPC2J/src/io/github/protasm/lpc2j/parser/ast/stmt/ASTStmtIfThenElse.java

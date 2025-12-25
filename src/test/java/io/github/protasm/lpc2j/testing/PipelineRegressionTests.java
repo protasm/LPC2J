@@ -95,6 +95,7 @@ public final class PipelineRegressionTests {
                         PipelineRegressionTests::inheritanceSamplesExercisePipeline),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
+                new TestCase("ternary operator compiles and executes", PipelineRegressionTests::ternaryOperatorExecutes),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
                 new TestCase("for loops compile and execute", PipelineRegressionTests::forLoopsExecute),
@@ -723,6 +724,38 @@ public final class PipelineRegressionTests {
         assertEquals(0, ((Number) clazz.getMethod("notMixed", Object.class).invoke(instance, "value")).intValue(), "mixed non-zero/non-null is truthy");
 
         assertEquals(1, ((Number) clazz.getMethod("ifOnString").invoke(instance)).intValue(), "strings participate in truthiness within conditionals");
+    }
+
+    private static void ternaryOperatorExecutes() throws Exception {
+        String source = ""
+                + "int choose(int flag) { return flag ? 10 : 5; }\n"
+                + "string choose_string(int flag) { return flag ? \"yes\" : \"no\"; }\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/TernarySample", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.TernarySample";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        assertEquals(10, ((Number) clazz.getMethod("choose", int.class).invoke(instance, 1)).intValue(),
+                "ternary true branch should return expected value");
+        assertEquals(5, ((Number) clazz.getMethod("choose", int.class).invoke(instance, 0)).intValue(),
+                "ternary false branch should return expected value");
+        assertEquals("yes", clazz.getMethod("choose_string", int.class).invoke(instance, 1),
+                "ternary true branch should return expected string");
+        assertEquals("no", clazz.getMethod("choose_string", int.class).invoke(instance, 0),
+                "ternary false branch should return expected string");
     }
 
     private static void arraysBehave() throws Exception {

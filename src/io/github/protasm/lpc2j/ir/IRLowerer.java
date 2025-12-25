@@ -32,6 +32,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprTernary;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
@@ -466,6 +467,17 @@ public final class IRLowerer {
             IRExpression left = lowerExpression(binary.left(), context, problems);
             IRExpression right = lowerExpression(binary.right(), context, problems);
             return new IRBinaryOperation(binary.line(), binary.operator(), left, right, type);
+        }
+
+        if (expression instanceof ASTExprTernary ternary) {
+            RuntimeType targetType = runtimeType(ternary.lpcType());
+            IRExpression condition = coerceIfNeeded(
+                    lowerExpression(ternary.condition(), context, problems), RuntimeTypes.STATUS);
+            IRExpression thenBranch =
+                    coerceIfNeeded(lowerExpression(ternary.thenBranch(), context, problems), targetType);
+            IRExpression elseBranch =
+                    coerceIfNeeded(lowerExpression(ternary.elseBranch(), context, problems), targetType);
+            return new IRConditionalExpression(ternary.line(), condition, thenBranch, elseBranch, targetType);
         }
 
         if (expression instanceof ASTExprCallEfun callEfun) {

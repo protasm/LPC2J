@@ -31,6 +31,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprTernary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
@@ -164,6 +165,9 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprOpBinary binary)
             return inferBinaryType(binary, context);
 
+        if (expression instanceof ASTExprTernary ternary)
+            return inferTernaryType(ternary, context);
+
         if (expression instanceof ASTExprCallEfun callEfun)
             return inferEfunCall(callEfun, context);
 
@@ -181,6 +185,29 @@ public final class SemanticTypeChecker {
                         CompilationStage.ANALYZE,
                         "Unsupported expression kind: " + expression.getClass().getSimpleName(),
                         expression.line()));
+        return LPCType.LPCMIXED;
+    }
+
+    private LPCType inferTernaryType(ASTExprTernary expr, MethodContext context) {
+        inferExpressionType(expr.condition(), context);
+        LPCType thenType = inferExpressionType(expr.thenBranch(), context);
+        LPCType elseType = inferExpressionType(expr.elseBranch(), context);
+
+        LPCType resolved = resolveTernaryType(thenType, elseType);
+        expr.setLpcType(resolved);
+        return resolved;
+    }
+
+    private LPCType resolveTernaryType(LPCType thenType, LPCType elseType) {
+        if (thenType == elseType)
+            return thenType;
+
+        if (isTypeAssignable(thenType, elseType))
+            return thenType;
+
+        if (isTypeAssignable(elseType, thenType))
+            return elseType;
+
         return LPCType.LPCMIXED;
     }
 

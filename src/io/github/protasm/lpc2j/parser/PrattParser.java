@@ -7,6 +7,7 @@ import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_FACTOR;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_NONE;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_OR;
 import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_TERM;
+import static io.github.protasm.lpc2j.parser.PrattParser.Precedence.PREC_TERNARY;
 import static io.github.protasm.lpc2j.token.TokenType.T_BANG;
 import static io.github.protasm.lpc2j.token.TokenType.T_BANG_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_DBL_AMP;
@@ -25,6 +26,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_LESS;
 import static io.github.protasm.lpc2j.token.TokenType.T_LESS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_QUESTION;
 import static io.github.protasm.lpc2j.token.TokenType.T_SLASH;
 import static io.github.protasm.lpc2j.token.TokenType.T_SUPER;
 import static io.github.protasm.lpc2j.token.TokenType.T_STAR;
@@ -36,6 +38,7 @@ import java.util.Map;
 
 import io.github.protasm.lpc2j.parser.parselet.InfixBinaryOp;
 import io.github.protasm.lpc2j.parser.parselet.InfixIndex;
+import io.github.protasm.lpc2j.parser.parselet.InfixTernary;
 import io.github.protasm.lpc2j.parser.parselet.PrefixIdentifier;
 import io.github.protasm.lpc2j.parser.parselet.PrefixLParen;
 import io.github.protasm.lpc2j.parser.parselet.PrefixLiteral;
@@ -51,15 +54,16 @@ public class PrattParser {
     public static final class Precedence {
         public static final int PREC_NONE = 0;
         public static final int PREC_ASSIGNMENT = 1; // =
-        public static final int PREC_OR = 2; // or
-        public static final int PREC_AND = 3; // and
-        public static final int PREC_EQUALITY = 4; // == !=
-        public static final int PREC_COMPARISON = 5; // < > <= >=
-        public static final int PREC_TERM = 6; // + -
-        public static final int PREC_FACTOR = 7; // * /
-        public static final int PREC_UNARY = 8; // ! -
-        public static final int PREC_CALL = 9; // ()
-        public static final int PREC_PRIMARY = 10;
+        public static final int PREC_TERNARY = 2; // ?:
+        public static final int PREC_OR = 3; // or
+        public static final int PREC_AND = 4; // and
+        public static final int PREC_EQUALITY = 5; // == !=
+        public static final int PREC_COMPARISON = 6; // < > <= >=
+        public static final int PREC_TERM = 7; // + -
+        public static final int PREC_FACTOR = 8; // * /
+        public static final int PREC_UNARY = 9; // ! -
+        public static final int PREC_CALL = 10; // ()
+        public static final int PREC_PRIMARY = 11;
 
         // Precedence()
         private Precedence() {
@@ -92,6 +96,8 @@ public class PrattParser {
 
         tokenTypeToRule.put(T_BANG_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_EQUALITY));
         tokenTypeToRule.put(T_EQUAL_EQUAL, new ParseRule(null, new InfixBinaryOp(), PREC_EQUALITY));
+
+        tokenTypeToRule.put(T_QUESTION, new ParseRule(null, new InfixTernary(), PREC_TERNARY));
 
         tokenTypeToRule.put(T_FALSE, new ParseRule(new PrefixLiteral(), null, PREC_NONE));
         tokenTypeToRule.put(T_IDENTIFIER, new ParseRule(new PrefixIdentifier(), null, PREC_NONE));

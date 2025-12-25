@@ -31,6 +31,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprNull;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprTernary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedAssignment;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedCall;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedIdentifier;
@@ -366,6 +367,12 @@ public final class SemanticAnalyzer {
         if (expression instanceof ASTExprOpBinary binary)
             return referencesLocal(binary.left(), local) || referencesLocal(binary.right(), local);
 
+        if (expression instanceof ASTExprTernary ternary) {
+            return referencesLocal(ternary.condition(), local)
+                    || referencesLocal(ternary.thenBranch(), local)
+                    || referencesLocal(ternary.elseBranch(), local);
+        }
+
         return false;
     }
 
@@ -695,6 +702,17 @@ public final class SemanticAnalyzer {
                 if (resolvedLeft == binary.left() && resolvedRight == binary.right())
                     return binary;
                 return new ASTExprOpBinary(binary.line(), resolvedLeft, resolvedRight, binary.operator());
+            }
+
+            if (expression instanceof ASTExprTernary ternary) {
+                ASTExpression resolvedCondition = resolveExpression(ternary.condition(), context);
+                ASTExpression resolvedThen = resolveExpression(ternary.thenBranch(), context);
+                ASTExpression resolvedElse = resolveExpression(ternary.elseBranch(), context);
+                if (resolvedCondition == ternary.condition()
+                        && resolvedThen == ternary.thenBranch()
+                        && resolvedElse == ternary.elseBranch())
+                    return ternary;
+                return new ASTExprTernary(ternary.line(), resolvedCondition, resolvedThen, resolvedElse);
             }
 
             if (expression instanceof ASTExprCallMethod callMethod) {

@@ -26,6 +26,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_MINUS_MINUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_PLUS_PLUS;
+import static io.github.protasm.lpc2j.token.TokenType.T_QUESTION;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_ARROW;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACE;
 import static io.github.protasm.lpc2j.token.TokenType.T_RIGHT_BRACKET;
@@ -62,7 +63,8 @@ public class Scanner {
                     '[', T_LEFT_BRACKET,
                     ']', T_RIGHT_BRACKET,
                     ',', T_COMMA,
-                    ';', T_SEMICOLON);
+                    ';', T_SEMICOLON,
+                    '?', T_QUESTION);
 
     public Scanner() {
         this(new Preprocessor(Preprocessor.rejectingResolver()));

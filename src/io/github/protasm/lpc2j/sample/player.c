@@ -66,7 +66,7 @@ string handle_input(string input) {
     int i;
     mapping exits;
 
-    if (!input || input == "") {
+    if (!input || !sizeof(input)) {
         return "Please enter a command.\r\n";
     }
 
@@ -74,12 +74,12 @@ string handle_input(string input) {
     parts = explode(command, " ");
     command = "";
     for (i = 0; i < sizeof(parts); i++) {
-        if (parts[i] != "") {
+        if (sizeof(parts[i])) {
             command = parts[i];
             break;
         }
     }
-    if (command == "") {
+    if (!sizeof(command)) {
         return "Please enter a command.\r\n";
     }
     if (command == "look") {

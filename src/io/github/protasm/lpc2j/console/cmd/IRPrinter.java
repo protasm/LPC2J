@@ -7,6 +7,7 @@ import io.github.protasm.lpc2j.ir.IRConditionalExpression;
 import io.github.protasm.lpc2j.ir.IRConditionalJump;
 import io.github.protasm.lpc2j.ir.IRConstant;
 import io.github.protasm.lpc2j.ir.IRDynamicInvoke;
+import io.github.protasm.lpc2j.ir.IRDynamicInvokeField;
 import io.github.protasm.lpc2j.ir.IREfunCall;
 import io.github.protasm.lpc2j.ir.IRExpression;
 import io.github.protasm.lpc2j.ir.IRExpressionStatement;
@@ -245,6 +246,17 @@ final class IRPrinter {
         if (expression instanceof IRDynamicInvoke invoke) {
             return "dynamic_invoke "
                     + renderLocal(invoke.targetLocal())
+                    + "."
+                    + invoke.methodName()
+                    + "("
+                    + renderArgs(invoke.arguments())
+                    + ") : "
+                    + typeLabel(invoke.type());
+        }
+
+        if (expression instanceof IRDynamicInvokeField invoke) {
+            return "dynamic_invoke "
+                    + invoke.targetField().name()
                     + "."
                     + invoke.methodName()
                     + "("

@@ -21,6 +21,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayLiteral;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprArrayStore;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -177,6 +178,12 @@ public final class SemanticTypeChecker {
         if (expression instanceof ASTExprInvokeLocal invokeLocal) {
             inferArguments(invokeLocal.arguments(), null, context);
             invokeLocal.setLPCType(LPCType.LPCMIXED);
+            return LPCType.LPCMIXED;
+        }
+
+        if (expression instanceof ASTExprInvokeField invokeField) {
+            inferArguments(invokeField.arguments(), null, context);
+            invokeField.setLPCType(LPCType.LPCMIXED);
             return LPCType.LPCMIXED;
         }
 

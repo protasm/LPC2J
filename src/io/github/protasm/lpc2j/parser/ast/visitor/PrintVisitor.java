@@ -15,6 +15,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralFalse;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
@@ -136,6 +137,15 @@ public final class PrintVisitor implements ASTVisitor {
         doOutput(
                 String.format("%s([%s] slot=%d, methodName=%s)", expr.className(), expr.lpcType(), expr.slot(),
                         expr.methodName()));
+        indentLvl++;
+        expr.arguments().accept(this);
+        indentLvl--;
+    }
+
+    @Override
+    public void visitExprInvokeField(ASTExprInvokeField expr) {
+        doOutput(String.format("%s([%s] field=%s, methodName=%s)", expr.className(), expr.lpcType(),
+                expr.field().symbol().name(), expr.methodName()));
         indentLvl++;
         expr.arguments().accept(this);
         indentLvl--;

@@ -333,6 +333,11 @@ public final class Compiler {
             return;
         }
 
+        if (expression instanceof IRDynamicInvokeField dynamicInvokeField) {
+            emitDynamicInvokeField(mv, internalName, method, dynamicInvokeField);
+            return;
+        }
+
         if (expression instanceof IRCoerce coerce) {
             emitCoerce(mv, internalName, method, coerce);
         }
@@ -563,6 +568,34 @@ public final class Compiler {
             return;
         }
         emitCoerceToRuntimeTypeIfNeeded(mv, RuntimeTypes.MIXED, dynamicInvoke.type());
+    }
+
+    private void emitDynamicInvokeField(
+            MethodVisitor mv, String internalName, IRMethod method, IRDynamicInvokeField dynamicInvokeField) {
+        emitFieldLoad(mv, internalName, dynamicInvokeField.targetField());
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+        mv.visitLdcInsn(dynamicInvokeField.methodName());
+        emitParamTypesArray(mv, internalName, method, dynamicInvokeField.arguments());
+        mv.visitMethodInsn(
+                INVOKEVIRTUAL,
+                "java/lang/Class",
+                "getMethod",
+                "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;",
+                false);
+        mv.visitInsn(SWAP);
+        emitArgumentsArray(mv, internalName, method, dynamicInvokeField.arguments());
+        mv.visitMethodInsn(
+                INVOKEVIRTUAL,
+                "java/lang/reflect/Method",
+                "invoke",
+                "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+                false);
+        if (dynamicInvokeField.type() != null && dynamicInvokeField.type().kind() == RuntimeValueKind.VOID) {
+            mv.visitInsn(POP);
+            return;
+        }
+        emitCoerceToRuntimeTypeIfNeeded(mv, RuntimeTypes.MIXED, dynamicInvokeField.type());
     }
 
     private void emitCoerce(MethodVisitor mv, String internalName, IRMethod method, IRCoerce coerce) {

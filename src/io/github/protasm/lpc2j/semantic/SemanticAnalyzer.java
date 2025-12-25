@@ -22,6 +22,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallEfun;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprCallMethod;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldAccess;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprFieldStore;
+import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeField;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprInvokeLocal;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLiteralInteger;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprLocalAccess;
@@ -339,6 +340,9 @@ public final class SemanticAnalyzer {
 
         if (expression instanceof ASTExprInvokeLocal invoke)
             return invoke.local() == local || referencesArguments(invoke.arguments(), local);
+
+        if (expression instanceof ASTExprInvokeField invoke)
+            return referencesArguments(invoke.arguments(), local);
 
         if (expression instanceof ASTExprCallMethod call)
             return referencesArguments(call.arguments(), local);
@@ -737,6 +741,14 @@ public final class SemanticAnalyzer {
                 return new ASTExprInvokeLocal(invokeLocal.line(), invokeLocal.local(), invokeLocal.methodName(), resolvedArgs);
             }
 
+            if (expression instanceof ASTExprInvokeField invokeField) {
+                ASTArguments resolvedArgs = resolveArguments(invokeField.arguments(), context);
+                if (resolvedArgs == invokeField.arguments())
+                    return invokeField;
+                return new ASTExprInvokeField(
+                        invokeField.line(), invokeField.field(), invokeField.methodName(), resolvedArgs);
+            }
+
             if (expression instanceof ASTExprArrayLiteral arrayLiteral) {
                 List<ASTExpression> resolvedElements = new ArrayList<>();
                 boolean changed = false;
@@ -776,12 +788,8 @@ public final class SemanticAnalyzer {
 
             ScopedSymbol scopedSymbol = resolveScopedSymbol(unresolvedInvoke.targetName());
             if (scopedSymbol != null && scopedSymbol.field() != null) {
-                problems.add(
-                        new CompilationProblem(
-                                CompilationStage.ANALYZE,
-                                "Field invocation is not supported for '" + unresolvedInvoke.targetName() + "'",
-                                unresolvedInvoke.line()));
-                return new ASTExprNull(unresolvedInvoke.line());
+                return new ASTExprInvokeField(
+                        unresolvedInvoke.line(), scopedSymbol.field(), unresolvedInvoke.methodName(), resolvedArgs);
             }
 
             problems.add(

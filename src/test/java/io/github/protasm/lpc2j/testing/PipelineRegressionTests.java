@@ -97,6 +97,7 @@ public final class PipelineRegressionTests {
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
+                new TestCase("for loops compile and execute", PipelineRegressionTests::forLoopsExecute),
                 new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
                 new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath),
                 new TestCase("console recalls previous commands with arrow keys", PipelineRegressionTests::consoleReadsHistoryWithArrows),
@@ -809,6 +810,37 @@ public final class PipelineRegressionTests {
         assertEquals(10, combined.get("gold"), "original entries should be preserved when not overridden");
         assertEquals(30, combined.get("copper"), "existing entries should persist after merging");
         assertEquals(40, combined.get("iron"), "right-hand entries should be added");
+    }
+
+    private static void forLoopsExecute() throws Exception {
+        String source = ""
+                + "int sum_to(int max) {\n"
+                + "    int total = 0;\n"
+                + "    int i;\n"
+                + "    for (i = 0; i < max; i++) {\n"
+                + "        total += i;\n"
+                + "    }\n"
+                + "    return total;\n"
+                + "}\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result = pipeline.run(null, source, "regression/ForLoop", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.ForLoop";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+        assertEquals(6, ((Number) clazz.getMethod("sum_to", int.class).invoke(instance, 4)).intValue(), "for loop should sum values");
     }
 
     private static void consoleConfigLoadsSystemIncludes() {

@@ -6,6 +6,7 @@ import static io.github.protasm.lpc2j.token.TokenType.T_EQUAL;
 import static io.github.protasm.lpc2j.token.TokenType.T_IDENTIFIER;
 import static io.github.protasm.lpc2j.token.TokenType.T_IF;
 import static io.github.protasm.lpc2j.token.TokenType.T_INHERIT;
+import static io.github.protasm.lpc2j.token.TokenType.T_FOR;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACE;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_BRACKET;
 import static io.github.protasm.lpc2j.token.TokenType.T_LEFT_PAREN;
@@ -38,6 +39,7 @@ import io.github.protasm.lpc2j.parser.ast.ASTExpression;
 import io.github.protasm.lpc2j.parser.ast.ASTStatement;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.parselet.InfixParselet;
@@ -380,6 +382,8 @@ public class Parser {
         public ASTStatement statement() {
                 if (tokens.match(T_IF))
                         return ifStatement();
+                else if (tokens.match(T_FOR))
+                        return forStatement();
                 else if (tokens.match(T_RETURN))
                         return returnStatement();
                 else if (tokens.match(T_LEFT_BRACE))
@@ -438,6 +442,30 @@ public class Parser {
         tokens.consume(T_SEMICOLON, "Expect ';' after return statement.");
 
         return new ASTStmtReturn(currLine(), expr);
+    }
+
+    private ASTStmtFor forStatement() {
+        int line = tokens.previous().line();
+        tokens.consume(T_LEFT_PAREN, "Expect '(' after for.");
+
+        ASTExpression initializer = null;
+        if (!tokens.check(T_SEMICOLON))
+            initializer = expression();
+        tokens.consume(T_SEMICOLON, "Expect ';' after for initializer.");
+
+        ASTExpression condition = null;
+        if (!tokens.check(T_SEMICOLON))
+            condition = expression();
+        tokens.consume(T_SEMICOLON, "Expect ';' after for condition.");
+
+        ASTExpression update = null;
+        if (!tokens.check(T_RIGHT_PAREN))
+            update = expression();
+        tokens.consume(T_RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        ASTStatement body = statement();
+
+        return new ASTStmtFor(line, initializer, condition, update, body);
     }
 
     private ASTStmtExpression expressionStatement() {

@@ -34,6 +34,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprMappingLiteral;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.BinaryOpType;
@@ -88,6 +89,14 @@ public final class SemanticTypeChecker {
             checkStatement(stmtIf.thenBranch(), context);
             if (stmtIf.elseBranch() != null)
                 checkStatement(stmtIf.elseBranch(), context);
+            return;
+        }
+
+        if (statement instanceof ASTStmtFor stmtFor) {
+            inferExpressionType(stmtFor.initializer(), context);
+            inferExpressionType(stmtFor.condition(), context);
+            inferExpressionType(stmtFor.update(), context);
+            checkStatement(stmtFor.body(), context);
             return;
         }
 

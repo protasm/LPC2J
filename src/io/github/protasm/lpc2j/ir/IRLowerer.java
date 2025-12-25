@@ -34,6 +34,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpBinary;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprOpUnary;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 import io.github.protasm.lpc2j.parser.type.LPCType;
@@ -258,6 +259,10 @@ public final class IRLowerer {
             return lowerIfStatement(ifStmt, current, context, problems);
         }
 
+        if (statement instanceof ASTStmtFor forStmt) {
+            return lowerForStatement(forStmt, current, context, problems);
+        }
+
         if (statement instanceof ASTStmtReturn stmtReturn) {
             IRExpression returnValue =
                     (stmtReturn.returnValue() != null)
@@ -275,6 +280,47 @@ public final class IRLowerer {
                         "Unsupported statement kind: " + statement.getClass().getSimpleName(),
                         statement.line()));
         return current;
+    }
+
+    private BlockBuilder lowerForStatement(
+            ASTStmtFor forStmt,
+            BlockBuilder current,
+            MethodContext context,
+            List<CompilationProblem> problems) {
+        if (forStmt.initializer() != null) {
+            IRExpression initExpression = lowerExpression(forStmt.initializer(), context, problems);
+            current.addStatement(new IRExpressionStatement(forStmt.line(), initExpression));
+        }
+
+        BlockBuilder conditionBlock = context.newBlock("for_cond");
+        BlockBuilder bodyBlock = context.newBlock("for_body");
+        BlockBuilder mergeBlock = context.newBlock("for_end");
+        BlockBuilder updateBlock = (forStmt.update() != null) ? context.newBlock("for_update") : null;
+
+        current.terminate(new IRJump(forStmt.line(), conditionBlock.label()));
+
+        if (forStmt.condition() != null) {
+            IRExpression condition = coerceIfNeeded(
+                    lowerExpression(forStmt.condition(), context, problems), RuntimeTypes.STATUS);
+            conditionBlock.terminate(
+                    new IRConditionalJump(forStmt.line(), condition, bodyBlock.label(), mergeBlock.label()));
+        } else {
+            conditionBlock.terminate(new IRJump(forStmt.line(), bodyBlock.label()));
+        }
+
+        BlockBuilder bodyTail = lowerStatement(forStmt.body(), bodyBlock, context, problems);
+        if (bodyTail != null && !bodyTail.isTerminated()) {
+            String nextLabel = (updateBlock != null) ? updateBlock.label() : conditionBlock.label();
+            bodyTail.terminate(new IRJump(forStmt.line(), nextLabel));
+        }
+
+        if (updateBlock != null) {
+            IRExpression updateExpression = lowerExpression(forStmt.update(), context, problems);
+            updateBlock.addStatement(new IRExpressionStatement(forStmt.line(), updateExpression));
+            updateBlock.terminate(new IRJump(forStmt.line(), conditionBlock.label()));
+        }
+
+        return mergeBlock;
     }
 
     private BlockBuilder lowerIfStatement(

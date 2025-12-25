@@ -35,6 +35,7 @@ import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedInvoke;
 import io.github.protasm.lpc2j.parser.ast.expr.ASTExprUnresolvedParentCall;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtBlock;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtExpression;
+import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtFor;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtIfThenElse;
 import io.github.protasm.lpc2j.parser.ast.stmt.ASTStmtReturn;
 
@@ -82,6 +83,7 @@ public interface ASTVisitor {
         case ASTExpression expression -> visitExpression(expression);
         case ASTStmtBlock stmtBlock -> visitStmtBlock(stmtBlock);
         case ASTStmtExpression stmtExpression -> visitStmtExpression(stmtExpression);
+        case ASTStmtFor stmtFor -> visitStmtFor(stmtFor);
         case ASTStmtIfThenElse stmtIfThenElse -> visitStmtIfThenElse(stmtIfThenElse);
         case ASTStmtReturn stmtReturn -> visitStmtReturn(stmtReturn);
         case ASTStatement statement -> visitStatement(statement);
@@ -164,6 +166,8 @@ public interface ASTVisitor {
     default void visitStmtBlock(ASTStmtBlock stmt) {}
 
     default void visitStmtExpression(ASTStmtExpression stmt) {}
+
+    default void visitStmtFor(ASTStmtFor stmt) {}
 
     default void visitStmtIfThenElse(ASTStmtIfThenElse stmt) {}
 

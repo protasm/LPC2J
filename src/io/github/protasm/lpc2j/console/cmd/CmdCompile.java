@@ -10,8 +10,6 @@ import java.nio.file.Path;
 public class CmdCompile extends Command {
     @Override
     public boolean execute(LPCConsole console, String... args) {
-        System.out.println("Compile");
-
         if (args.length < 1) {
             System.out.println("Error: No fileName specified.");
 
@@ -26,6 +24,7 @@ public class CmdCompile extends Command {
         }
 
         System.out.println("Success!  Compiled to " + sf.dotName());
+
         emitDisassembly(console, sf);
 
         return true;

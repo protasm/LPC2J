@@ -4,12 +4,10 @@ import io.github.protasm.lpc2j.console.cmd.*;
 import io.github.protasm.lpc2j.console.efuns.*;
 import io.github.protasm.lpc2j.console.fs.FSSourceFile;
 import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
-import io.github.protasm.lpc2j.console.ConsoleConfig;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
-import io.github.protasm.lpc2j.pipeline.CompilationStage;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
@@ -200,6 +198,7 @@ public class LPCConsole {
 
   public FSSourceFile compile(String vPathStr) {
     CompilationRun run = compileWithResult(vPathStr);
+
     if (run == null) return null;
 
     if (!run.result().succeeded()) {
@@ -211,12 +210,14 @@ public class LPCConsole {
 
   public FSSourceFile parse(String vPathStr) {
     FSSourceFile sf = prepareSourceFile(vPathStr);
+
     if (sf == null) return null;
 
     CompilationResult result = runPipeline(sf);
 
     if (sf.astObject() == null) {
       printProblems(sf, result.getProblems());
+
       return null;
     }
 
@@ -225,12 +226,14 @@ public class LPCConsole {
 
   public FSSourceFile scan(String vPathStr) {
     FSSourceFile sf = prepareSourceFile(vPathStr);
+
     if (sf == null) return null;
 
     CompilationResult result = runPipeline(sf);
 
     if (sf.tokens() == null) {
       printProblems(sf, result.getProblems());
+
       return null;
     }
 
@@ -243,12 +246,14 @@ public class LPCConsole {
 
   public FSSourceFile analyze(String vPathStr) {
     FSSourceFile sf = prepareSourceFile(vPathStr);
+
     if (sf == null) return null;
 
     CompilationResult result = runPipeline(sf);
 
     if (sf.semanticModel() == null) {
       printProblems(sf, result.getProblems());
+
       return null;
     }
 
@@ -261,12 +266,14 @@ public class LPCConsole {
 
   public FSSourceFile ir(String vPathStr) {
     FSSourceFile sf = prepareSourceFile(vPathStr);
+
     if (sf == null) return null;
 
     CompilationResult result = runPipeline(sf);
 
     if (sf.typedIr() == null) {
       printProblems(sf, result.getProblems());
+
       return null;
     }
 
@@ -280,6 +287,7 @@ public class LPCConsole {
   public static void main(String[] args) {
     if (args.length != 1) {
       System.out.println("Error: missing configuration path.");
+
       printUsage();
 
       System.exit(-1);
@@ -288,14 +296,17 @@ public class LPCConsole {
     String configPathArg = args[0];
 
     ParserOptions parserOptions = ParserOptions.defaults();
+
     try {
       ConsoleConfig config = ConsoleConfig.load(Path.of(configPathArg));
       LPCConsole console = new LPCConsole(config, parserOptions);
 
       System.out.println("LPC2J Console\nType 'help' for help.");
+
       console.repl();
     } catch (IllegalArgumentException e) {
       System.out.println("Error: " + e.getMessage());
+
       System.exit(-1);
     }
   }
@@ -319,6 +330,7 @@ public class LPCConsole {
       return sf;
     } catch (IllegalArgumentException e) {
       System.out.println("Error: cannot read file '" + vPathStr + "'.");
+
       return null;
     }
   }
@@ -358,18 +370,23 @@ public class LPCConsole {
 
     for (CompilationProblem problem : problems) {
       StringBuilder prefix = new StringBuilder();
+
       if (displayPath != null) {
         prefix.append(displayPath);
+
         if (problem.getLine() != null && problem.getLine() > 0) {
           prefix.append(":").append(problem.getLine());
         }
+
         prefix.append(": ");
       } else if (problem.getLine() != null && problem.getLine() > 0) {
         prefix.append("line ").append(problem.getLine()).append(": ");
       }
 
       String prefixStr = prefix.toString();
+
       System.out.println(prefixStr + problem.getStage() + ": " + problem.getMessage());
+
       if (problem.getThrowable() != null) {
         System.out.println(problem.getThrowable());
       }
@@ -384,6 +401,7 @@ public class LPCConsole {
     }
 
     CompilationRun target = runs.get(runs.size() - 1);
+
     if (!target.result().succeeded()) {
       return null;
     }
@@ -392,19 +410,23 @@ public class LPCConsole {
 
     for (CompilationRun run : runs) {
       FSSourceFile sf = run.sourceFile();
+
       try {
         Class<?> defined = classLoader.define(sf.dotName(), sf.bytes());
+
         if (run == target) {
           targetClass = defined;
         }
       } catch (LinkageError e) {
         System.out.println("Error loading class '" + sf.dotName() + "': " + e.getMessage());
+
         return null;
       }
     }
 
     if (targetClass == null) {
       System.out.println("Error: could not load class for '" + target.sourceFile().dotName() + "'.");
+
       return null;
     }
 
@@ -445,6 +467,7 @@ public class LPCConsole {
           "Error: Object '" + className + "' has no method '" + methodName + "' matching args "
               + callArgs.length
               + ".");
+
       return CallResult.error();
     }
 
@@ -452,6 +475,7 @@ public class LPCConsole {
       return CallResult.success(target.invoke(obj, callArgs));
     } catch (InvocationTargetException e) {
       Throwable cause = e.getCause();
+
       if (cause instanceof NoSuchMethodException) {
         System.out.println(
             "Error: '" + className + "." + methodName + "' failed: " + cause.getMessage());
@@ -461,6 +485,7 @@ public class LPCConsole {
                 + cause.getClass().getSimpleName()
                 + ": "
                 + cause.getMessage());
+
         cause.printStackTrace();
       } else {
         System.out.println("Error: '" + className + "." + methodName + "' failed: " + e);
@@ -476,6 +501,7 @@ public class LPCConsole {
 
   private Method findMethod(Class<?> clazz, String methodName, Object[] callArgs) {
     Method fallback = null;
+
     for (Method method : clazz.getMethods()) {
       if (!method.getName().equals(methodName)) {
         continue;
@@ -507,10 +533,12 @@ public class LPCConsole {
         if (expectedType.isPrimitive()) {
           return false;
         }
+
         continue;
       }
 
       Class<?> wrappedExpected = toWrapper(expectedType);
+
       if (!wrappedExpected.isAssignableFrom(arg.getClass())) {
         return false;
       }
@@ -539,6 +567,7 @@ public class LPCConsole {
   private <T> T withRuntimeContext(Supplier<T> supplier) {
     RuntimeContext previous = RuntimeContextHolder.current();
     RuntimeContextHolder.setCurrent(runtimeContext);
+
     try {
       return supplier.get();
     } finally {
@@ -574,6 +603,7 @@ public class LPCConsole {
 
   private CompilationRun compileWithResult(String vPathStr) {
     FSSourceFile sf = prepareSourceFile(vPathStr);
+
     if (sf == null) return null;
 
     CompilationResult result = runPipeline(sf);
@@ -609,6 +639,7 @@ public class LPCConsole {
     }
 
     CompilationUnit parentUnit = run.result().getCompilationUnit().parentUnit();
+
     if (parentUnit != null) {
       String parentVPath = vPathFor(parentUnit);
 
@@ -634,6 +665,7 @@ public class LPCConsole {
 
   private String vPathFor(CompilationUnit unit) {
     Path parentSource = unit.sourcePath();
+
     if (parentSource == null) {
       return null;
     }
@@ -675,11 +707,13 @@ public class LPCConsole {
 
     Class<?> define(String binaryName, byte[] bytecode) {
       Class<?> existing = definedClasses.get(binaryName);
+
       if (existing != null) {
         return existing;
       }
 
       Class<?> defined = defineClass(binaryName, bytecode, 0, bytecode.length);
+
       definedClasses.put(binaryName, defined);
 
       return defined;
@@ -688,6 +722,7 @@ public class LPCConsole {
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
       Class<?> defined = definedClasses.get(name);
+
       if (defined != null) {
         return defined;
       }

@@ -1,4 +1,4 @@
-inherit "inherit_parent.c";
+inherit "/inherit_parent.c";
 
 /* Child object overrides behavior, shadows fields, and relies on parent initialization. */
 int shadowed_field = 5; /* Shadows the parent field. */

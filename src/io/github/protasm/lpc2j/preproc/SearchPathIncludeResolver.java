@@ -54,12 +54,27 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
     String normalizedIncludePath = normalizeIncludePath(includePath);
     if (normalizedIncludePath.isEmpty())
       throw new IOException("include path cannot be empty");
+    boolean absoluteMudlib = normalizedIncludePath.startsWith("/");
+    String lookupPath =
+        absoluteMudlib ? normalizedIncludePath.substring(1) : normalizedIncludePath;
+    if (lookupPath.isEmpty())
+      throw new IOException("include path cannot be empty");
+
+    if (absoluteMudlib) {
+      if (baseIncludePath != null) {
+        Path maybe = tryRead(baseIncludePath, lookupPath);
+
+        if (maybe != null) return buildResolution(maybe);
+      }
+
+      throw new IOException("cannot include '" + includePath + "'");
+    }
 
     if (!system && (includingFile != null)) {
       Path parent = resolveAgainstBase(includingFile.getParent());
 
       if (parent != null) {
-        Path maybe = tryRead(parent, normalizedIncludePath);
+        Path maybe = tryRead(parent, lookupPath);
 
         if (maybe != null) return buildResolution(maybe);
       }
@@ -67,12 +82,12 @@ public final class SearchPathIncludeResolver implements IncludeResolver {
 
     if (system) {
       for (Path root : systemIncludeRoots) {
-        Path maybe = tryRead(root, normalizedIncludePath);
+        Path maybe = tryRead(root, lookupPath);
 
         if (maybe != null) return buildResolution(maybe);
       }
     } else if (baseIncludePath != null) {
-      Path maybe = tryRead(baseIncludePath, normalizedIncludePath);
+      Path maybe = tryRead(baseIncludePath, lookupPath);
 
       if (maybe != null) return buildResolution(maybe);
     }

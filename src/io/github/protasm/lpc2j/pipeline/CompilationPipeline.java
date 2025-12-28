@@ -18,6 +18,7 @@ import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.preproc.IncludeResolution;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -156,12 +157,11 @@ public final class CompilationPipeline {
             ParserOptions parserOptions,
             Set<String> inheritanceStack,
             List<CompilationProblem> problems) {
-        IncludeResolver resolver = runtimeContext.includeResolver();
         IncludeResolution resolution;
         String inheritedPath = normalizeInheritedPath(childUnit.inheritedPath());
 
         try {
-            resolution = resolver.resolve(childUnit.sourcePath(), inheritedPath, false);
+            resolution = resolveInheritedSource(childUnit, inheritedPath);
         } catch (Exception e) {
             problems.add(
                     new CompilationProblem(
@@ -203,6 +203,66 @@ public final class CompilationPipeline {
         }
 
         return parentUnit;
+    }
+
+    private IncludeResolution resolveInheritedSource(CompilationUnit childUnit, String inheritedPath)
+            throws Exception {
+        if (inheritedPath == null) {
+            throw new IllegalArgumentException("inherit path cannot be empty");
+        }
+
+        String normalized = normalizeInheritedPath(inheritedPath);
+        if (normalized == null) {
+            throw new IllegalArgumentException("inherit path cannot be empty");
+        }
+
+        if (normalized.startsWith("/")) {
+            IncludeResolver resolver = runtimeContext.includeResolver();
+            return resolver.resolve(childUnit.sourcePath(), normalized, false);
+        }
+
+        Path sourcePath = childUnit.sourcePath();
+        if (sourcePath == null) {
+            throw new IllegalArgumentException("relative inherits require a source path");
+        }
+
+        Path parentDir = sourcePath.normalize().getParent();
+        if (parentDir == null) {
+            throw new IllegalArgumentException("relative inherits require a parent directory");
+        }
+
+        Path candidate = parentDir.resolve(normalized).normalize();
+        if (!Files.isRegularFile(candidate)) {
+            throw new IllegalArgumentException(
+                    "relative inherit not found at " + candidate.toAbsolutePath());
+        }
+
+        String displayPath = localInheritedDisplayPath(childUnit, normalized);
+        return new IncludeResolution(Files.readString(candidate), candidate, displayPath);
+    }
+
+    private String localInheritedDisplayPath(CompilationUnit childUnit, String inheritedPath) {
+        String baseDisplay = childUnit.displayPath();
+        if ((baseDisplay == null) || baseDisplay.isBlank()) {
+            String sourceName = childUnit.sourceName();
+            if ((sourceName == null) || sourceName.isBlank()) {
+                return inheritedPath;
+            }
+            baseDisplay = "/" + sourceName;
+        }
+
+        Path basePath = Path.of(baseDisplay);
+        Path parent = basePath.getParent();
+        if (parent == null) {
+            return inheritedPath;
+        }
+
+        Path combined = parent.resolve(inheritedPath).normalize();
+        String display = combined.toString().replace('\\', '/');
+        if (!display.startsWith("/")) {
+            display = "/" + display;
+        }
+        return display;
     }
 
     private String inheritanceKey(CompilationUnit unit) {

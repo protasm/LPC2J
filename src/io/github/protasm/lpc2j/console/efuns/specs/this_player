@@ -1,5 +1,0 @@
-object this_player()
-
-Return the object representing the current player.
-
-See also: this_object().

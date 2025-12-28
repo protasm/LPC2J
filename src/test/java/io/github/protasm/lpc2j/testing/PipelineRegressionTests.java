@@ -1,9 +1,5 @@
-package io.github.protasm.lpc2j.testing;
+package test.java.io.github.protasm.lpc2j.testing;
 
-import io.github.protasm.lpc2j.console.ConsoleConfig;
-import io.github.protasm.lpc2j.console.LPCConsole;
-import io.github.protasm.lpc2j.console.fs.FSSourceFile;
-import io.github.protasm.lpc2j.console.fs.VirtualFileServer;
 import io.github.protasm.lpc2j.ir.IRBlock;
 import io.github.protasm.lpc2j.ir.IRBinaryOperation;
 import io.github.protasm.lpc2j.ir.IRLowerer;
@@ -40,15 +36,9 @@ import io.github.protasm.lpc2j.token.Token;
 import io.github.protasm.lpc2j.token.TokenList;
 import io.github.protasm.lpc2j.token.TokenType;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
-import io.github.protasm.lpc2j.console.ConsoleLineReader;
 import io.github.protasm.lpc2j.preproc.SearchPathIncludeResolver;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -98,12 +88,8 @@ public final class PipelineRegressionTests {
                 new TestCase("ternary operator compiles and executes", PipelineRegressionTests::ternaryOperatorExecutes),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
-                new TestCase("for loops compile and execute", PipelineRegressionTests::forLoopsExecute),
-                new TestCase("console loads system include directories from config", PipelineRegressionTests::consoleConfigLoadsSystemIncludes),
-                new TestCase("console rejects missing base path", PipelineRegressionTests::consoleRejectsMissingBasePath),
-                new TestCase("console recalls previous commands with arrow keys", PipelineRegressionTests::consoleReadsHistoryWithArrows),
-                new TestCase("console down arrow returns to a blank entry", PipelineRegressionTests::consoleReturnsToEmptyHistorySlot),
-                new TestCase("console load resolves inherited objects", PipelineRegressionTests::consoleLoadHandlesInheritance));
+                new TestCase("for loops compile and execute", PipelineRegressionTests::forLoopsExecute)
+                );
 
         List<String> failures = new ArrayList<>();
 
@@ -533,7 +519,8 @@ public final class PipelineRegressionTests {
         byte[] parentBytecode = parentResult.getBytecode();
         byte[] childBytecode = childResult.getBytecode();
 
-        class ByteArrayLoader extends ClassLoader {
+        @SuppressWarnings("hiding")
+		class ByteArrayLoader extends ClassLoader {
             Class<?> defineBytes(String binaryName, byte[] bytecode) {
                 return defineClass(binaryName, bytecode, 0, bytecode.length);
             }
@@ -877,103 +864,6 @@ public final class PipelineRegressionTests {
 
         Object instance = clazz.getDeclaredConstructor().newInstance();
         assertEquals(6, ((Number) clazz.getMethod("sum_to", int.class).invoke(instance, 4)).intValue(), "for loop should sum values");
-    }
-
-    private static void consoleConfigLoadsSystemIncludes() {
-        try {
-            Path base = Files.createTempDirectory("lpc2j-config");
-            Path incA = Files.createDirectories(base.resolve("incA"));
-            Path incB = Files.createDirectories(base.resolve("nested/incB"));
-            Path absInc = Files.createTempDirectory("lpc2j-abs-inc");
-
-            Path cfg = base.resolve("sample.cfg");
-            Files.writeString(cfg,
-                    "mudlib directory : .\n"
-                            + "system include directories : incA:nested/incB:"
-                            + absInc.toString());
-
-            ConsoleConfig config = ConsoleConfig.load(cfg);
-            List<Path> dirs = config.includeDirs();
-
-            assertEquals(3, dirs.size(), "should preserve configured include count");
-            assertEquals(base.normalize(), config.basePath(), "base path should resolve relative to config");
-            assertEquals(incA.normalize(), dirs.get(0), "first include should preserve order");
-            assertEquals(incB.normalize(), dirs.get(1), "second include should preserve order");
-            assertEquals(absInc.normalize(), dirs.get(2), "absolute include should be used as-is");
-        } catch (Exception e) {
-            throw new AssertionError("Console config should load system include directories", e);
-        }
-    }
-
-    private static void consoleRejectsMissingBasePath() {
-        String missingPath = Path.of(System.getProperty("java.io.tmpdir"), "lpc2j-missing-base-" + System.nanoTime())
-                .toAbsolutePath()
-                .toString();
-        boolean threw = false;
-
-        try {
-            Path cfgDir = Files.createTempDirectory("lpc2j-missing-base-cfg");
-            Path cfg = cfgDir.resolve("cfg");
-            Files.writeString(cfg, "mudlib directory : " + missingPath);
-            ConsoleConfig.load(cfg);
-        } catch (IllegalArgumentException e) {
-            threw = true;
-            assertTrue(e.getMessage().contains("Mudlib directory"), "error should mention mudlib directory");
-        } catch (Exception e) {
-            throw new AssertionError("Unexpected error setting up console config", e);
-        }
-
-        assertTrue(threw, "console config should reject nonexistent base path");
-    }
-
-    private static void consoleReadsHistoryWithArrows() {
-        byte[] input = ("\u001b[A\n").getBytes(StandardCharsets.UTF_8);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ConsoleLineReader reader =
-                new ConsoleLineReader(new ByteArrayInputStream(input), new PrintStream(out, true, StandardCharsets.UTF_8));
-        reader.recordHistory("first");
-        reader.recordHistory("second");
-
-        String line = reader.readLine("> ");
-
-        assertEquals("second", line, "up arrow should recall the most recent command");
-        String rendered = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        assertTrue(rendered.contains("> second"), "rendered line should show recalled command");
-    }
-
-    private static void consoleReturnsToEmptyHistorySlot() {
-        byte[] input = ("\u001b[A\u001b[B\n").getBytes(StandardCharsets.UTF_8);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ConsoleLineReader reader =
-                new ConsoleLineReader(new ByteArrayInputStream(input), new PrintStream(out, true, StandardCharsets.UTF_8));
-        reader.recordHistory("look");
-
-        String line = reader.readLine("$ ");
-
-        assertEquals("", line, "down arrow should return to a fresh entry after navigating history");
-    }
-
-    private static void consoleLoadHandlesInheritance() throws Exception {
-        Path cfgPath = Path.of("lpc2j/sample/sample.cfg");
-        ConsoleConfig config = ConsoleConfig.load(cfgPath);
-        LPCConsole console = new LPCConsole(config);
-
-        FSSourceFile child = console.load("inheritance/inherit_child.c");
-        if (child == null || child.lpcObject() == null) {
-            throw new AssertionError("console load should produce an instantiated object");
-        }
-
-        Object instance = child.lpcObject();
-        Class<?> childClass = instance.getClass();
-
-        assertEquals(
-                "inheritance.inherit_parent",
-                childClass.getSuperclass().getName(),
-                "loaded child should extend the inherited parent");
-        int self = ((Number) childClass.getMethod("call_self_shout").invoke(instance)).intValue();
-        assertEquals(205, self, "child override should dispatch correctly");
-        int parent = ((Number) childClass.getMethod("call_parent_shout").invoke(instance)).intValue();
-        assertEquals(101, parent, "explicit parent dispatch should reach the parent implementation");
     }
 
     private static String sampleDisplayName(Path root, Path file) {

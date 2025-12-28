@@ -4,7 +4,7 @@
 
 ## What this repo is
 - LPC2J is an LPC90-compatible compiler that turns LPC source into JVM classfiles. The core flow is preprocess → scan → parse → semantic analysis → IR lowering → ASM bytecode emission.
-- The public, one-shot entry points live in `io.github.protasm.lpc2j.LPC2J` (static helpers) and `io.github.protasm.lpc2j.pipeline.CompilationPipeline` (structured result collection). The interactive REPL is `io.github.protasm.lpc2j.console.LPCConsole`.
+- The public, one-shot entry points live in `io.github.protasm.lpc2j.LPC2J` (static helpers) and `io.github.protasm.lpc2j.pipeline.CompilationPipeline` (structured result collection). The interactive REPL is `io.github.protasm.lpcconsole.LPCConsole`.
 
 ## Where things live
 - `src/io/github/protasm/lpc2j/preproc`, `scanner`, `parser`, `semantic`, `ir`, and `compiler` mirror the compilation stages. `runtime` holds minimal helpers; `efun` defines the efun registry; `console` contains the REPL and its commands/fs helpers. Tests live under `src/test/java/io/github/protasm/lpc2j/testing`.

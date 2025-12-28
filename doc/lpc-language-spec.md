@@ -142,7 +142,7 @@ Unary minus negates numeric values (ints and boxed numbers); logical not coerces
 
 ## 7. Standard and External Functions (Efuns)
 
-The console preloads several efuns; they are callable from any LPC object when registered with the active runtime context: `add_action`, `add_verb`, `call_other`, `destruct`, `foo`, `environment`, `random`, `this_player`, `this_object`, `set_heart_beat`, `set_light`, `say`, and `write`. Implementations are Java classes under `io.github.protasm.lpc2j.console.efuns`. 【F:src/io/github/protasm/lpc2j/console/LPCConsole.java†L33-L95】
+The console preloads several efuns; they are callable from any LPC object when registered with the active runtime context: `add_action`, `add_verb`, `call_other`, `destruct`, `foo`, `environment`, `random`, `this_player`, `this_object`, `set_heart_beat`, `set_light`, `say`, and `write`. Implementations are Java classes under `io.github.protasm.lpcconsole.efuns`. 【F:src/io/github/protasm/lpc2j/console/LPCConsole.java†L33-L95】
 
 Additional efuns can be added by registering them on a `RuntimeContext` before parsing or compiling; efun signatures carry names, typed parameters, and Java implementations.
 

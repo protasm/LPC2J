@@ -1,0 +1,6 @@
+#!/bin/zsh
+
+git add .
+git commit -m "devel/refactor"
+git push
+git status

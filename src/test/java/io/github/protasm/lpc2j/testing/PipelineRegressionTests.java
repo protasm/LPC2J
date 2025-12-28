@@ -83,6 +83,9 @@ public final class PipelineRegressionTests {
                 new TestCase(
                         "inheritance samples exercise pipeline end-to-end",
                         PipelineRegressionTests::inheritanceSamplesExercisePipeline),
+                new TestCase(
+                        "inherit resolution stays relative to the inheriting file",
+                        PipelineRegressionTests::inheritResolutionIsLocalOnly),
                 new TestCase("field initializers run in constructor", PipelineRegressionTests::fieldInitializersExecute),
                 new TestCase("truthiness and logical negation follow LPC rules", PipelineRegressionTests::truthinessAndLogicalNegationFollowLpcRules),
                 new TestCase("ternary operator compiles and executes", PipelineRegressionTests::ternaryOperatorExecutes),
@@ -642,6 +645,51 @@ public final class PipelineRegressionTests {
         assertTrue(
                 invalidResult.getProblems().stream().anyMatch(p -> p.getMessage().contains("Duplicate field")),
                 "duplicate field should surface as a semantic error");
+    }
+
+    private static void inheritResolutionIsLocalOnly() throws Exception {
+        Path mudlibRoot = Files.createTempDirectory("lpc2j-mudlib");
+        Path localDir = mudlibRoot.resolve("zones/forest");
+        Files.createDirectories(localDir);
+
+        Path localParent = localDir.resolve("parent.c");
+        Files.writeString(localParent, "int value() { return 1; }\n");
+        Path child = localDir.resolve("child.c");
+        String childSource = "inherit \"parent.c\";\nint call() { return ::value(); }\n";
+        Files.writeString(child, childSource);
+
+        Path rootParent = mudlibRoot.resolve("parent.c");
+        Files.writeString(rootParent, "int value() { return 2; }\n");
+        Path otherDir = mudlibRoot.resolve("zones/desert");
+        Files.createDirectories(otherDir);
+        Path otherChild = otherDir.resolve("child.c");
+        String otherChildSource = "inherit \"parent.c\";\nint call() { return ::value(); }\n";
+        Files.writeString(otherChild, otherChildSource);
+
+        IncludeResolver resolver = new SearchPathIncludeResolver(mudlibRoot, List.of());
+        RuntimeContext runtimeContext = new RuntimeContext(resolver);
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object", runtimeContext);
+
+        String childRel = mudlibRoot.relativize(child).toString().replace('\\', '/');
+        String childName = stripExtension(childRel);
+        String childDisplay = "/" + childName;
+        CompilationResult childResult =
+                pipeline.run(child, Files.readString(child), childName, childDisplay, ParserOptions.defaults());
+        assertTrue(
+                childResult.succeeded(),
+                "relative inherit should resolve within the child directory (" + describeProblems(childResult.getProblems()) + ")");
+
+        String otherRel = mudlibRoot.relativize(otherChild).toString().replace('\\', '/');
+        String otherName = stripExtension(otherRel);
+        String otherDisplay = "/" + otherName;
+        CompilationResult otherResult =
+                pipeline.run(otherChild, Files.readString(otherChild), otherName, otherDisplay, ParserOptions.defaults());
+        assertTrue(
+                !otherResult.succeeded(),
+                "relative inherit should fail without a local match (" + describeProblems(otherResult.getProblems()) + ")");
+        assertTrue(
+                otherResult.getProblems().stream().anyMatch(p -> p.getMessage().contains("Cannot inherit")),
+                "missing local inherit should surface as a compilation error");
     }
 
     private static void fieldInitializersExecute() throws Exception {

@@ -1,0 +1,3 @@
+#!/bin/zsh
+
+mvn exec:java -Dexec.args="src/io/github/protasm/lpc2j/sample/child.c"

@@ -1,5 +1,7 @@
 package io.github.protasm.lpc2j;
 
+import io.github.protasm.lpc2j.exec.LpcRuntime;
+import io.github.protasm.lpc2j.exec.LpcRuntimeConfig;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
@@ -12,6 +14,14 @@ import java.nio.file.Path;
 import java.util.List;
 
 public final class LPC2J {
+    public static LpcRuntime createRuntime(LpcRuntimeConfig config) {
+        return new LpcRuntime(config);
+    }
+
+    public static LpcRuntime createRuntime(Path baseIncludePath) {
+        return new LpcRuntime(LpcRuntimeConfig.builder().baseIncludePath(baseIncludePath).build());
+    }
+
     public static void main(String[] args) {
         if ((args.length == 0) || (args.length > 2)) {
             System.err.println("Usage: LPC2J <source-file> [output-dir]");

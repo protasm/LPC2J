@@ -1,9 +1,11 @@
 package io.github.protasm.lpc2j.exec;
 
 import io.github.protasm.lpc2j.efun.Efun;
+import io.github.protasm.lpc2j.parser.ast.ASTObject;
 import io.github.protasm.lpc2j.pipeline.CompilationPipeline;
 import io.github.protasm.lpc2j.pipeline.CompilationProblem;
 import io.github.protasm.lpc2j.pipeline.CompilationResult;
+import io.github.protasm.lpc2j.pipeline.CompilationUnit;
 import io.github.protasm.lpc2j.parser.ParserOptions;
 import io.github.protasm.lpc2j.runtime.RuntimeContext;
 import io.github.protasm.lpc2j.runtime.RuntimeContextHolder;
@@ -78,6 +80,11 @@ public final class LpcRuntime {
             throw new LpcRuntimeException(formatProblems(result.getProblems()), result.getProblems());
         }
 
+        CompilationUnit compilationUnit = result.getCompilationUnit();
+        if (compilationUnit != null) {
+            defineInheritedClasses(compilationUnit.parentUnit());
+        }
+
         byte[] bytecode = result.getBytecode();
         if (bytecode == null) {
             throw new LpcRuntimeException("Compilation did not produce bytecode for " + sourceName);
@@ -104,6 +111,11 @@ public final class LpcRuntime {
 
         if (!result.getProblems().isEmpty()) {
             throw new LpcRuntimeException(formatProblems(result.getProblems()), result.getProblems());
+        }
+
+        CompilationUnit compilationUnit = result.getCompilationUnit();
+        if (compilationUnit != null) {
+            defineInheritedClasses(compilationUnit.parentUnit());
         }
 
         byte[] bytecode = result.getBytecode();
@@ -222,6 +234,38 @@ public final class LpcRuntime {
     private String stripExtension(String name) {
         int dot = name.lastIndexOf('.');
         return (dot == -1) ? name : name.substring(0, dot);
+    }
+
+    private void defineInheritedClasses(CompilationUnit unit) {
+        if (unit == null) {
+            return;
+        }
+
+        defineInheritedClasses(unit.parentUnit());
+
+        ASTObject astObject = unit.astObject();
+        if (astObject == null) {
+            return;
+        }
+
+        String internalName = normalizeInternalName(astObject.name());
+        if (classLoader.isDefined(internalName)) {
+            return;
+        }
+
+        CompilationResult result =
+                pipeline.run(unit.sourcePath(), unit.source(), unit.sourceName(), unit.displayPath(), ParserOptions.defaults());
+
+        if (!result.getProblems().isEmpty()) {
+            throw new LpcRuntimeException(formatProblems(result.getProblems()), result.getProblems());
+        }
+
+        byte[] bytecode = result.getBytecode();
+        if (bytecode == null) {
+            throw new LpcRuntimeException("Compilation did not produce bytecode for " + internalName);
+        }
+
+        classLoader.defineClass(internalName, bytecode);
     }
 
     private Path stripExtension(Path path) {

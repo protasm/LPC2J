@@ -38,8 +38,12 @@ public final class LpcObjectHandle {
         runtime.runWithRuntimeContext(action);
     }
 
+    public String getClassName() {
+      return this.instance().getClass().getName();
+    }
+
     public Object invoke(String methodName) {
-        this.withRuntimeContext(() -> {
+        return this.withRuntimeContext(() -> {
             try {
                 Method method = this.objectClass().getMethod(methodName);
 
@@ -48,11 +52,42 @@ public final class LpcObjectHandle {
                 throw new RuntimeException(e);
             }
         });
-
-        return null;
     }
 
-    public String getClassName() {
-      return this.instance().getClass().getName();
+    public Object invoke(String methodName, Object... args) {
+    Objects.requireNonNull(methodName, "methodName");
+
+    return runtime.withRuntimeContext(() -> {
+        try {
+            Method method = findMethod(methodName, args.length);
+            return method.invoke(instance, args);
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                "Failed to invoke LPC method '" + methodName + "'", e
+            );
+        }
+    });
+    }
+
+    public void invokeVoid(String methodName, Object... args) {
+    runtime.runWithRuntimeContext(() -> {
+        invoke(methodName, args);
+    });
+    }
+
+    private Method findMethod(String name, int arity) {
+    for (Method m : objectClass().getMethods()) {
+        if (m.getName().equals(name)
+            && m.getParameterCount() == arity) {
+
+            m.setAccessible(true);
+            return m;
+        }
+    }
+
+    throw new IllegalArgumentException(
+        "No LPC method named '" + name + "' with " + arity + " arguments"
+    );
     }
 }

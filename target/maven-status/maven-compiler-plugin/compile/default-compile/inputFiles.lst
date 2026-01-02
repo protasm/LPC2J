@@ -1,5 +1,4 @@
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/LPC2J.java
-/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/Lpc2jHelloDemo.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/compiler/CompileException.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/compiler/Compiler.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/compiler/package-info.java
@@ -7,6 +6,12 @@
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/efun/EfunRegistry.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/efun/EfunSignature.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/efun/package-info.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/LpcObjectHandle.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/LpcRuntime.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/LpcRuntimeClassLoader.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/LpcRuntimeConfig.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/LpcRuntimeException.java
+/Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/exec/package-info.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/ir/IRArrayConcat.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/ir/IRArrayGet.java
 /Users/jonathan/Projects/LPC2J/src/main/java/io/github/protasm/lpc2j/ir/IRArrayLiteral.java

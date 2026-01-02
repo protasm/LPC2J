@@ -1,3 +1,0 @@
-string foo() {
-  return "foo";
-}

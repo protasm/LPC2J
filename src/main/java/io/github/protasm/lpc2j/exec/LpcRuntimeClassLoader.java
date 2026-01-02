@@ -22,6 +22,10 @@ final class LpcRuntimeClassLoader extends ClassLoader {
         return defined;
     }
 
+    synchronized boolean isDefined(String internalName) {
+        return definedClasses.containsKey(toBinaryName(internalName));
+    }
+
     @Override
     protected synchronized Class<?> findClass(String name) throws ClassNotFoundException {
         Class<?> defined = definedClasses.get(name);

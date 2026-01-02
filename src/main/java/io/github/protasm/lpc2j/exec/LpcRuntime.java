@@ -53,16 +53,12 @@ public final class LpcRuntime {
 
     public LpcObjectHandle load(String sourcePath) {
         Objects.requireNonNull(sourcePath, "sourcePath");
-        return load(resolveSourcePath(sourcePath));
+        return load(resolveSourcePathWithExtensions(sourcePath));
     }
 
     public LpcObjectHandle load(Path sourcePath) {
         Objects.requireNonNull(sourcePath, "sourcePath");
-        Path normalized = sourcePath;
-        if (!normalized.isAbsolute() && baseIncludePath != null) {
-            normalized = baseIncludePath.resolve(normalized);
-        }
-        normalized = normalized.toAbsolutePath().normalize();
+        Path normalized = resolveSourcePathWithExtensions(sourcePath);
         String source;
 
         try {
@@ -199,6 +195,72 @@ public final class LpcRuntime {
         }
 
         return raw.normalize();
+    }
+
+    private Path resolveSourcePathWithExtensions(String sourcePath) {
+        Path resolved = resolveSourcePath(sourcePath);
+        if (hasExtension(resolved)) {
+            return resolved;
+        }
+        if (Files.exists(resolved)) {
+            return resolved;
+        }
+        Path cCandidate = resolveSourcePath(sourcePath + ".c");
+        if (Files.exists(cCandidate)) {
+            return cCandidate;
+        }
+        Path lpcCandidate = resolveSourcePath(sourcePath + ".lpc");
+        if (Files.exists(lpcCandidate)) {
+            return lpcCandidate;
+        }
+        return resolved;
+    }
+
+    private Path resolveSourcePathWithExtensions(Path sourcePath) {
+        Path normalized = normalizeSourcePath(sourcePath);
+        if (hasExtension(sourcePath)) {
+            return normalized;
+        }
+        if (Files.exists(normalized)) {
+            return normalized;
+        }
+        Path cCandidate = normalizeSourcePath(appendExtension(sourcePath, ".c"));
+        if (Files.exists(cCandidate)) {
+            return cCandidate;
+        }
+        Path lpcCandidate = normalizeSourcePath(appendExtension(sourcePath, ".lpc"));
+        if (Files.exists(lpcCandidate)) {
+            return lpcCandidate;
+        }
+        return normalized;
+    }
+
+    private Path normalizeSourcePath(Path sourcePath) {
+        Path normalized = sourcePath;
+        if (!normalized.isAbsolute() && baseIncludePath != null) {
+            normalized = baseIncludePath.resolve(normalized);
+        }
+        return normalized.toAbsolutePath().normalize();
+    }
+
+    private Path appendExtension(Path sourcePath, String extension) {
+        Path fileName = sourcePath.getFileName();
+        if (fileName == null) {
+            return sourcePath;
+        }
+        Path parent = sourcePath.getParent();
+        String nameWithExtension = fileName.toString() + extension;
+        return (parent == null) ? Path.of(nameWithExtension) : parent.resolve(nameWithExtension);
+    }
+
+    private boolean hasExtension(Path sourcePath) {
+        Path fileName = sourcePath.getFileName();
+        if (fileName == null) {
+            return false;
+        }
+        String name = fileName.toString();
+        int dot = name.lastIndexOf('.');
+        return dot > 0 && dot < name.length() - 1;
     }
 
     private String formatProblems(List<CompilationProblem> problems) {

@@ -1,5 +1,6 @@
 package io.github.protasm.lpc2j.exec;
 
+import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -35,5 +36,23 @@ public final class LpcObjectHandle {
 
     public void runWithRuntimeContext(Runnable action) {
         runtime.runWithRuntimeContext(action);
+    }
+
+    public Object invoke(String methodName) {
+        this.withRuntimeContext(() -> {
+            try {
+                Method method = this.objectClass().getMethod(methodName);
+
+                return method.invoke(this.instance());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        return null;
+    }
+
+    public String getClassName() {
+      return this.instance().getClass().getName();
     }
 }

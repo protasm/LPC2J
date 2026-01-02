@@ -43,7 +43,7 @@ public final class LpcObjectHandle {
     }
 
     public Object invoke(String methodName) {
-        return this.withRuntimeContext(() -> {
+        return runtime.withCurrentObject(instance, () -> {
             try {
                 Method method = this.objectClass().getMethod(methodName);
 
@@ -57,7 +57,7 @@ public final class LpcObjectHandle {
     public Object invoke(String methodName, Object... args) {
     Objects.requireNonNull(methodName, "methodName");
 
-    return runtime.withRuntimeContext(() -> {
+    return runtime.withCurrentObject(instance, () -> {
         try {
             Method method = findMethod(methodName, args.length);
             return method.invoke(instance, args);
@@ -71,7 +71,7 @@ public final class LpcObjectHandle {
     }
 
     public void invokeVoid(String methodName, Object... args) {
-    runtime.runWithRuntimeContext(() -> {
+    runtime.runWithCurrentObject(instance, () -> {
         invoke(methodName, args);
     });
     }

@@ -4,10 +4,13 @@ import io.github.protasm.lpc2j.efun.Efun;
 import io.github.protasm.lpc2j.efun.EfunRegistry;
 import io.github.protasm.lpc2j.preproc.IncludeResolver;
 import io.github.protasm.lpc2j.preproc.Preprocessor;
+import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Encapsulates runtime state required by compiled LPC code.
@@ -19,6 +22,8 @@ public final class RuntimeContext {
     private final EfunRegistry efunRegistry;
     private final IncludeResolver includeResolver;
     private final Map<String, Object> objects = new LinkedHashMap<>();
+    private final ThreadLocal<Deque<Object>> currentObjectStack =
+            ThreadLocal.withInitial(ArrayDeque::new);
 
     public RuntimeContext(IncludeResolver includeResolver) {
         this(includeResolver, new EfunRegistry());
@@ -73,5 +78,40 @@ public final class RuntimeContext {
 
     public Map<String, Object> objects() {
         return objects;
+    }
+
+    public Object currentObject() {
+        return currentObjectStack.get().peek();
+    }
+
+    public void pushCurrentObject(Object object) {
+        Objects.requireNonNull(object, "object");
+        currentObjectStack.get().push(object);
+    }
+
+    public void popCurrentObject() {
+        Deque<Object> stack = currentObjectStack.get();
+        if (stack.isEmpty()) {
+            throw new IllegalStateException("No current LPC object is available to pop.");
+        }
+        stack.pop();
+    }
+
+    public <T> T withCurrentObject(Object object, Supplier<T> action) {
+        Objects.requireNonNull(action, "action");
+        pushCurrentObject(object);
+        try {
+            return action.get();
+        } finally {
+            popCurrentObject();
+        }
+    }
+
+    public void runWithCurrentObject(Object object, Runnable action) {
+        Objects.requireNonNull(action, "action");
+        withCurrentObject(object, () -> {
+            action.run();
+            return null;
+        });
     }
 }

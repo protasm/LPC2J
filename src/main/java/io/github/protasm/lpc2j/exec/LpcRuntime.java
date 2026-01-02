@@ -148,6 +148,19 @@ public final class LpcRuntime {
         }
     }
 
+    public <T> T withCurrentObject(Object object, Supplier<T> action) {
+        Objects.requireNonNull(action, "action");
+        return withRuntimeContext(() -> runtimeContext.withCurrentObject(object, action));
+    }
+
+    public void runWithCurrentObject(Object object, Runnable action) {
+        Objects.requireNonNull(action, "action");
+        withCurrentObject(object, () -> {
+            action.run();
+            return null;
+        });
+    }
+
     public void runWithRuntimeContext(Runnable action) {
         Objects.requireNonNull(action, "action");
         withRuntimeContext(() -> {

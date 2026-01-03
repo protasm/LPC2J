@@ -91,6 +91,7 @@ public final class PipelineRegressionTests {
                 new TestCase("ternary operator compiles and executes", PipelineRegressionTests::ternaryOperatorExecutes),
                 new TestCase("arrays parse and execute basic operations", PipelineRegressionTests::arraysBehave),
                 new TestCase("mappings parse and execute basic operations", PipelineRegressionTests::mappingsBehave),
+                new TestCase("mapping literals accept trailing commas", PipelineRegressionTests::mappingLiteralAllowsTrailingComma),
                 new TestCase("for loops compile and execute", PipelineRegressionTests::forLoopsExecute)
                 );
 
@@ -881,6 +882,38 @@ public final class PipelineRegressionTests {
         assertEquals(10, combined.get("gold"), "original entries should be preserved when not overridden");
         assertEquals(30, combined.get("copper"), "existing entries should persist after merging");
         assertEquals(40, combined.get("iron"), "right-hand entries should be added");
+    }
+
+    private static void mappingLiteralAllowsTrailingComma() throws Exception {
+        String source = ""
+                + "mapping metals() {\n"
+                + "    return ([ \"gold\" : 10, \"silver\" : 20, ]);\n"
+                + "}\n";
+
+        CompilationPipeline pipeline = new CompilationPipeline("java/lang/Object");
+        CompilationResult result =
+                pipeline.run(null, source, "regression/MappingTrailingComma", null, ParserOptions.defaults());
+
+        if (!result.succeeded()) {
+            throw new AssertionError("Compilation pipeline failed: " + describeProblems(result.getProblems()));
+        }
+
+        byte[] bytecode = result.getBytecode();
+        String binaryName = "regression.MappingTrailingComma";
+
+        Class<?> clazz = new ClassLoader() {
+            Class<?> define() {
+                return defineClass(binaryName, bytecode, 0, bytecode.length);
+            }
+        }.define();
+
+        Object instance = clazz.getDeclaredConstructor().newInstance();
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<Object, Object> metals = (java.util.Map<Object, Object>) clazz.getMethod("metals").invoke(instance);
+        assertEquals(2, metals.size(), "mapping should contain entries despite trailing comma");
+        assertEquals(10, metals.get("gold"), "mapping should store gold with value 10");
+        assertEquals(20, metals.get("silver"), "mapping should store silver with value 20");
     }
 
     private static void forLoopsExecute() throws Exception {

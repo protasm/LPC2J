@@ -62,6 +62,9 @@ public final class LpcRuntime {
         String source;
 
         try {
+            if (!Files.exists(normalized)) {
+                throw new LpcRuntimeException("Source file not found: " + normalized);
+            }
             source = Files.readString(normalized);
         } catch (IOException e) {
             throw new LpcRuntimeException("Failed to read source file: " + normalized, e);
@@ -94,6 +97,24 @@ public final class LpcRuntime {
         runtimeContext.registerObject(internalName, instance);
 
         return new LpcObjectHandle(this, internalName, compiledClass, instance);
+    }
+
+    public LpcLoadResult tryLoad(String sourcePath) {
+        Objects.requireNonNull(sourcePath, "sourcePath");
+        try {
+            return LpcLoadResult.success(load(sourcePath));
+        } catch (RuntimeException e) {
+            return LpcLoadResult.failure(e);
+        }
+    }
+
+    public LpcLoadResult tryLoad(Path sourcePath) {
+        Objects.requireNonNull(sourcePath, "sourcePath");
+        try {
+            return LpcLoadResult.success(load(sourcePath));
+        } catch (RuntimeException e) {
+            return LpcLoadResult.failure(e);
+        }
     }
 
     public LpcObjectHandle loadSource(String sourceName, String source) {

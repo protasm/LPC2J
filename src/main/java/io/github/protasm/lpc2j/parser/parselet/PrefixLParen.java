@@ -34,12 +34,19 @@ public class PrefixLParen implements PrefixParselet {
         List<ASTExprMappingEntry> entries = new ArrayList<>();
 
         if (!parser.tokens().check(T_RIGHT_BRACKET)) {
-            do {
+            while (true) {
                 ASTExpression key = parser.expression();
                 parser.tokens().consume(T_COLON, "Expect ':' after mapping key.");
                 ASTExpression value = parser.expression();
                 entries.add(new ASTExprMappingEntry(key, value));
-            } while (parser.tokens().match(T_COMMA));
+
+                if (!parser.tokens().match(T_COMMA)) {
+                    break;
+                }
+                if (parser.tokens().check(T_RIGHT_BRACKET)) {
+                    break;
+                }
+            }
         }
 
         parser.tokens().consume(T_RIGHT_BRACKET, "Expect ']' after mapping literal.");
